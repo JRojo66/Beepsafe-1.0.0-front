@@ -1,0 +1,867 @@
+html {
+  font-size: 16px;
+}
+
+body {
+  text-align: center;
+  background-color: black; /* Un amarillo usando valores RGB */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+p {
+  color: white; /* Púrpura usando código hexadecimal */
+}
+
+.logout{
+  color: white;
+  display: flex;
+  justify-content:end
+}
+.logoutbutton{
+  font-size: 18px;
+  font-weight: bold;
+  background-color: #5dfdcb;
+  border-radius: 20%;
+}
+
+.hola {
+  font-size: 200%;
+  margin-top: 0%;
+  margin-bottom: 0%;
+  padding-bottom: 0%;
+}
+
+.boton {
+  font-weight: bold;
+  width: 60%;
+  background-color: #5dfdcb;
+  border: none;
+  color: black;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 24px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.boton:hover {
+  background-color: #49d1b7;
+}
+
+a {
+  color: white;
+  display: block; /* Para que ocupen todo el ancho y se apilen verticalmente */
+  margin: 0% auto; /* Margen arriba y abajo, centrado horizontal */
+  text-decoration: none;
+  padding: 0px;
+  width: fit-content;
+  text-align: center;
+  font-size: 110%;
+  transition: background-color 0.3s ease;
+}
+@media (max-width: 900px) {
+  .logo {
+    margin-top: 20%; /* Margen superior del 20% del ancho del contenedor padre */
+    margin-bottom: 5%;
+    width: 28%;
+  }
+  .Beepsafer {
+    font-size: 220%;
+    margin-top: 0%;
+    padding-top: 0%;
+    margin-bottom: 8%;
+  }
+  .tienecuenta {
+    padding-top: 12%;
+    color: white;
+  }
+  .iniciarsesion {
+    padding-top: 5%;
+    color: #5dfdcb;
+    text-decoration: underline;
+  }
+
+  /* Crear cuenta / Iniciar Sesión*/
+
+  .logo2 {
+    margin-top: 15%;
+    margin-bottom: 10%;
+    width: 28%;
+  }
+
+  .formulario {
+    width: 65%;
+    margin: 0 auto;
+    min-height: 400px;
+    box-sizing: border-box; /* Incluir padding y border en el ancho total */
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    /* Estilo general para todos los navegadores modernos */
+    color: #dcdcdc; /* Color gris claro (puedes cambiarlo) */
+    font-size: 14px; /* Tamaño de la fuente (opcional) */
+    font-weight: normal; /* Grosor de la fuente (opcional) */
+    opacity: 1; /* Asegura que el placeholder sea visible en Firefox */
+  }
+
+  .campo {
+    margin-bottom: 50px;
+  }
+
+  .campo label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+
+  .campo input[type="text"],
+  .campo input[type="email"],
+  .campo input[type="tel"],
+  .campo input[type="password"],
+  .campo textarea {
+    color: white;
+    width: 100%;
+    padding: 5px 0;
+    border: none;
+    border-bottom: 1px solid #5dfdcb;
+    box-sizing: border-box;
+    outline: none;
+    background-color: transparent;
+  }
+
+  .campo input[type="text"]:focus,
+  .campo input[type="email"]:focus,
+  .campo input[type="tel"]:focus,
+  .campo input[type="password"]:focus,
+  .campo textarea:focus {
+    border-bottom-color: #007bff;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px black inset !important; /* Fondo negro */
+    -webkit-text-fill-color: white !important; /* Color del texto blanco */
+    color: white !important; /* fallback para otros navegadores */
+  }
+
+  button[type="submit"] {
+    width: 100%; /* O un valor en px si prefieres un ancho fijo */
+    height: 3.75rem; /* Equivalente a 60px si el font-size base es 16px */
+    font-size: 1rem; /* Tamaño de fuente para el botón */
+    padding: 0.625rem 1.25rem; /* Ajustar padding con unidades relativas */
+    background-color: #5dfdcb;
+    border: none;
+    color: black;
+    padding: 10px 20px;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 10px auto 0;
+    cursor: pointer;
+    border-radius: 4px;
+    display: block;
+  }
+
+  button[type="submit"]:hover {
+    background-color: #49d1b7;
+  }
+
+  /* Provisorio para mostrar la pagina de IniciarDetener - Borrar cuando restaure el boton */
+  /*****************************************************************************************/
+  .iniciarSesion2 {
+    width: 200px;
+    background-color: #5dfdcb;
+    border-radius: 4px;
+    border: none;
+    color: black;
+    padding: 20px;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+  }
+}
+
+/* Media query para pantallas de más de 900px de ancho */
+@media (min-width: 901px) {
+  /* Usamos 901px para evitar solapamientos */
+  .logo {
+    margin-top: 50px;
+    margin-bottom: 50px;
+    width: 20%;
+  }
+  .Beepsafer {
+    font-size: 220%;
+    margin-top: 0%;
+    padding-top: 0%;
+    margin-bottom: 80px;
+  }
+  .tienecuenta {
+    padding-top: 11px;
+    color: white;
+  }
+  .iniciarsesion {
+    padding-top: 11px;
+    color: #5dfdcb;
+    text-decoration: underline;
+  }
+
+  /* Crear cuenta */
+
+  .logo2 {
+    margin-top: 0px;
+    margin-bottom: 0px;
+    width: 15%;
+  }
+
+  .formulario {
+    width: 40%;
+    margin: 0 auto;
+    box-sizing: border-box; /* Incluir padding y border en el ancho total */
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    /* Estilo general para todos los navegadores modernos */
+    color: #dcdcdc; /* Color gris claro (puedes cambiarlo) */
+    font-size: 14px; /* Tamaño de la fuente (opcional) */
+    font-weight: normal; /* Grosor de la fuente (opcional) */
+    opacity: 1; /* Asegura que el placeholder sea visible en Firefox */
+  }
+
+  .campo {
+    margin-bottom: 50px;
+  }
+
+  .campo label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+
+  .campo input[type="text"],
+  .campo input[type="email"],
+  .campo input[type="tel"],
+  .campo input[type="password"],
+  .campo textarea {
+    color: white;
+    width: 100%;
+    padding: 10px 0;
+    border: none;
+    border-bottom: 1px solid #5dfdcb;
+    box-sizing: border-box;
+    outline: none;
+    background-color: transparent;
+  }
+
+  .campo input[type="text"]:focus,
+  .campo input[type="email"]:focus,
+  .campo input[type="tel"]:focus,
+  .campo input[type="password"]:focus,
+  .campo textarea:focus {
+    border-bottom-color: #49d1b7; /* color de la linea de subrayado del formulario cuando lo estoy llenando*/
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    /*Hace que el autofill tenga texto blanco con fondo negro*/
+    -webkit-box-shadow: 0 0 0 30px black inset !important; /* Fondo negro */
+    -webkit-text-fill-color: white !important; /* Color del texto blanco */
+    color: white !important; /* fallback para otros navegadores */
+  }
+
+  button[type="submit"] {
+    width: 100%;
+    height: 3.75rem; /* Equivalente a 60px si el font-size base es 16px */
+    font-size: 1rem; /* Tamaño de fuente para el botón */
+    padding: 0.625rem 1.25rem; /* Ajustar padding con unidades relativas */
+    background-color: #5dfdcb;
+    border: none;
+    color: black;
+    padding: 10px 20px;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 10px auto 0;
+    cursor: pointer;
+    border-radius: 4px;
+    display: block;
+  }
+
+  button[type="submit"]:hover {
+    background-color: #49d1b7;
+  }
+  /* Provisorio para mostrar la pagina de IniciarDetener - Borrar cuando restaure el boton */
+  /*****************************************************************************************/
+  .iniciarSesion2 {
+    width: 100%;
+    height: 3.75rem; /* Equivalente a 60px si el font-size base es 16px */
+    font-size: 1rem; /* Tamaño de fuente para el botón */
+    padding: 0.625rem 1.25rem; /* Ajustar padding con unidades relativas */
+    background-color: #5dfdcb;
+    border: none;
+    color: black;
+    padding: 10px 20px;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 10px auto 0;
+    cursor: pointer;
+    border-radius: 4px;
+    display: block;
+  }
+}
+
+.password-container {
+  position: relative;
+}
+
+.ojo {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: white;
+}
+.ojo:hover {
+  color: #49d1b7;
+}
+
+/* Iniciar/Detener Actividad*/
+
+.contenedor {
+  display: flex; /* Convierte el contenedor en flexible */
+  width: 100%; /* O el ancho que necesites */
+  max-width: 500px;
+  margin: 0 auto;
+  padding-bottom: 5%;
+  justify-content: center;
+  align-items: center;
+  /* border: 1px solid white; */
+}
+
+.caja1 {
+  width: 50%; /* O el ancho que necesites para cada caja */
+  background-color: black;
+  /* border: 1px solid red; */
+  /* padding-top: 75px; */
+  box-sizing: border-box; /* Incluye el padding y border en el ancho */
+  flex-grow: 1;
+  max-height: 150px;
+}
+
+.saludo {
+  font-size: 32px;
+  margin: 0px;
+  padding: 0px 0px 0px 30%;
+  text-align: left;
+}
+
+.caja2 {
+  width: 50%;
+  background-color: black;
+  border: 1px solid black;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  display: flex; /* Hacemos caja2 un contenedor flexible */
+  justify-content: center; /* Centramos el contenido horizontalmente */
+  align-items: center; /* Centramos el contenido verticalmente */
+  /* border: 1px solid green; */
+  flex-grow: 1;
+  max-height: 150px;
+}
+
+.logoActividad {
+  /* Margen superior del 20% del ancho del contenedor padre */
+  margin-bottom: 5%;
+  width: 45%; /* La imagen ocupará el 100% del ancho de su contenedor */
+  height: 45%; /* La imagen ocupará el 100% de la altura de su contenedor */
+  padding-top: 30px;
+  object-fit: contain; /* Ajusta la imagen para que quepa dentro del contenedor manteniendo sus proporciones */
+  /* border: 1px solid yellow; */
+  max-height: 100px;
+}
+
+.botonIniciar {
+  border: 20px solid #5dfdcb; /*Borde de 20px en el color especificado */
+  /* border-image: linear-gradient(to right, red 10%, #5DFDCB 10%) 1 round; */
+  height: 270px;
+  width: 270px;
+  color: white;
+  font-weight: bold;
+  font-size: 28px;
+  background-color: transparent; /* Fondo transparente */
+  border-radius: 50%; /* Hace que el botón sea circular */
+  cursor: pointer; /* Cambia el cursor al pasar el ratón por encima */
+  flex-direction: column; /* Apila los elementos verticalmente */
+  align-items: center; /* Centra los elementos horizontalmente */
+}
+
+.tiempo {
+  font-size: 18px;
+}
+
+.contenedor-padre {
+  width: 80%;
+  padding: 0.625rem 1.25rem; /* Ajustar padding con unidades relativas */
+  background-color: black;
+  border: 1px solid #5dfdcb;
+  color: white;
+  padding: 10px 20px;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 25px auto;
+  cursor: pointer;
+  border-radius: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: space-between;
+  max-width: 400px;
+}
+
+.menu {
+  /*Estilos para los menús desplegables */
+  width: 100%; /* Ocupa todo el ancho de la celda */
+  background-color: black; /* Fondo negro para el menú*/
+  color: white; /* Texto blanco para las opciones */
+  /* border: 1px solid red; */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-size: 16px;
+  border: none;
+  /* margin-right: 2px; */
+}
+
+.elegidos {
+  background-color: black;
+  /* border: 1px solid blue; */
+  margin: 0px;
+  padding: 0px;
+}
+
+.flex-container {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0px;
+  margin-top: 0px;
+  border-radius: 30px;
+}
+
+.item1,
+.item2,
+.item3 {
+  width: 33%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: black;
+}
+
+.item1,
+.item2 {
+  border-right: 1px solid #5dfdcb;
+}
+
+.menu option {
+  background-color: black;
+  color: white;
+  border: none;
+  cursor: pointer;
+  text-align: center; /* Centra el texto de las opciones */
+  font-size: 14px;
+}
+
+.menu option:hover {
+  background-color: #333; /* Fondo gris oscuro al pasar el mouse */
+}
+
+.contenedor-padre2 {
+  padding: 0.625rem 1.25rem; /* Ajustar padding con unidades relativas */
+  margin: 25px auto;
+  border-radius: 10%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 440px;
+}
+.flex-container2 {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0px;
+  margin-top: 0px;
+  border-radius: 30px;
+  background-color: white;
+}
+
+.inicio,
+.miPerfil {
+  width: 50%;
+  display: flex;
+  flex-direction: column; /* Hacemos que los elementos dentro de cada columna se apilen */
+  align-items: center;
+  padding: 10px 0px;
+}
+
+.inicio {
+  background-color: #5dfdcb;
+  border-radius: 30px;
+}
+.miPerfil {
+  background-color: white;
+  border-radius: 30px;
+}
+
+.botonInicio {
+  color: black;
+  background-color: #5dfdcb;
+  border: none;
+  font-size: 8px;
+}
+
+.botonPerfil {
+  color: black;
+  background-color: white;
+  border: none;
+  font-size: 8px;
+}
+
+.home {
+  height: 18px;
+  background-color: #5dfdcb;
+}
+
+/*Perfil*/
+
+.contenedor-padre3 {
+  padding: 0.625rem 1.25rem; /* Ajustar padding con unidades relativas */
+  margin: 130px auto;
+  border-radius: 10%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 440px;
+}
+
+.perfil {
+  font-size: 1.8rem;
+  width: 100%;
+  height: 4rem;
+  color: white;
+  background-color: #300965;
+  max-width: 380px;
+}
+
+.containerPerfil {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top:10px;
+}
+
+.opciones {
+  font-size: 70%;
+  margin-left: 20px;
+  width: 80%;
+  text-align: left;
+}
+.iniciob,
+.miPerfilb {
+  width: 50%;
+  display: flex;
+  flex-direction: column; /* Hacemos que los elementos dentro de cada columna se apilen */
+  align-items: center;
+  padding: 10px 0px;
+}
+
+.iniciob {
+  background-color: white;
+  border-radius: 30px;
+}
+.miPerfilb {
+  background-color: #5dfdcb;
+  border-radius: 30px;
+}
+
+.botonIniciob {
+  color: black;
+  background-color: white;
+  border: none;
+  font-size: 8px;
+}
+
+.botonPerfilb {
+  color: black;
+  background-color: #5dfdcb;
+  border: none;
+  font-size: 8px;
+}
+
+.homeb {
+  width: 5%;
+  height: 18px;
+  background-color: #5dfdcb;
+}
+
+.saludoPerfil {
+  font-size: 40px;
+  margin: 0px;
+  text-align: left;
+}
+
+.break {
+  height: 4px;
+}
+
+/* Historial */
+
+.configuracion {
+  background-color: #300965;
+  padding-bottom: 3px;
+  width: 380px;
+  margin: 0 auto;
+}
+
+.encabezado {
+  margin: 22px;
+}
+
+.encabezadoBajada {
+  font-size: 14px;
+  text-align: center;
+  margin: 3% auto;
+  width: 370px;
+}
+
+.containerActividad {
+  background-color: black;
+  margin: 0 auto;
+  padding-top: 0;
+  width: 370px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: left;
+  padding-top: 10px;
+}
+
+.subActividad{
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.fechaActividad {
+  margin-top: 0px;
+  font-size: 10px;
+  padding: 0px;
+}
+
+.actividad {
+  width: 100%;  
+  text-align: left;
+}
+
+.detalleActividad{
+    color: white;
+}
+
+.comentariosActividad{
+    font-size: 14px;
+    text-align: left;
+    margin: 3% auto;
+    width: 80%;
+}
+.breakVioleta{
+    height: 10px;
+    background-color: #300965;
+}
+
+/* Mis mensajes*/
+.perfilb {
+    font-size: 1.8rem;
+    width: 100%;
+    height: 4rem;
+    color: white;
+    background-color: black;
+    max-width: 440px;
+}
+
+.mensajeDePrueba{
+  max-height: 1px;
+}
+
+/* Mis contactos*/
+
+.opcionesAmigos {
+    font-size: 60%;
+    margin-left: 80px;
+    width: 80%;
+    text-align: left;
+  }
+
+  .opcionesAmigob {
+    font-size: 60%;
+    margin-left: 100px;
+    width: 80%;
+    text-align: left;
+  }
+
+  .perfilc {
+    font-size: 1.8rem;
+    width: 100%;
+    height: 3rem;
+    color: white;
+    background-color: black;
+    max-width: 380px;
+}
+
+  .perfild {
+    font-size: 1.8rem;
+    width: 100%;
+    height: 3rem;
+    color: white;
+    background-color: black;
+    max-width: 380px;
+}
+
+
+.desplegable{
+    height: 15px;
+}
+
+.opcionesAmigosb {
+    font-size: 50%;
+    margin-left: 100px;
+    width: 80%;
+    text-align: left;
+  }
+
+  .opcionesAmigosc {
+    font-size: 50%;
+    margin-left: 100px;
+    width: 80%;
+    text-align: left;
+    background-color: #5dfdcb;
+    border-radius: 10%;
+  }
+
+  .opcionesAmigosd {
+    font-size: 60%;
+    margin-left: 80px;
+    width: 80%;
+    text-align: left;
+    background-color: #5dfdcb;
+    border-radius: 10%;
+  }
+  
+
+  .tabla{
+    height: 1.8rem;
+  }
+
+  /* Mis equipos*/
+
+  .perfile {
+    font-size: 1.8rem;
+    width: 100%;
+    height: 4rem;
+    color: white;
+    background-color: black;
+    max-width: 380px;
+}
+
+  /*Mensajes*/
+.areaMensaje{
+  color: white;
+  font-size: 12px;
+  background-color: black;
+}
+
+  .submit{
+    font-size: 18px;
+    color: black;
+    background-color:#5dfdcb;
+    border:white;
+    border-radius: 5%;
+    padding: 10px;
+  }
+
+  .desplegableb{
+    height: 18px;
+    color: black;
+    background-color: #5dfdcb;
+  }
+
+  .opcionesAmigose {
+    font-size: 50%;
+    font-style: italic;
+    margin-left: 100px;
+    width: 80%;
+    text-align: left;
+  }
+
+  .perfilf {
+    margin-left: 40px;
+    font-size: 1.8rem;
+    width: 100%;
+    height: 3rem;
+    color: white;
+    background-color: black;
+    max-width: 380px;
+}
+
+.containerPerfilb {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top:10px;
+  max-width: 347px;
+  
+}
+
+.opcionesAmigosf {
+  color: black;
+  background-color: #5dfdcb;
+  font-size: 50%;
+  margin-left: 100px;
+  width: 80%;
+  text-align: left;
+}
+
+
+.desplegablec{
+  height: 20px;
+  color: black;
+  background-color: #5dfdcb;
+}
+
+.chekboxDestinatarios{
+  font-size: 12px;
+}
+
+.error-message {
+  color: red;
+  font-size: 0.8em;
+  margin-top: 5px;
+}

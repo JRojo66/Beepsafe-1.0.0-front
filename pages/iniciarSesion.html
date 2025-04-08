@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar sesión</title>
+    <!-- Para el ojito de mostrar/ocultar -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../styles/styles.css">
+</head>
+<body>
+    <img class="logo2" src="../imagenes/Logo BeepSafe fondo negro.JPG" alt="logo">
+    <form id="iniciarSesionForm">
+      <div class="formulario">
+        <div class="campo">
+          <input type="email" id="email" name="email" placeholder="email">
+        </div>
+        <div class="campo password-container">
+          <input type="password" id="password" name="password" placeholder="Contraseña">
+          <i class="fa fa-eye ojo" onclick="togglePassword('password', this)"></i>
+        </div>
+        <button type="submit" class="iniciarSesion2">Iniciar Sesión</button>
+         <!-- <a class="iniciarSesion2" href="../pages/IniciarDetener.html">Iniciar Sesión</a> -->
+      </div>
+    </form>
+
+
+    <script src="../JS/iniciarSesion.js"></script>    
+</body>
+</html>

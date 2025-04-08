@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Cuenta</title>
+    <!-- Para el ojito de mostrar/ocultar -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../styles/styles.css">
+</head>
+<body>
+    <img class="logo2" src="../imagenes/Logo BeepSafe fondo negro.JPG" alt="logo">
+    <form id="registroForm"><!-- action="/procesar_formulario" method="post" -->
+      <div class="formulario">
+        <div class="campo">
+          <input type="text" id="name" name="name" placeholder="Nombre">
+          <div id="nameError" class="error-message"></div>
+        </div>
+        <div class="campo">
+          <input type="email" id="email" name="email" placeholder="email">
+          <div id="emailError" class="error-message"></div>
+        </div>
+        <div class="campo">
+          <input type="tel" id="phone" name="phone" placeholder="Telefono p.e. 1134567890">
+          <div id="phoneError" class="error-message"></div>
+        </div>
+        <div class="campo password-container">
+          <input type="password" id="password" name="password" placeholder="Contraseña">
+          <i class="fa fa-eye ojo" onclick="togglePassword('password', this)"></i>
+          <div id="passwordError" class="error-message"></div>
+        </div>
+        <div class="campo password-container">
+          <input type="password" id="password2" name="password2" placeholder="Repetir contraseña">
+          <i class="fa fa-eye ojo" onclick="togglePassword('password2', this)"></i>
+          <div id="password2Error" class="error-message"></div>
+        </div>
+        <button type="submit">Crear Cuenta</button>
+      </div>
+    </form>
+    <script src="../JS/crearCuenta.js"></script>
+</body>
+</html>
