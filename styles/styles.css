@@ -4,9 +4,8 @@ html {
 
 body {
   text-align: center;
-  background-color: black; /* Un amarillo usando valores RGB */
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  background-color: black;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 }
 
 p {
@@ -864,4 +863,101 @@ a {
   color: red;
   font-size: 0.8em;
   margin-top: 5px;
+}
+
+/* Cuenta creada exitosamente*/
+
+.cuenta-creada-body {
+  color: white;
+  display: flex;
+  flex-direction: column;
+  /* justify-content: center; */
+  align-items: center;
+  min-height: 100vh; /* Asegura que la página ocupe al menos toda la altura de la ventana */
+  padding-top: calc(var(--vh, 1vh) * 5); /*Ajustamos el padding superior */
+}
+
+.success-container {
+  background-color: #300965;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra sutil */
+  width: 80%;
+  max-width: 500px;
+  text-align: center; /* Centra el texto dentro del contenedor */
+}
+
+.success-icon {
+  color: #5dfdcb;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.success-title {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.success-message {
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.login-link {
+  display: inline-block;
+  background-color: #5dfdcb;
+  color: black;
+  padding: 0.75rem 1.5rem;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.login-link:hover {
+  background-color: #49d1b7; /* Un poco más oscuro al pasar el mouse */
+}
+
+
+
+
+
+.error-container {
+  background-color: #300965; /* El mismo púrpura que usas en el encabezado */
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra sutil */
+  width: 80%;
+  max-width: 500px;
+}
+
+.error-icon {
+  color: #ff4d4d; /* Un color rojo para el icono de error */
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.error-title {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.error-message {
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.volver-link {
+  display: inline-block;
+  background-color: #5dfdcb;
+  color: black;
+  padding: 0.75rem 1.5rem;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.volver-link:hover {
+  background-color: #49d1b7; /* Un poco más oscuro al pasar el mouse */
 }

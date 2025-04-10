@@ -23,13 +23,13 @@ function isValidEmail(email) {
 }
 
 function isValidArgentinePhoneStrictNoSeparators(phone) {
-    // Expresión regular estricta para validar un número de teléfono argentino
-    // sin el cero inicial del código de área ni el prefijo "15" de celular,
-    // y SIN permitir espacios ni guiones.
-    // Requiere un código de área de 2 a 4 dígitos (comenzando generalmente con 2, 3, 4, 5, 6, 7, 8 o 9)
-    // seguido directamente por un número local de 6 a 8 dígitos.
-    const phoneRegexStrictNoSeparators = /^([1-9]\d{1,3})\d{6,8}$/;
-    return phoneRegexStrictNoSeparators.test(phone);
+  // Expresión regular estricta para validar un número de teléfono argentino
+  // sin el cero inicial del código de área ni el prefijo "15" de celular,
+  // y SIN permitir espacios ni guiones.
+  // Requiere un código de área de 2 a 4 dígitos (comenzando generalmente con 2, 3, 4, 5, 6, 7, 8 o 9)
+  // seguido directamente por un número local de 6 a 8 dígitos.
+  const phoneRegexStrictNoSeparators = /^([1-9]\d{1,3})\d{6,8}$/;
+  return phoneRegexStrictNoSeparators.test(phone);
 }
 
 const form = document.getElementById("registroForm");
@@ -72,12 +72,14 @@ form.addEventListener("submit", function (event) {
 
   // Validar Teléfono
   if (!phone.trim()) {
-    document.getElementById('phoneError').textContent = 'Por favor, ingresa tu número de teléfono.';
+    document.getElementById("phoneError").textContent =
+      "Por favor, ingresa tu número de teléfono.";
     isValid = false;
-} else if (!isValidArgentinePhoneStrictNoSeparators(phone)) {
-    document.getElementById('phoneError').textContent = 'Por favor, ingresa un número de teléfono válido (sin 0, sin 15, sin espacios ni guiones).';
+  } else if (!isValidArgentinePhoneStrictNoSeparators(phone)) {
+    document.getElementById("phoneError").textContent =
+      "Por favor, ingresa un número de teléfono válido (sin 0, sin 15, sin espacios ni guiones).";
     isValid = false;
-}
+  }
 
   // Validar Contraseña
   if (!password) {
@@ -111,18 +113,27 @@ form.addEventListener("submit", function (event) {
       }),
     })
       .then((response) => {
+        console.log("THEN EJECUTADO:", response);
         if (!response.ok) {
-          throw new Error("Error en la solicitud");
+          console.log("Respuesta no OK:", response.status);
+          return response.json().then((errData) => {
+            const errorMessage =
+              errData.error || "Algo salió mal, contacte al administrador."; // Obtener el mensaje del backend
+            throw new Error(errorMessage);
+          });
         }
         return response.json();
       })
       .then((data) => {
-        console.log("Respuesta del servidor:", data);
-        // Manejar la respuesta del servidor (mostrar mensaje de éxito, redireccionar, etc.)
+        console.log("DATA EN THEN:", data);
+        window.location.href = "cuentaCreadaExitosamente.html";
       })
       .catch((error) => {
-        console.error("Error:", error);
-        // Manejar errores (mostrar mensaje de error al usuario)
+        console.error("CATCH EJECUTADO:", error);
+        // Redirigir a la página de error y pasar el mensaje como parámetro en la URL
+        window.location.href = `errorCrearCuenta.html?error=${encodeURIComponent(
+          error.message
+        )}`;
       });
   }
 });
