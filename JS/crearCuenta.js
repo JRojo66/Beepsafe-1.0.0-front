@@ -1,4 +1,5 @@
 // Muestra/oculta las contraseñas al hacer click en el ojito
+//
 
 function togglePassword(id, icon) {
   let input = document.getElementById(id);
