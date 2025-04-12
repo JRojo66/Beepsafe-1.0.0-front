@@ -62,19 +62,28 @@ form.addEventListener("submit", function (event) {
         password: password,
       }),
     })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Error en la solicitud");
-        }
-        return response.json();
-      })
-      .then((data) => {
-        console.log("Respuesta del servidor:", data);
-        // Manejar la respuesta del servidor (mostrar mensaje de éxito, redireccionar, etc.)
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        // Manejar errores (mostrar mensaje de error al usuario)
-      });
-  }
+    .then((response) => {
+      console.log("THEN EJECUTADO:", response);
+      if (!response.ok) {
+        console.log("Respuesta no OK:", response.status);
+        return response.json().then((errData) => {
+          const errorMessage =
+            errData.error || "Algo salió mal, contacte al administrador."; // Obtener el mensaje del backend
+          throw new Error(errorMessage);
+        });
+      }
+      return response.json();
+    })
+    .then((data) => {
+      console.log("DATA EN THEN:", data);
+      window.location.href = "IniciarDetener.html";
+    })
+    .catch((error) => {
+      console.error("CATCH EJECUTADO:", error);
+      // Redirigir a la página de error y pasar el mensaje como parámetro en la URL
+      window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(
+        error.message
+      )}`;
+    });
+}
 });
