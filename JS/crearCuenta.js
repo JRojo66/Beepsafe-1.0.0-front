@@ -14,7 +14,6 @@ function togglePassword(id, icon) {
   }
 }
 
-// Hace el POST del formulario
 
 // Validación de email
 function isValidEmail(email) {
@@ -35,6 +34,7 @@ function isValidArgentinePhoneStrictNoSeparators(phone) {
 
 const form = document.getElementById("registroForm");
 
+// Hace el POST del formulario
 form.addEventListener("submit", function (event) {
   event.preventDefault(); // Evita el envío del formulario por defecto
 
