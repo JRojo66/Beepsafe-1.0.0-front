@@ -54,6 +54,7 @@ form.addEventListener("submit", function (event) {
   if (isValid) {
     fetch("http://localhost:8080/api/sessions/login", {
       method: "POST",
+      credentials: "include", // 👈 NECESARIO PARA ENVIAR COOKIES
       headers: {
         "Content-Type": "application/json",
       },
@@ -81,9 +82,7 @@ form.addEventListener("submit", function (event) {
     .catch((error) => {
       console.error("CATCH EJECUTADO:", error);
       // Redirigir a la página de error y pasar el mensaje como parámetro en la URL
-      window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(
-        error.message
-      )}`;
+      //window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(error.message)}`;
     });
 }
 });
