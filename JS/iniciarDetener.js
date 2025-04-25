@@ -11,7 +11,8 @@ window.addEventListener('DOMContentLoaded', async () => {
       }
   
       const data = await response.json();
-      console.log('Autenticado como:', data.user?.email);
+      const nombreElemento = document.getElementById('nombre');
+      nombreElemento.innerHTML = `<strong>${data.userJWT.name.toUpperCase()}!</strong>`;
       // Podés usar data.user para personalizar la vista
     } catch (err) {
       console.warn('No autenticado, redirigiendo...');

@@ -21,6 +21,8 @@ function isValidEmail(email) {
 }
 
 const form = document.getElementById("iniciarSesionForm");
+const spinner = document.getElementById("spinner"); // debajo del form = document.getElementById...
+
 
 form.addEventListener("submit", function (event) {
   event.preventDefault(); // Evita el envío del formulario por defecto
@@ -52,6 +54,7 @@ form.addEventListener("submit", function (event) {
     return; // Detiene la ejecución de la función y no hace el fetch
   }
   if (isValid) {
+    spinner.style.display = "block";
     fetch("http://localhost:8080/api/sessions/login", {
       method: "POST",
       credentials: "include", // 👈 NECESARIO PARA ENVIAR COOKIES
@@ -66,6 +69,9 @@ form.addEventListener("submit", function (event) {
     .then((response) => {
       console.log("THEN EJECUTADO:", response);
       if (!response.ok) {
+        alert('Credenciales inválidas');
+        window.location.href = '../pages/iniciarSesion.html';
+
         console.log("Respuesta no OK:", response.status);
         return response.json().then((errData) => {
           const errorMessage =
@@ -83,6 +89,60 @@ form.addEventListener("submit", function (event) {
       console.error("CATCH EJECUTADO:", error);
       // Redirigir a la página de error y pasar el mensaje como parámetro en la URL
       //window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(error.message)}`;
-    });
+    }) 
+    .finally(() => {
+      spinner.style.display = "none";
+    });;
 }
+});
+
+
+// Olvidó su contraseña
+document.getElementById("resetPasswordLink").addEventListener("click", function (event) {
+  event.preventDefault();
+
+  const email = document.getElementById("email").value.trim();
+  
+  // Validar email antes de enviar
+  if (!email) {
+    document.getElementById("emailError").textContent = "Por favor, ingresa tu email para resetear la contraseña.";
+    return;
+  }
+  if (!isValidEmail(email)) {
+    document.getElementById("emailError").textContent = "Por favor, ingresa un email válido.";
+    return;
+  }
+
+  // Enviar fetch POST a /api/sessions/passwordReset
+  // spinner
+  spinner.style.display = "block";
+  // desabilita el boton despues de enviar la solicitud
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+
+  fetch("http://localhost:8080/api/sessions/passwordReset", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email }),
+  })
+  .then((response) => {
+    if (!response.ok) {
+      return response.json().then(err => {
+        throw new Error(err.error || "No se pudo iniciar el proceso de reseteo.");
+      });
+    }
+    return response.json();
+  })
+  .then((data) => {
+    alert("Si el email está registrado, recibirás instrucciones para resetear tu contraseña.");
+  })
+  .catch((error) => {
+    console.error("Error en reset de contraseña:", error);
+    alert(error.message);
+  }).finally(() => {
+    spinner.style.display = "none"; //spinner
+    submitBtn.disabled = false; // vuelve a habilitar el boton de send
+  });
 });
