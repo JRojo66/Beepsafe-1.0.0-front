@@ -100,6 +100,8 @@ form.addEventListener("submit", function (event) {
     isValid = false;
   }
 
+console.log(email);
+
   if (isValid) {
     fetch("http://localhost:8080/api/sessions/register", {
       method: "POST",
@@ -111,6 +113,7 @@ form.addEventListener("submit", function (event) {
         email: email,
         phone: phone,
         password: password,
+        password2: password2
       }),
     })
       .then((response) => {
@@ -119,7 +122,7 @@ form.addEventListener("submit", function (event) {
           console.log("Respuesta no OK:", response.status);
           return response.json().then((errData) => {
             const errorMessage =
-              errData.error || "Algo salió mal, contacte al administrador."; // Obtener el mensaje del backend
+              errData.payload || "Algo salió mal, contacte al administrador."; // Obtener el mensaje del backend
             throw new Error(errorMessage);
           });
         }
@@ -132,9 +135,7 @@ form.addEventListener("submit", function (event) {
       .catch((error) => {
         console.error("CATCH EJECUTADO:", error);
         // Redirigir a la página de error y pasar el mensaje como parámetro en la URL
-        window.location.href = `errorCrearCuenta.html?error=${encodeURIComponent(
-          error.message
-        )}`;
+        window.location.href = `errorCrearCuenta.html?error=${encodeURIComponent(error.message)}`;
       });
   }
 });

@@ -1,34 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Error al iniciar la sesión</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="../styles/styles.css">
-</head>
-<body class="cuenta-creada-body">
-    <img class="logo2" src="../imagenes/Logo BeepSafe fondo negro.JPG" alt="logo">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link rel="stylesheet" href="../styles/styles.css" />
+  </head>
+  <body class="cuenta-creada-body">
+    <img
+      class="logo2"
+      src="../imagenes/Logo BeepSafe fondo negro.JPG"
+      alt="logo"
+    />
     <div class="error-container">
-        <i class="fas fa-exclamation-triangle error-icon"></i> 
-        <h1 class="error-title">¡Error al iniciar la sesión!</h1>
-        <p class="error-message" id="errorMessageDisplay">
-            Algo salió mal, contacte al administrador.
-        </p>
-        <a href="../pages/iniciarSesion.html" class="login-link">Volver</a>
+      <i class="fas fa-exclamation-triangle error-icon"></i>
+      <h1 class="error-title">¡Error al iniciar la sesión!</h1>
+      <p class="error-message" id="errorMessageDisplay">
+        Algo salió mal, contacte al administrador.
+      </p>
+      <a href="../pages/iniciarSesion.html" class="login-link">Volver</a>
     </div>
 
-    <script>
-        // Obtener el mensaje de error de la URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const errorMessage = urlParams.get('error');
-        //console.log(errorMessage)
-
-        // Mostrar el mensaje de error si está presente
-        if (errorMessage) {
-            document.getElementById('errorMessageDisplay').textContent = decodeURIComponent(errorMessage);
-        }
-    </script>
-
-</body>
+    <script src="../JS/errorIniciarSesion.js"></script>
+  </body>
 </html>

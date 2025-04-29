@@ -23,6 +23,20 @@ function isValidEmail(email) {
 const form = document.getElementById("iniciarSesionForm");
 const spinner = document.getElementById("spinner"); // debajo del form = document.getElementById...
 
+let intentosFallidos = parseInt(localStorage.getItem("intentosFallidos")) || 0;
+let MAX_INTENTOS_FALLIDOS = 3; // Default max intentos fallidos hasta que cargue del backend
+let BLOCK_TIME_MINUTES = 60; // Default tiempo de bloqueo entre intentos hasta que cargue del backend
+
+// Fetchear config apenas carga la página
+fetch("http://localhost:8080/api/config")
+  .then((response) => response.json())
+  .then((config) => {
+    MAX_INTENTOS_FALLIDOS = config.maxLoginAttempts;
+    BLOCK_TIME_MINUTES = config.blockTimeMinutes;
+  })
+  .catch((error) => {
+    console.error("❌ Error cargando config del backend:", error);
+  });
 
 form.addEventListener("submit", function (event) {
   event.preventDefault(); // Evita el envío del formulario por defecto
@@ -66,83 +80,124 @@ form.addEventListener("submit", function (event) {
         password: password,
       }),
     })
-    .then((response) => {
-      console.log("THEN EJECUTADO:", response);
-      if (!response.ok) {
-        alert('Credenciales inválidas');
-        window.location.href = '../pages/iniciarSesion.html';
-
-        console.log("Respuesta no OK:", response.status);
-        return response.json().then((errData) => {
-          const errorMessage =
-            errData.error || "Algo salió mal, contacte al administrador."; // Obtener el mensaje del backend
-          throw new Error(errorMessage);
-        });
-      }
-      return response.json();
-    })
-    .then((data) => {
-      console.log("DATA EN THEN:", data);
-      window.location.href = "IniciarDetener.html";
-    })
-    .catch((error) => {
-      console.error("CATCH EJECUTADO:", error);
-      // Redirigir a la página de error y pasar el mensaje como parámetro en la URL
-      //window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(error.message)}`;
-    }) 
-    .finally(() => {
-      spinner.style.display = "none";
-    });;
-}
+      .then((response) => {
+        if (!response.ok) {
+          return response.json().then((errData) => {
+            throw { status: response.status, ...errData };
+          });
+        }
+        return response.json();
+      })
+      .then((data) => {
+        console.log("DATA EN THEN:", data);
+        localStorage.removeItem("intentosFallidos");
+        window.location.href = "IniciarDetener.html";
+      })
+      .catch((error) => {
+        console.error("CATCH EJECUTADO:", error);
+        const passwordErrorDiv = document.getElementById("passwordError");
+        console.log("error.status", error.status);
+        // Redirigir a la página de error y pasar el mensaje como parámetro en la URL
+        //window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(error.message)}`;
+        if (error.status === 429) {
+          // Ratelimit excedido
+          const now = Date.now();
+          const unblockTime = now + BLOCK_TIME_MINUTES * 60 * 1000; // tiempo futuro en ms
+          localStorage.setItem("blockedUntil", unblockTime);
+          const minutosRestantes = error.retryAfter || BLOCK_TIME_MINUTES; // por si no viene retryAfter
+          // Redirigir a la página de error y pasar el mensaje como parámetro en la URL
+          //passwordErrorDiv.textContent = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
+          let messageErrorTime = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
+          window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(
+            messageErrorTime
+          )}`;
+        } else if (error.status === 401) {
+          // Credenciales inválidas
+          intentosFallidos++;
+          localStorage.setItem("intentosFallidos", intentosFallidos); // 👉 Guarda en localStorage
+          
+          if (intentosFallidos >= MAX_INTENTOS_FALLIDOS) {
+            localStorage.removeItem("intentosFallidos"); // 👉 Reseteamos los intentos al bloquear
+            const now = Date.now();
+            const unblockTime = now + BLOCK_TIME_MINUTES * 60 * 1000; // tiempo futuro en ms
+            localStorage.setItem("blockedUntil", unblockTime);
+            const minutosRestantes = error.retryAfter || BLOCK_TIME_MINUTES; // por si no viene retryAfter
+            // Redirigir a la página de error y pasar el mensaje como parámetro en la URL
+            //passwordErrorDiv.textContent = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
+            let messageErrorTime = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
+            window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(
+              messageErrorTime
+            )}`;
+          } else {
+            passwordErrorDiv.textContent = `Credenciales inválidas. Intento ${intentosFallidos} de ${MAX_INTENTOS_FALLIDOS}.`;
+          }
+        } else {
+          // Otro error
+          passwordErrorDiv.textContent =
+            error.error || "Algo salió mal, intentalo nuevamente.";
+        }
+      })
+      .finally(() => {
+        spinner.style.display = "none";
+      });
+  }
 });
-
 
 // Olvidó su contraseña
-document.getElementById("resetPasswordLink").addEventListener("click", function (event) {
-  event.preventDefault();
+document
+  .getElementById("resetPasswordLink")
+  .addEventListener("click", function (event) {
+    event.preventDefault();
 
-  const email = document.getElementById("email").value.trim();
-  
-  // Validar email antes de enviar
-  if (!email) {
-    document.getElementById("emailError").textContent = "Por favor, ingresa tu email para resetear la contraseña.";
-    return;
-  }
-  if (!isValidEmail(email)) {
-    document.getElementById("emailError").textContent = "Por favor, ingresa un email válido.";
-    return;
-  }
+    const email = document.getElementById("email").value.trim();
 
-  // Enviar fetch POST a /api/sessions/passwordReset
-  // spinner
-  spinner.style.display = "block";
-  // desabilita el boton despues de enviar la solicitud
-  const submitBtn = form.querySelector('button[type="submit"]');
-  submitBtn.disabled = true;
-
-  fetch("http://localhost:8080/api/sessions/passwordReset", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email }),
-  })
-  .then((response) => {
-    if (!response.ok) {
-      return response.json().then(err => {
-        throw new Error(err.error || "No se pudo iniciar el proceso de reseteo.");
-      });
+    // Validar email antes de enviar
+    if (!email) {
+      document.getElementById("emailError").textContent =
+        "Por favor, ingresa tu email para resetear la contraseña.";
+      return;
     }
-    return response.json();
-  })
-  .then((data) => {
-    alert("Si el email está registrado, recibirás instrucciones para resetear tu contraseña.");
-  })
-  .catch((error) => {
-    console.error("Error en reset de contraseña:", error);
-    alert(error.message);
-  }).finally(() => {
-    spinner.style.display = "none"; //spinner
-    submitBtn.disabled = false; // vuelve a habilitar el boton de send
+    if (!isValidEmail(email)) {
+      document.getElementById("emailError").textContent =
+        "Por favor, ingresa un email válido.";
+      return;
+    }
+
+    // Enviar fetch POST a /api/sessions/passwordReset
+    // spinner
+    spinner.style.display = "block";
+    // desabilita el boton despues de enviar la solicitud
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+
+    fetch("http://localhost:8080/api/sessions/passwordReset", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          return response.json().then((err) => {
+            throw new Error(
+              err.error || "No se pudo iniciar el proceso de reseteo."
+            );
+          });
+        }
+        return response.json();
+      })
+      .then((data) => {
+        alert(
+          "Si el email está registrado, recibirás instrucciones para resetear tu contraseña."
+        );
+      })
+      .catch((error) => {
+        console.error("Error en reset de contraseña:", error);
+        alert(error.message);
+      })
+      .finally(() => {
+        spinner.style.display = "none"; //spinner
+        submitBtn.disabled = false; // vuelve a habilitar el boton de send
+      });
   });
-});
