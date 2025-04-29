@@ -1,5 +1,4 @@
 // Muestra/oculta las contraseñas al hacer click en el ojito
-
 function togglePassword(id, icon) {
   let input = document.getElementById(id);
   if (input.type === "password") {
@@ -96,22 +95,7 @@ form.addEventListener("submit", function (event) {
       .catch((error) => {
         console.error("CATCH EJECUTADO:", error);
         const passwordErrorDiv = document.getElementById("passwordError");
-        console.log("error.status", error.status);
-        // Redirigir a la página de error y pasar el mensaje como parámetro en la URL
-        //window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(error.message)}`;
-        if (error.status === 429) {
-          // Ratelimit excedido
-          const now = Date.now();
-          const unblockTime = now + BLOCK_TIME_MINUTES * 60 * 1000; // tiempo futuro en ms
-          localStorage.setItem("blockedUntil", unblockTime);
-          const minutosRestantes = error.retryAfter || BLOCK_TIME_MINUTES; // por si no viene retryAfter
-          // Redirigir a la página de error y pasar el mensaje como parámetro en la URL
-          //passwordErrorDiv.textContent = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
-          let messageErrorTime = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
-          window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(
-            messageErrorTime
-          )}`;
-        } else if (error.status === 401) {
+        if (error.status === 401) {
           // Credenciales inválidas
           intentosFallidos++;
           localStorage.setItem("intentosFallidos", intentosFallidos); // 👉 Guarda en localStorage
@@ -130,7 +114,18 @@ form.addEventListener("submit", function (event) {
             )}`;
           } else {
             passwordErrorDiv.textContent = `Credenciales inválidas. Intento ${intentosFallidos} de ${MAX_INTENTOS_FALLIDOS}.`;
-          }
+          } 
+        } else if (error.status === 429) {
+          // Ratelimit excedido
+          const now = Date.now();
+          //const unblockTime = now + BLOCK_TIME_MINUTES * 60 * 1000; // tiempo futuro en ms
+          //localStorage.setItem("blockedUntil", unblockTime);
+          //const minutosRestantes = error.retryAfter || BLOCK_TIME_MINUTES; // por si no viene retryAfter
+          // Redirigir a la página de error y pasar el mensaje como parámetro en la URL
+          //passwordErrorDiv.textContent = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
+          //let messageErrorTime = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
+          //window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(messageErrorTime)}`;
+          window.location.href = "errorIniciarSesion.html"
         } else {
           // Otro error
           passwordErrorDiv.textContent =
