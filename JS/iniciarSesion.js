@@ -27,7 +27,7 @@ let MAX_INTENTOS_FALLIDOS = 3; // Default max intentos fallidos hasta que cargue
 let BLOCK_TIME_MINUTES = 60; // Default tiempo de bloqueo entre intentos hasta que cargue del backend
 
 // Fetchear config apenas carga la página
-fetch("http://localhost:8080/api/config")
+fetch(`${ROOT_URL}/api/config`)
   .then((response) => response.json())
   .then((config) => {
     MAX_INTENTOS_FALLIDOS = config.maxLoginAttempts;
@@ -68,7 +68,7 @@ form.addEventListener("submit", function (event) {
   }
   if (isValid) {
     spinner.style.display = "block";
-    fetch("http://localhost:8080/api/sessions/login", {
+    fetch(`${ROOT_URL}/api/sessions/login`, {
       method: "POST",
       credentials: "include", // 👈 NECESARIO PARA ENVIAR COOKIES
       headers: {
@@ -118,13 +118,6 @@ form.addEventListener("submit", function (event) {
         } else if (error.status === 429) {
           // Ratelimit excedido
           const now = Date.now();
-          //const unblockTime = now + BLOCK_TIME_MINUTES * 60 * 1000; // tiempo futuro en ms
-          //localStorage.setItem("blockedUntil", unblockTime);
-          //const minutosRestantes = error.retryAfter || BLOCK_TIME_MINUTES; // por si no viene retryAfter
-          // Redirigir a la página de error y pasar el mensaje como parámetro en la URL
-          //passwordErrorDiv.textContent = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
-          //let messageErrorTime = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
-          //window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(messageErrorTime)}`;
           window.location.href = "errorIniciarSesion.html"
         } else {
           // Otro error
@@ -165,7 +158,7 @@ document
     const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
 
-    fetch("http://localhost:8080/api/sessions/passwordReset", {
+    fetch(`${ROOT_URL}/api/sessions/passwordReset`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

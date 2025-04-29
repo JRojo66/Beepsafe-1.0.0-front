@@ -1,6 +1,4 @@
 // Muestra/oculta las contraseñas al hacer click en el ojito
-//
-
 function togglePassword(id, icon) {
   let input = document.getElementById(id);
   if (input.type === "password") {
@@ -13,7 +11,6 @@ function togglePassword(id, icon) {
     icon.classList.add("fa-eye");
   }
 }
-
 
 // Validación de email
 function isValidEmail(email) {
@@ -99,11 +96,9 @@ form.addEventListener("submit", function (event) {
       "Las contraseñas no coinciden.";
     isValid = false;
   }
-
-console.log(email);
-
+  
   if (isValid) {
-    fetch("http://localhost:8080/api/sessions/register", {
+    fetch(`${ROOT_URL}/api/sessions/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -113,7 +108,7 @@ console.log(email);
         email: email,
         phone: phone,
         password: password,
-        password2: password2
+        password2: password2,
       }),
     })
       .then((response) => {
@@ -135,7 +130,9 @@ console.log(email);
       .catch((error) => {
         console.error("CATCH EJECUTADO:", error);
         // Redirigir a la página de error y pasar el mensaje como parámetro en la URL
-        window.location.href = `errorCrearCuenta.html?error=${encodeURIComponent(error.message)}`;
+        window.location.href = `errorCrearCuenta.html?error=${encodeURIComponent(
+          error.message
+        )}`;
       });
   }
 });
