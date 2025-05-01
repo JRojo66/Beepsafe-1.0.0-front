@@ -5,19 +5,20 @@ html {
 body {
   text-align: center;
   background-color: black;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 }
 
 p {
   color: white; /* Púrpura usando código hexadecimal */
 }
 
-.logout{
+.logout {
   color: white;
   display: flex;
-  justify-content:end
+  justify-content: end;
 }
-.logoutbutton{
+.logoutbutton {
   font-size: 18px;
   font-weight: bold;
   background-color: #5dfdcb;
@@ -173,8 +174,40 @@ a {
     background-color: #49d1b7;
   }
 
-  /* Provisorio para mostrar la pagina de IniciarDetener - Borrar cuando restaure el boton */
-  /*****************************************************************************************/
+  /* Actividades/Equipos */
+
+  .inputActividad {
+    height: 45px;
+    background-color: black;
+    color: white;
+    border: 1px solid white;
+    border-radius: 8px;
+    padding: 0 1rem;
+    font-size: 16px;
+  }
+
+  .inputActividad::placeholder {
+    color: white;
+    opacity: 0.7;
+  }
+
+  /* Botón de enviar del formulario */
+  form button.botonActividad {
+    height: 45px;
+    padding: 0 1rem;
+    width: auto;
+    margin: 0;
+    font-size: 8px;
+    background-color: #1e90ff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .iniciarSesion2 {
     width: 200px;
     background-color: #5dfdcb;
@@ -222,6 +255,7 @@ a {
 
   .formulario {
     width: 40%;
+    min-height: 400px;
     margin: 0 auto;
     box-sizing: border-box; /* Incluir padding y border en el ancho total */
   }
@@ -301,26 +335,39 @@ a {
   button[type="submit"]:hover {
     background-color: #49d1b7;
   }
-  /* Provisorio para mostrar la pagina de IniciarDetener - Borrar cuando restaure el boton */
-  /*****************************************************************************************/
-  .iniciarSesion2 {
-    width: 100%;
-    height: 3.75rem; /* Equivalente a 60px si el font-size base es 16px */
-    font-size: 1rem; /* Tamaño de fuente para el botón */
-    padding: 0.625rem 1.25rem; /* Ajustar padding con unidades relativas */
-    background-color: #5dfdcb;
-    border: none;
-    color: black;
-    padding: 10px 20px;
-    font-weight: bold;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
+
+  /* Actividades/Equipos */
+
+  .inputActividad {
+    height: 45px;
+    background-color: black;
+    color: white;
+    border: 1px solid white;
+    border-radius: 8px;
+    padding: 0 1rem;
     font-size: 16px;
-    margin: 10px auto 0;
+  }
+
+  .inputActividad::placeholder {
+    color: white;
+    opacity: 0.7;
+  }
+
+  /* Botón de enviar del formulario */
+  form button.botonActividad {
+    height: 45px;
+    padding: 0 1rem;
+    width: auto;
+    margin: 0;
+    font-size: 8px;
+    background-color: #1e90ff;
+    color: white;
+    border: none;
+    border-radius: 8px;
     cursor: pointer;
-    border-radius: 4px;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -574,7 +621,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top:10px;
+  padding-top: 10px;
 }
 
 .opciones {
@@ -663,11 +710,11 @@ a {
   padding-top: 10px;
 }
 
-.subActividad{
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+.subActividad {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 }
 
 .fechaActividad {
@@ -677,166 +724,163 @@ a {
 }
 
 .actividad {
-  width: 100%;  
+  width: 100%;
   text-align: left;
 }
 
-.detalleActividad{
-    color: white;
+.detalleActividad {
+  color: white;
 }
 
-.comentariosActividad{
-    font-size: 14px;
-    text-align: left;
-    margin: 3% auto;
-    width: 80%;
+.comentariosActividad {
+  font-size: 14px;
+  text-align: left;
+  margin: 3% auto;
+  width: 80%;
 }
-.breakVioleta{
-    height: 10px;
-    background-color: #300965;
+.breakVioleta {
+  height: 10px;
+  background-color: #300965;
 }
 
 /* Mis mensajes*/
 .perfilb {
-    font-size: 1.8rem;
-    width: 100%;
-    height: 4rem;
-    color: white;
-    background-color: black;
-    max-width: 440px;
+  font-size: 1.8rem;
+  width: 100%;
+  height: 4rem;
+  color: white;
+  background-color: black;
+  max-width: 440px;
 }
 
-.mensajeDePrueba{
+.mensajeDePrueba {
   max-height: 1px;
 }
 
 /* Mis contactos*/
 
 .opcionesAmigos {
-    font-size: 60%;
-    margin-left: 80px;
-    width: 80%;
-    text-align: left;
-  }
-
-  .opcionesAmigob {
-    font-size: 60%;
-    margin-left: 100px;
-    width: 80%;
-    text-align: left;
-  }
-
-  .perfilc {
-    font-size: 1.8rem;
-    width: 100%;
-    height: 3rem;
-    color: white;
-    background-color: black;
-    max-width: 380px;
+  font-size: 60%;
+  margin-left: 80px;
+  width: 80%;
+  text-align: left;
 }
 
-  .perfild {
-    font-size: 1.8rem;
-    width: 100%;
-    height: 3rem;
-    color: white;
-    background-color: black;
-    max-width: 380px;
+.opcionesAmigob {
+  font-size: 60%;
+  margin-left: 100px;
+  width: 80%;
+  text-align: left;
 }
 
+.perfilc {
+  font-size: 1.8rem;
+  width: 100%;
+  height: 3rem;
+  color: white;
+  background-color: black;
+  max-width: 380px;
+}
 
-.desplegable{
-    height: 15px;
+.perfild {
+  font-size: 1.8rem;
+  width: 100%;
+  height: 3rem;
+  color: white;
+  background-color: black;
+  max-width: 380px;
+}
+
+.desplegable {
+  height: 15px;
 }
 
 .opcionesAmigosb {
-    font-size: 50%;
-    margin-left: 100px;
-    width: 80%;
-    text-align: left;
-  }
-
-  .opcionesAmigosc {
-    font-size: 50%;
-    margin-left: 100px;
-    width: 80%;
-    text-align: left;
-    background-color: #5dfdcb;
-    border-radius: 10%;
-  }
-
-  .opcionesAmigosd {
-    font-size: 60%;
-    margin-left: 80px;
-    width: 80%;
-    text-align: left;
-    background-color: #5dfdcb;
-    border-radius: 10%;
-  }
-  
-
-  .tabla{
-    height: 1.8rem;
-  }
-
-  /* Mis equipos*/
-
-  .perfile {
-    font-size: 1.8rem;
-    width: 100%;
-    height: 4rem;
-    color: white;
-    background-color: black;
-    max-width: 380px;
+  font-size: 50%;
+  margin-left: 100px;
+  width: 80%;
+  text-align: left;
 }
 
-  /*Mensajes*/
-.areaMensaje{
+.opcionesAmigosc {
+  font-size: 50%;
+  margin-left: 100px;
+  width: 80%;
+  text-align: left;
+  background-color: #5dfdcb;
+  border-radius: 10%;
+}
+
+.opcionesAmigosd {
+  font-size: 60%;
+  margin-left: 80px;
+  width: 80%;
+  text-align: left;
+  background-color: #5dfdcb;
+  border-radius: 10%;
+}
+
+.tabla {
+  height: 1.8rem;
+}
+
+/* Mis equipos*/
+
+.perfile {
+  font-size: 1.8rem;
+  width: 100%;
+  height: 4rem;
+  color: white;
+  background-color: black;
+  max-width: 380px;
+}
+
+/*Mensajes*/
+.areaMensaje {
   color: white;
   font-size: 12px;
   background-color: black;
 }
 
-  .submit{
-    font-size: 18px;
-    color: black;
-    background-color:#5dfdcb;
-    border:white;
-    border-radius: 5%;
-    padding: 10px;
-  }
+.submit {
+  font-size: 18px;
+  color: black;
+  background-color: #5dfdcb;
+  border: white;
+  border-radius: 5%;
+  padding: 10px;
+}
 
-  .desplegableb{
-    height: 18px;
-    color: black;
-    background-color: #5dfdcb;
-  }
+.desplegableb {
+  height: 18px;
+  color: black;
+  background-color: #5dfdcb;
+}
 
-  .opcionesAmigose {
-    font-size: 50%;
-    font-style: italic;
-    margin-left: 100px;
-    width: 80%;
-    text-align: left;
-  }
+.opcionesAmigose {
+  font-size: 50%;
+  font-style: italic;
+  margin-left: 100px;
+  width: 80%;
+  text-align: left;
+}
 
-  .perfilf {
-    margin-left: 40px;
-    font-size: 1.8rem;
-    width: 100%;
-    height: 3rem;
-    color: white;
-    background-color: black;
-    max-width: 380px;
+.perfilf {
+  margin-left: 40px;
+  font-size: 1.8rem;
+  width: 100%;
+  height: 3rem;
+  color: white;
+  background-color: black;
+  max-width: 380px;
 }
 
 .containerPerfilb {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top:10px;
+  padding-top: 10px;
   max-width: 347px;
-  
 }
 
 .opcionesAmigosf {
@@ -848,14 +892,13 @@ a {
   text-align: left;
 }
 
-
-.desplegablec{
+.desplegablec {
   height: 20px;
   color: black;
   background-color: #5dfdcb;
 }
 
-.chekboxDestinatarios{
+.chekboxDestinatarios {
   font-size: 12px;
 }
 
@@ -917,10 +960,6 @@ a {
 .login-link:hover {
   background-color: #49d1b7; /* Un poco más oscuro al pasar el mouse */
 }
-
-
-
-
 
 .error-container {
   background-color: #300965; /* El mismo púrpura que usas en el encabezado */
@@ -985,6 +1024,54 @@ a {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Actividades/Equipos */
+/* Estilo unificado para el input de actividades */
+#actividadForm .campo input[type="text"] {
+  color: white;
+  width: 100%;
+  padding: 10px 0;
+  border: none;
+  border-bottom: 1px solid #5dfdcb;
+  box-sizing: border-box;
+  outline: none;
+  background-color: transparent;
+}
+
+/* Igual al enfoque del login */
+#actividadForm .campo input[type="text"]:focus {
+  border-bottom-color: #49d1b7;
+}
+
+/* Contenedor del formulario para alinear botón a la derecha */
+.formularioActividad {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-left: 80px;
+  margin-top: 1rem;
+}
+
+/* Botón igual al del login */
+.botonActividad {
+  height: 45px;
+  padding: 0 20px;
+  font-size: 14px;
+  background-color: #5dfdcb;
+  color: black;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.botonActividad:hover {
+  background-color: #49d1b7;
 }
