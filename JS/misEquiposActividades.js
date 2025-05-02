@@ -25,30 +25,30 @@ console.log(JSON.stringify({
            activity: actividad,
          }));
 
-//   fetch(`${ROOT_URL}/api/activities`, {
-//     method: "POST",
-//     headers: {
-//       "Content-Type": "application/json",
-//     },
-//     body: JSON.stringify({
-//       email: emailUsuario,
-//       activity: actividad,
-//     }),
-//   })
-//     .then((res) => {
-//       if (!res.ok) {
-//         return res.json().then((data) => {
-//           throw new Error(data.message || "Error al guardar actividad.");
-//         });
-//       }
-//       return res.json();
-//     })
-//     .then((data) => {
-//       alert("Actividad agregada con éxito.");
-//       formContainer.style.display = "none";
-//       actividadForm.reset();
-//     })
-//     .catch((err) => {
-//       errorDiv.textContent = err.message;
-//     });
+  fetch(`${ROOT_URL}/api/activities`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: emailUsuario,
+      activity: actividad,
+    }),
+  })
+    .then((res) => {
+      if (!res.ok) {
+        return res.json().then((data) => {
+          throw new Error(data.message || "Error al guardar actividad.");
+        });
+      }
+      return res.json();
+    })
+    .then((data) => {
+      alert("Actividad agregada con éxito.");
+      formContainer.style.display = "none";
+      actividadForm.reset();
+    })
+    .catch((err) => {
+      errorDiv.textContent = err.message;
+    });
 });

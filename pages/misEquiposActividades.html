@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="../styles/styles.css" />
-    <title>Mis Equipos</title>
+    <title>Mis Equipos/Actividades</title>
   </head>
   <body>
     <div class="configuracion">
@@ -106,7 +106,7 @@
           </div>
         </div>
         <!-- FORMULARIO PARA CARGAR ACTIVIDAD (INICIALMENTE OCULTO) -->
-        <div id="actividadFormContainer" style="display: none">
+        <div id="actividadFormContainer">
           <form id="actividadForm" class="formularioActividad">
             <div class="campo">
               <input
@@ -117,7 +117,9 @@
                 required
               />
             </div>
-            <button type="submit" class="botonActividad">Enviar</button>
+            <div>
+                <button type="submit" class="botonActividad">Agregar</button>
+            </div>
             <div id="actividadError" class="error-message"></div>
           </form>
         </div>

@@ -175,39 +175,44 @@ a {
   }
 
   /* Actividades/Equipos */
-
-  .inputActividad {
-    height: 45px;
-    background-color: black;
-    color: white;
-    border: 1px solid white;
-    border-radius: 8px;
-    padding: 0 1rem;
-    font-size: 16px;
-  }
-
-  .inputActividad::placeholder {
-    color: white;
-    opacity: 0.7;
-  }
-
-  /* Botón de enviar del formulario */
-  form button.botonActividad {
-    height: 45px;
-    padding: 0 1rem;
-    width: auto;
-    margin: 0;
-    font-size: 8px;
-    background-color: #1e90ff;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
+  .formularioActividad {
+    margin-left: 80px;
+    padding-top: 10px;
     display: flex;
+  }
+  
+  #nuevaActividad {
+    height: 60%;
+    width: 200px;
+    border-color: transparent;
+    border-bottom-color: #49d1b7;
+    color: white;
+    background-color: transparent;
+  }
+  
+  input::placeholder {
+    color: white;
+  }
+  
+  form button.botonActividad {
+    height: 20px; /* Igual que el input */
+    padding: 0 20px;
+    /* width: 80%; */
     align-items: center;
-    justify-content: center;
+    justify-content: center; /* Centra el texto horizontalmente */
+    font-size: 16px;
+    background-color: #5dfdcb;
+    color: black;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
   }
 
+  form button.botonActividad:hover {
+    background-color: #49d1b7;
+  }
+/* Fin ActividadesEquipos*/
   .iniciarSesion2 {
     width: 200px;
     background-color: #5dfdcb;
@@ -336,39 +341,43 @@ a {
     background-color: #49d1b7;
   }
 
-  /* Actividades/Equipos */
-
-  .inputActividad {
-    height: 45px;
-    background-color: black;
-    color: white;
-    border: 1px solid white;
-    border-radius: 8px;
-    padding: 0 1rem;
-    font-size: 16px;
-  }
-
-  .inputActividad::placeholder {
-    color: white;
-    opacity: 0.7;
-  }
-
-  /* Botón de enviar del formulario */
-  form button.botonActividad {
-    height: 45px;
-    padding: 0 1rem;
-    width: auto;
-    margin: 0;
-    font-size: 8px;
-    background-color: #1e90ff;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+    /* Actividades/Equipos */
+    .formularioActividad {
+      margin-left: 80px;
+      padding-top: 10px;
+      display: flex;
+    }
+    
+    #nuevaActividad {
+      height: 60%;
+      width: 200px;
+      border-color: transparent;
+      border-bottom-color: #49d1b7;
+      color: white;
+      background-color: transparent;
+    }
+    
+    input::placeholder {
+      color: white;
+    }
+    
+    form button.botonActividad {
+      height: 20px; /* Igual que el input */
+      padding: 0 20px;
+      align-items: center;
+      justify-content: center; /* Centra el texto horizontalmente */
+      font-size: 16px;
+      background-color: #5dfdcb;
+      color: black;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  
+    form button.botonActividad:hover {
+      background-color: #49d1b7;
+    }
 }
 
 .password-container {
@@ -1030,48 +1039,4 @@ a {
   100% {
     transform: rotate(360deg);
   }
-}
-
-/* Actividades/Equipos */
-/* Estilo unificado para el input de actividades */
-#actividadForm .campo input[type="text"] {
-  color: white;
-  width: 100%;
-  padding: 10px 0;
-  border: none;
-  border-bottom: 1px solid #5dfdcb;
-  box-sizing: border-box;
-  outline: none;
-  background-color: transparent;
-}
-
-/* Igual al enfoque del login */
-#actividadForm .campo input[type="text"]:focus {
-  border-bottom-color: #49d1b7;
-}
-
-/* Contenedor del formulario para alinear botón a la derecha */
-.formularioActividad {
-  display: flex;
-  align-items: flex-end;
-  gap: 1rem;
-  margin-left: 80px;
-  margin-top: 1rem;
-}
-
-/* Botón igual al del login */
-.botonActividad {
-  height: 45px;
-  padding: 0 20px;
-  font-size: 14px;
-  background-color: #5dfdcb;
-  color: black;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.botonActividad:hover {
-  background-color: #49d1b7;
 }
