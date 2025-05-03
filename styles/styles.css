@@ -107,10 +107,10 @@ a {
     font-weight: normal; /* Grosor de la fuente (opcional) */
     opacity: 1; /* Asegura que el placeholder sea visible en Firefox */
   }
-
+/* 
   .campo {
     margin-bottom: 50px;
-  }
+  } */
 
   .campo label {
     display: block;

@@ -4,7 +4,7 @@ const actividadForm = document.getElementById("actividadForm");
 const errorDiv = document.getElementById("actividadError");
 
 // Simulamos obtener el email del usuario logueado (idealmente viene de sesión o JWT)
-const emailUsuario = "jrojo66@gmail.com";
+const emailUsuario = "javier.rojo66@gmail.com";
 
 mostrarBtn.addEventListener("click", () => {
   formContainer.style.display =
