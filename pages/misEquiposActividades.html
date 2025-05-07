@@ -34,7 +34,7 @@
       <!-- Windsurf -->
       <div class="perfilc">
         <div class="containerPerfil">
-          <div class="opcionesAmigos">Windsurf</div>
+          <div class="opcionesActividades">Windsurf</div>
           <img
             class="desplegable"
             src="../imagenes/desplegableBlanco.png"
@@ -45,15 +45,15 @@
       <!-- Fin windsurf -->
       <div class="perfild">
         <div class="containerPerfil">
-          <div class="opcionesAmigosb">Tabla</div>
-          <div class="opcionesAmigosb">Goya 125 l</div>
+          <div class="opcionesEquipos">Tabla</div>
+          <div class="opcionesEquipos">Goya 125 l</div>
           <img class="tabla" src="../imagenes/Goya 125 l.jpg" alt="Goya 125l" />
         </div>
       </div>
       <div class="perfild">
         <div class="containerPerfil">
-          <div class="opcionesAmigosb">Vela</div>
-          <div class="opcionesAmigosb">Naish 5.8m</div>
+          <div class="opcionesEquipos">Vela</div>
+          <div class="opcionesEquipos">Naish 5.8m</div>
           <img
             class="tabla"
             src="../imagenes/Naish 5.8.jpeg  "
@@ -63,12 +63,56 @@
       </div>
       <div class="perfilc">
         <div class="containerPerfil">
-          <button class="opcionesAmigosc">Agregar equipo</button>
+          <button id="mostrarFormularioEquipo" class="opcionesAmigosc">Agregar equipo</button>
         </div>
       </div>
+
+        <!-- FORMULARIO PARA CARGAR EQUIPO (INICIALMENTE OCULTO) -->
+        <div id="equipoFormContainer">
+            <form id="equipoForm">
+              <div class="formularioEquipo">
+                    <div class="campo">
+                        <input
+                        type="text"
+                        id="nuevoEquipoTipo"
+                        name="nuevoEquipoTipo"
+                        placeholder="Tipo"
+                        required
+                        />
+                    </div>
+                </div>
+                <div class="campo">
+                    <input
+                    type="text"
+                    id="nuevoEquipoTipo"
+                    name="nuevoEquipoDescripcion"
+                    placeholder="Descripcion"
+                    required
+                    />
+                    <div class="campo">
+                        <input
+                        type="text"
+                        id="nuevoEquipoFoto"
+                        name="nuevoEquipoFoto"
+                        placeholder="Foto"
+                        required
+                        />
+                    </div>
+                </div>
+            </div>
+                <div class="campo">
+                  <button type="submit" class="botonEquipo">Agregar</button>
+              </div>
+          </form>
+          <div class="campo">
+              <div id="equipoError" class="error-message"></div>
+          </div>
+          </div>
+
+
       <div class="perfilc">
         <div class="containerPerfil">
-          <div class="opcionesAmigos">Kitesurf</div>
+          <div class="opcionesActividades">Kitesurf</div>
           <img
             class="desplegable"
             src="../imagenes/desplegableBlanco.png"
@@ -78,7 +122,7 @@
       </div>
       <div class="perfilc">
         <div class="containerPerfil">
-          <div class="opcionesAmigos">Ski</div>
+          <div class="opcionesActividades">Ski</div>
           <img
             class="desplegable"
             src="../imagenes/desplegableBlanco.png"

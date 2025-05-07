@@ -1,10 +1,24 @@
+// Obtiene todas las actividades de todos los usuarios
+// fetch(`${ROOT_URL}/api/activities`)
+//   .then((res) => {
+//     if (!res.ok) throw new Error("Respuesta no satisfactoria");
+//     return res.json();
+//   })
+//   .then((data) => {
+//     console.log("Actividades de todos los usiarios:", data); // array de strings
+//   })
+//   .catch((error) => {
+//     console.error("Error al obtener actividades del usuario:", error);
+//   });
+
+
+// Despliega el formulario para agregar Actividades
 const mostrarBtn = document.getElementById("mostrarFormularioActividad");
 const formContainer = document.getElementById("actividadFormContainer");
 const actividadForm = document.getElementById("actividadForm");
 const errorDiv = document.getElementById("actividadError");
 
-// Simulamos obtener el email del usuario logueado (idealmente viene de sesión o JWT)
-const emailUsuario = "javier.rojo66@gmail.com";
+formContainer.style.display = "none"
 
 mostrarBtn.addEventListener("click", () => {
   formContainer.style.display =
@@ -20,19 +34,14 @@ actividadForm.addEventListener("submit", (e) => {
     return;
   }
 
-console.log(JSON.stringify({
-           email: emailUsuario,
-           activity: actividad,
-         }));
-
   fetch(`${ROOT_URL}/api/activities`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
+    credentials: "include",
     body: JSON.stringify({
-      email: emailUsuario,
-      activity: actividad,
+       activity: actividad,
     }),
   })
     .then((res) => {
@@ -45,6 +54,59 @@ console.log(JSON.stringify({
     })
     .then((data) => {
       alert("Actividad agregada con éxito.");
+      formContainer.style.display = "none";
+      actividadForm.reset();
+    })
+    .catch((err) => {
+      errorDiv.textContent = err.message;
+    });
+});
+
+// Despliega el formulario para agregar Equipos
+const mostrarBtnEquipo = document.getElementById("mostrarFormularioEquipo");
+const formContainerEquipo = document.getElementById("equipoFormContainer");
+const actividadFormEquipo = document.getElementById("equipoForm");
+const errorDivEquipo = document.getElementById("equipoError");
+
+formContainerEquipo.style.display = "none"
+
+mostrarBtnEquipo.addEventListener("click", () => {
+  formContainerEquipo.style.display =
+    formContainerEquipo.style.display === "none" ? "block" : "none";
+});
+
+equipoForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const equipo = document.getElementById("nuevoEquipoTipo").value.trim();
+  const descripcion = document.getElementById("nuevoEquipoDescripcion").value.trim();
+  const foto = document.getElementById("nuevoEquipoFoto").value.trim();
+
+  if (!equipo) {
+    errorDiv.textContent = "Equipo no puede estar vacío.";
+    return;
+  }
+
+  fetch(`${ROOT_URL}/api/activities`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({
+       activity: actividad,                                           // ** Que venga actividad ** //
+       equipo: equipo,
+    }),
+  })
+    .then((res) => {
+      if (!res.ok) {
+        return res.json().then((data) => {
+          throw new Error(data.message || "Error al guardar equipo.");
+        });
+      }
+      return res.json();
+    })
+    .then((data) => {
+      alert("Equipo agregado con éxito.");
       formContainer.style.display = "none";
       actividadForm.reset();
     })

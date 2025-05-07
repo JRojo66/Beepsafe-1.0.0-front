@@ -1,12 +1,17 @@
+:root {
+  --color-principal: #90FFEF;
+  --color-fondo: #0C243C;
+}
+
+
 html {
   font-size: 16px;
 }
 
 body {
   text-align: center;
-  background-color: black;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  background-color: var(--color-fondo);
+  font-family: 'Roboto';
 }
 
 p {
@@ -21,7 +26,8 @@ p {
 .logoutbutton {
   font-size: 18px;
   font-weight: bold;
-  background-color: #5dfdcb;
+  color: var(--color-principal);
+  background-color: var(--color-fondo);
   border-radius: 10%;
 }
 
@@ -35,7 +41,7 @@ p {
 .boton {
   font-weight: bold;
   width: 60%;
-  background-color: #5dfdcb;
+  background-color: var(--color-principal);
   border: none;
   color: black;
   padding: 15px 32px;
@@ -80,7 +86,7 @@ a {
   }
   .iniciarsesion {
     padding-top: 5%;
-    color: #5dfdcb;
+    color: var(--color-principal);
     text-decoration: underline;
   }
 
@@ -127,7 +133,7 @@ a {
     width: 100%;
     padding: 5px 0;
     border: none;
-    border-bottom: 1px solid #5dfdcb;
+    border-bottom: 1px solid var(--color-principal);
     box-sizing: border-box;
     outline: none;
     background-color: transparent;
@@ -138,14 +144,15 @@ a {
   .campo input[type="tel"]:focus,
   .campo input[type="password"]:focus,
   .campo textarea:focus {
-    border-bottom-color: #007bff;
+    border-bottom-color: var(--color-principal);
+
   }
 
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus,
   input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 30px black inset !important; /* Fondo negro */
+    -webkit-box-shadow: 0 0 0 30px var(--color-fondo) inset !important; /* Fondo negro */
     -webkit-text-fill-color: white !important; /* Color del texto blanco */
     color: white !important; /* fallback para otros navegadores */
   }
@@ -155,7 +162,7 @@ a {
     height: 3.75rem; /* Equivalente a 60px si el font-size base es 16px */
     font-size: 1rem; /* Tamaño de fuente para el botón */
     padding: 0.625rem 1.25rem; /* Ajustar padding con unidades relativas */
-    background-color: #5dfdcb;
+    background-color: var(--color-principal);
     border: none;
     color: black;
     padding: 10px 20px;
@@ -185,7 +192,7 @@ a {
     height: 60%;
     width: 200px;
     border-color: transparent;
-    border-bottom-color: #49d1b7;
+    border-bottom-color: var(--color-principal);
     color: white;
     background-color: transparent;
   }
@@ -201,7 +208,7 @@ a {
     align-items: center;
     justify-content: center; /* Centra el texto horizontalmente */
     font-size: 16px;
-    background-color: #5dfdcb;
+    background-color: var(--color-principal);
     color: black;
     border: none;
     border-radius: 4px;
@@ -212,10 +219,46 @@ a {
   form button.botonActividad:hover {
     background-color: #49d1b7;
   }
+
+  .formularioEquipo {
+    margin-left: 100px;
+    padding-top: 10px;
+    display: flex;
+  }
+
+  #nuevoEquipo {
+    height: 60%;
+    width: 200px;
+    border-color: transparent;
+    border-bottom-color: var(--color-principal);
+    color: white;
+    background-color: transparent;
+  }
+
+  form button.botonEquipo {
+    height: 20px; /* Igual que el input */
+    padding: 0 20px;
+    align-items: center;
+    justify-content: center; /* Centra el texto horizontalmente */
+    font-size: 16px;
+    background-color: var(--color-principal);
+    color: black;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  form button.botonEquipo:hover {
+    background-color: #49d1b7;
+  }
+
+
+
 /* Fin ActividadesEquipos*/
   .iniciarSesion2 {
     width: 200px;
-    background-color: #5dfdcb;
+    background-color: var(--color-principal);
     border-radius: 4px;
     border: none;
     color: black;
@@ -246,7 +289,7 @@ a {
   }
   .iniciarsesion {
     padding-top: 11px;
-    color: #5dfdcb;
+    color: var(--color-principal);
     text-decoration: underline;
   }
 
@@ -274,9 +317,9 @@ a {
     opacity: 1; /* Asegura que el placeholder sea visible en Firefox */
   }
 
-  .campo {
+  /* .campo {
     margin-bottom: 50px;
-  }
+  } */
 
   .campo label {
     display: block;
@@ -293,7 +336,7 @@ a {
     width: 100%;
     padding: 10px 0;
     border: none;
-    border-bottom: 1px solid #5dfdcb;
+    border-bottom: 1px solid var(--color-principal);
     box-sizing: border-box;
     outline: none;
     background-color: transparent;
@@ -304,7 +347,7 @@ a {
   .campo input[type="tel"]:focus,
   .campo input[type="password"]:focus,
   .campo textarea:focus {
-    border-bottom-color: #49d1b7; /* color de la linea de subrayado del formulario cuando lo estoy llenando*/
+    border-bottom-color: var(--color-principal); /* color de la linea de subrayado del formulario cuando lo estoy llenando*/
   }
 
   input:-webkit-autofill,
@@ -322,7 +365,7 @@ a {
     height: 3.75rem; /* Equivalente a 60px si el font-size base es 16px */
     font-size: 1rem; /* Tamaño de fuente para el botón */
     padding: 0.625rem 1.25rem; /* Ajustar padding con unidades relativas */
-    background-color: #5dfdcb;
+    background-color: var(--color-principal);
     border: none;
     color: black;
     padding: 10px 20px;
@@ -352,7 +395,7 @@ a {
       height: 60%;
       width: 200px;
       border-color: transparent;
-      border-bottom-color: #49d1b7;
+      border-bottom-color: var(--color-principal);
       color: white;
       background-color: transparent;
     }
@@ -367,7 +410,7 @@ a {
       align-items: center;
       justify-content: center; /* Centra el texto horizontalmente */
       font-size: 16px;
-      background-color: #5dfdcb;
+      background-color: var(--color-principal);
       color: black;
       border: none;
       border-radius: 4px;
@@ -411,7 +454,7 @@ a {
 
 .caja1 {
   width: 50%; /* O el ancho que necesites para cada caja */
-  background-color: black;
+  background-color: var(--color-fondo);
   /* border: 1px solid red; */
   /* padding-top: 75px; */
   box-sizing: border-box; /* Incluye el padding y border en el ancho */
@@ -424,12 +467,13 @@ a {
   margin: 0px;
   padding: 0px 0px 0px 30%;
   text-align: left;
+  background-color: var(--color-fondo);
 }
 
 .caja2 {
-  width: 50%;
-  background-color: black;
-  border: 1px solid black;
+  width: 40%;
+  background-color: var(--color-fondo);
+  /* border: 1px solid black; */
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -440,6 +484,14 @@ a {
   flex-grow: 1;
   max-height: 150px;
 }
+
+select.menu {
+  background-color: var(--color-fondo);
+  color: white;
+  padding: 5px;
+  border-radius: 4px; /* opcional */
+}
+
 
 .logoActividad {
   /* Margen superior del 20% del ancho del contenedor padre */
@@ -453,7 +505,7 @@ a {
 }
 
 .botonIniciar {
-  border: 20px solid #5dfdcb; /*Borde de 20px en el color especificado */
+  border: 20px solid var(--color-principal); /*Borde de 20px en el color especificado */
   /* border-image: linear-gradient(to right, red 10%, #5DFDCB 10%) 1 round; */
   height: 270px;
   width: 270px;
@@ -474,8 +526,8 @@ a {
 .contenedor-padre {
   width: 80%;
   padding: 0.625rem 1.25rem; /* Ajustar padding con unidades relativas */
-  background-color: black;
-  border: 1px solid #5dfdcb;
+  background-color: var(--color-fondo);
+  border: 1px solid var(--color-principal);
   color: white;
   padding: 10px 20px;
   font-weight: bold;
@@ -495,7 +547,7 @@ a {
 .menu {
   /*Estilos para los menús desplegables */
   width: 100%; /* Ocupa todo el ancho de la celda */
-  background-color: black; /* Fondo negro para el menú*/
+  background-color: var(--color-fondo); /* Fondo negro para el menú*/
   color: white; /* Texto blanco para las opciones */
   /* border: 1px solid red; */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
@@ -506,7 +558,7 @@ a {
 }
 
 .elegidos {
-  background-color: black;
+  background-color: var(--color-fondo);
   /* border: 1px solid blue; */
   margin: 0px;
   padding: 0px;
@@ -519,6 +571,7 @@ a {
   padding: 0px;
   margin-top: 0px;
   border-radius: 30px;
+  background-color: var(--color-fondo);
 }
 
 .item1,
@@ -528,16 +581,15 @@ a {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-color: black;
 }
 
 .item1,
 .item2 {
-  border-right: 1px solid #5dfdcb;
+  border-right: 1px solid var(--color-principal);
+  background-color: var(--color-fondo);
 }
 
 .menu option {
-  background-color: black;
   color: white;
   border: none;
   cursor: pointer;
@@ -578,7 +630,7 @@ a {
 }
 
 .inicio {
-  background-color: #5dfdcb;
+  background-color: var(--color-principal);
   border-radius: 30px;
 }
 .miPerfil {
@@ -588,7 +640,7 @@ a {
 
 .botonInicio {
   color: black;
-  background-color: #5dfdcb;
+  background-color: var(--color-principal);
   border: none;
   font-size: 8px;
 }
@@ -600,10 +652,24 @@ a {
   font-size: 8px;
 }
 
-.home {
-  height: 18px;
-  background-color: #5dfdcb;
+.imagenHome {
+  height: 22px;
+  background-color: var(--color-principal);
 }
+
+.imagenPerfil{
+  height: 18px;
+  background-color: white;
+  padding: 4px 0;
+}
+
+.imagenPerfilb{
+  height: 18px;
+  background-color: var(--color-principal);
+  padding: 4px 0;
+}
+
+
 
 /*Perfil*/
 
@@ -625,6 +691,16 @@ a {
   background-color: #300965;
   max-width: 380px;
 }
+
+.container-centra{
+  display: flex;
+  justify-content: center;
+}
+
+.container-desplegable {
+  width: 85%;
+}
+
 
 .containerPerfil {
   display: flex;
@@ -653,7 +729,7 @@ a {
   border-radius: 30px;
 }
 .miPerfilb {
-  background-color: #5dfdcb;
+  background-color: var(--color-principal);
   border-radius: 30px;
 }
 
@@ -666,7 +742,7 @@ a {
 
 .botonPerfilb {
   color: black;
-  background-color: #5dfdcb;
+  background-color: var(--color-principal);
   border: none;
   font-size: 8px;
 }
@@ -674,7 +750,7 @@ a {
 .homeb {
   width: 5%;
   height: 18px;
-  background-color: #5dfdcb;
+  background-color: var(--color-principal);
 }
 
 .saludoPerfil {
@@ -708,7 +784,7 @@ a {
 }
 
 .containerActividad {
-  background-color: black;
+  background-color: var(--color-fondo);
   margin: 0 auto;
   padding-top: 0;
   width: 370px;
@@ -758,7 +834,7 @@ a {
   width: 100%;
   height: 4rem;
   color: white;
-  background-color: black;
+  background-color: var(--color-fondo);
   max-width: 440px;
 }
 
@@ -770,24 +846,24 @@ a {
 
 .opcionesAmigos {
   font-size: 60%;
-  margin-left: 80px;
+  margin-left: 50px;
   width: 80%;
   text-align: left;
 }
 
-.opcionesAmigob {
+/* .opcionesAmigob {
   font-size: 60%;
-  margin-left: 100px;
+  margin-left: 80px;
   width: 80%;
   text-align: left;
-}
+} */
 
 .perfilc {
   font-size: 1.8rem;
   width: 100%;
   height: 3rem;
   color: white;
-  background-color: black;
+  background-color: var(--color-fondo);
   max-width: 380px;
 }
 
@@ -796,7 +872,7 @@ a {
   width: 100%;
   height: 3rem;
   color: white;
-  background-color: black;
+  background-color: var(--color-fondo);
   max-width: 380px;
 }
 
@@ -806,7 +882,7 @@ a {
 
 .opcionesAmigosb {
   font-size: 50%;
-  margin-left: 100px;
+  margin-left: 60px;
   width: 80%;
   text-align: left;
 }
@@ -816,7 +892,7 @@ a {
   margin-left: 100px;
   width: 80%;
   text-align: left;
-  background-color: #5dfdcb;
+  background-color: var(--color-principal);
   border-radius: 10%;
 }
 
@@ -825,7 +901,7 @@ a {
   margin-left: 80px;
   width: 80%;
   text-align: left;
-  background-color: #5dfdcb;
+  background-color: var(--color-principal);
   border-radius: 10%;
 }
 
@@ -833,28 +909,42 @@ a {
   height: 1.8rem;
 }
 
-/* Mis equipos*/
+/* Mis equiposActividades*/
 
 .perfile {
   font-size: 1.8rem;
   width: 100%;
   height: 4rem;
   color: white;
-  background-color: black;
+  background-color: var(--color-fondo);
   max-width: 380px;
+}
+ 
+
+.opcionesActividades {
+  font-size: 60%;
+  margin-left: 80px;
+  width: 80%;
+  text-align: left;
+}
+.opcionesEquipos {
+  font-size: 50%;
+  margin-left: 100px;
+  width: 80%;
+  text-align: left;
 }
 
 /*Mensajes*/
 .areaMensaje {
   color: white;
   font-size: 12px;
-  background-color: black;
+  background-color: var(--color-fondo);
 }
 
 .submit {
   font-size: 18px;
   color: black;
-  background-color: #5dfdcb;
+  background-color: var(--color-principal);
   border: white;
   border-radius: 5%;
   padding: 10px;
@@ -863,7 +953,7 @@ a {
 .desplegableb {
   height: 18px;
   color: black;
-  background-color: #5dfdcb;
+  background-color: var(--color-principal);
 }
 
 .opcionesAmigose {
@@ -880,7 +970,7 @@ a {
   width: 100%;
   height: 3rem;
   color: white;
-  background-color: black;
+  background-color: var(--color-fondo);
   max-width: 380px;
 }
 
@@ -894,7 +984,7 @@ a {
 
 .opcionesAmigosf {
   color: black;
-  background-color: #5dfdcb;
+  background-color: var(--color-principal);
   font-size: 50%;
   margin-left: 100px;
   width: 80%;
@@ -904,7 +994,7 @@ a {
 .desplegablec {
   height: 20px;
   color: black;
-  background-color: #5dfdcb;
+  background-color: var(--color-principal);
 }
 
 .chekboxDestinatarios {
@@ -940,7 +1030,7 @@ a {
 }
 
 .success-icon {
-  color: #5dfdcb;
+  color: var(--color-principal);
   font-size: 3rem;
   margin-bottom: 1rem;
 }
@@ -957,7 +1047,7 @@ a {
 
 .login-link {
   display: inline-block;
-  background-color: #5dfdcb;
+  background-color: var(--color-principal);
   color: black;
   padding: 0.75rem 1.5rem;
   text-decoration: none;
@@ -997,7 +1087,7 @@ a {
 
 .volver-link {
   display: inline-block;
-  background-color: #5dfdcb;
+  background-color: var(--color-principal);
   color: black;
   padding: 0.75rem 1.5rem;
   text-decoration: none;
@@ -1029,7 +1119,7 @@ a {
   animation: spin 1s linear infinite;
   margin-left: auto;
   margin-right: auto;
-  color: #49d1b7;
+  color: var(--color-principal);
 }
 
 @keyframes spin {
