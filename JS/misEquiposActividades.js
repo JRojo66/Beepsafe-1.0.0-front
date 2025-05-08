@@ -5,11 +5,25 @@
 //     return res.json();
 //   })
 //   .then((data) => {
-//     console.log("Actividades de todos los usiarios:", data); // array de strings
+//     console.log("Actividades de todos los usuarios:", data); // array de strings
 //   })
 //   .catch((error) => {
 //     console.error("Error al obtener actividades del usuario:", error);
 //   });
+
+
+// Obtiene las actividades de un usuario 
+fetch(`${ROOT_URL}/api/activities/cata@gmail.com`)
+  .then((res) => {
+    if (!res.ok) throw new Error("Respuesta no satisfactoria");
+    return res.json();
+  })
+  .then((data) => {
+    console.log("Actividades de todos los usuarios:", data); // array de strings
+  })
+  .catch((error) => {
+    console.error("Error al obtener actividades del usuario:", error);
+  });
 
 
 // Despliega el formulario para agregar Actividades
@@ -94,7 +108,9 @@ equipoForm.addEventListener("submit", (e) => {
     credentials: "include",
     body: JSON.stringify({
        activity: actividad,                                           // ** Que venga actividad ** //
-       equipo: equipo,
+       equipment: equipo,
+       description: descripcion,
+       photo: foto,
     }),
   })
     .then((res) => {

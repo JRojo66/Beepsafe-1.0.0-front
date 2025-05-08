@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mis Actividades2</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      .accordion {
+        background: #fff;
+        border: 1px solid #ccc;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        overflow: hidden;
+      }
+      .accordion-header {
+        background: #0077cc;
+        color: white;
+        padding: 15px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      .accordion-body {
+        display: none;
+        padding: 10px 15px;
+        background-color: #f9f9f9;
+      }
+      .accordion.open .accordion-body {
+        display: block;
+      }
+      .equipment-item {
+        margin-bottom: 10px;
+      }
+      .equipment-photo {
+        max-width: 100px;
+        display: block;
+      }
+
+      #add-activity-btn {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      #add-activity-btn:hover {
+        background-color: #218838;
+      }
+
+      #mostrarFormularioActividad {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      #mostrarFormularioActividad:hover {
+        background-color: #218838;
+      }
+      #actividadFormContainer {
+        margin-top: 20px;
+        display: none;
+      }
+      .formularioActividad .campo {
+        margin-bottom: 10px;
+      }
+      .formularioActividad input {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+      .botonActividad {
+        background-color: #0077cc;
+        color: white;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .botonActividad:hover {
+        background-color: #005fa3;
+      }
+      .error-message {
+        color: red;
+        font-size: 14px;
+      }
+      .delete-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 18px;
+        margin-left: 10px;
+        cursor: pointer;
+        float: right;
+      }
+      .delete-btn:hover {
+        color: #ffdddd;
+      }
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        z-index: 999;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal-content {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        max-width: 350px;
+      }
+
+      .modal-buttons {
+        margin-top: 20px;
+        display: flex;
+        justify-content: space-around;
+      }
+
+      .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .modal-btn.confirmar {
+        background-color: #dc3545;
+        color: white;
+      }
+      .modal-btn.cancelar {
+        background-color: #6c757d;
+        color: white;
+      }
+      .modal-btn:hover {
+        opacity: 0.9;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Mis Actividades</h1>
+    <div id="accordion-container"></div>
+    <!-- BOTÓN PARA MOSTRAR FORMULARIO -->
+    <button id="mostrarFormularioActividad">Agregar actividad</button>
+
+    <!-- FORMULARIO PARA CARGAR ACTIVIDAD (INICIALMENTE OCULTO) -->
+    <div id="actividadFormContainer">
+      <form id="actividadForm" class="formularioActividad">
+        <div class="campo">
+          <input
+            type="text"
+            id="nuevaActividad"
+            name="nuevaActividad"
+            placeholder="Actividad"
+            required
+          />
+        </div>
+        <div class="campo">
+          <button type="submit" class="botonActividad">Agregar</button>
+        </div>
+      </form>
+      <div class="campo">
+        <div id="actividadError" class="error-message"></div>
+      </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMACIÓN -->
+    <div id="confirmModal" class="modal-overlay">
+      <div class="modal-content">
+        <p id="confirmMessage">
+          ¿Estás seguro de que querés eliminar esta actividad?
+        </p>
+        <div class="modal-buttons">
+          <button id="confirmYes" class="modal-btn confirmar">Sí</button>
+          <button id="confirmNo" class="modal-btn cancelar">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="../JS/config.js"></script>
+    <script>
+      async function fetchUserActivities() {
+        const container = document.getElementById("accordion-container");
+        container.innerHTML = ""; // Limpiar actividades anteriores
+
+        try {
+          // Obtener email del usuario desde JWT (en cookie)
+          const resUser = await fetch(`${ROOT_URL}/api/sessions/current`, {
+            credentials: "include",
+          });
+          const { userJWT } = await resUser.json();
+          const email = userJWT.email;
+
+          // Obtener actividades desde la DB usando el email
+
+          const res = await fetch(`${ROOT_URL}/api/activities/${email}`, {
+            credentials: "include",
+          });
+
+          if (!res.ok) throw new Error("Respuesta no satisfactoria");
+
+          const activities = await res.json(); // 👈 es un array, no un objeto
+          console.log("Actividades:", activities);
+
+          if (!activities || activities.length === 0) {
+            container.innerHTML = "<p>No tenés actividades cargadas.</p>";
+            return;
+          }
+
+          // Crear los elementos del acordeón
+          activities.forEach((activity) => {
+            const accordion = document.createElement("div");
+            accordion.classList.add("accordion");
+
+            accordion.innerHTML = `
+                <div class="accordion-header">
+                    <span>${activity.name}</span>
+                    <button class="delete-btn" data-id="${
+                      activity._id
+                    }" title="Eliminar actividad">🗑️</button>
+                </div>
+            <div class="accordion-body">
+              ${activity.equipment
+                .map(
+                  (eq) => `
+                  <div class="equipment-item">
+                    <strong>${eq.name}</strong><br/>
+                    <span>${eq.description}</span><br/>
+                    ${
+                      eq.photo
+                        ? `<img class="equipment-photo" src="${eq.photo}" alt="${eq.name}"/>`
+                        : ""
+                    }
+                  </div>
+                `
+                )
+                .join("")}
+            </div>
+          `;
+
+            // Delete activities
+            accordion
+              .querySelector(".delete-btn")
+              .addEventListener("click", async (e) => {
+                e.stopPropagation(); // para que no se abra/cierre el acordeón al hacer click
+
+
+
+
+                //const id = e.target.dataset.id;
+                const confirmDelete = confirm(
+                  "¿Estás seguro de que querés eliminar esta actividad?"
+                );
+                if (!confirmDelete) return;
+
+                try {
+                  const res = await fetch(`${ROOT_URL}/api/activities`, {
+                    method: "DELETE",
+                    credentials: "include",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ email, activity: activity.name }),
+                  });
+
+                  if (!res.ok) throw new Error("Error al eliminar actividad.");
+
+                  alert("Actividad eliminada correctamente.");
+                  fetchUserActivities(); // 🔄 recargar
+                } catch (err) {
+                  alert(err.message);
+                }
+              });
+
+            // Hacer que se abra/cierre el menú al hacer click
+            accordion
+              .querySelector(".accordion-header")
+              .addEventListener("click", () => {
+                accordion.classList.toggle("open");
+              });
+
+            container.appendChild(accordion);
+          });
+        } catch (err) {
+          console.error(err);
+          container.innerHTML = "<p>Error al cargar las actividades.</p>";
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", fetchUserActivities);
+
+      // Despliega el formulario para agregar Actividades
+      const mostrarBtn = document.getElementById("mostrarFormularioActividad");
+      const formContainer = document.getElementById("actividadFormContainer");
+      const actividadForm = document.getElementById("actividadForm");
+      const errorDiv = document.getElementById("actividadError");
+
+      formContainer.style.display = "none";
+
+      mostrarBtn.addEventListener("click", () => {
+        formContainer.style.display =
+          formContainer.style.display === "none" ? "block" : "none";
+      });
+
+      actividadForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const actividad = document
+          .getElementById("nuevaActividad")
+          .value.trim();
+
+        if (!actividad) {
+          errorDiv.textContent = "La actividad no puede estar vacía.";
+          return;
+        }
+
+        try {
+          const res = await fetch(`${ROOT_URL}/api/activities`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({ activity: actividad }),
+          });
+
+          if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.message || "Error al guardar actividad.");
+          }
+
+          alert("Actividad agregada con éxito.");
+          formContainer.style.display = "none";
+          actividadForm.reset();
+          fetchUserActivities(); // 🔄 recargar la lista
+        } catch (err) {
+          errorDiv.textContent = err.message;
+        }
+      });
+    </script>
+  </body>
+</html>

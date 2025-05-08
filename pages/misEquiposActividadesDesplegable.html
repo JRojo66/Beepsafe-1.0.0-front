@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mis Actividades</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    .accordion {
+      background: #fff;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .accordion-header {
+      background: #0077cc;
+      color: white;
+      padding: 15px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .accordion-body {
+      display: none;
+      padding: 10px 15px;
+      background-color: #f9f9f9;
+    }
+    .accordion.open .accordion-body {
+      display: block;
+    }
+    .equipment-item {
+      margin-bottom: 10px;
+    }
+    .equipment-photo {
+      max-width: 100px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Mis Actividades</h1>
+  <div id="accordion-container"></div>
+
+  <script src="../JS/config.js"></script>
+  <script>
+    async function fetchUserActivities() {
+      const container = document.getElementById('accordion-container');
+      try {
+        const res = await fetch(`${ROOT_URL}/api/sessions/current`, {
+          credentials: 'include' // 🔑 necesario para enviar la cookie beepcookie
+        });
+
+        const { userJWT } = await res.json();
+        const activities = userJWT.activities || [];
+
+        console.log(userJWT);
+
+        if (activities.length === 0) {
+          container.innerHTML = '<p>No tenés actividades cargadas.</p>';
+          return;
+        }
+
+
+        activities.forEach(activity => {
+          const accordion = document.createElement('div');
+          accordion.classList.add('accordion');
+
+          accordion.innerHTML = `
+            <div class="accordion-header">${activity.name}</div>
+            <div class="accordion-body">
+              ${
+                activity.equipment.map(eq => `
+                  <div class="equipment-item">
+                    <strong>${eq.name}</strong><br/>
+                    <span>${eq.description}</span><br/>
+                    ${eq.photo ? `<img class="equipment-photo" src="${eq.photo}" alt="${eq.name}"/>` : ''}
+                  </div>
+                `).join('')
+              }
+            </div>
+          `;
+
+          accordion.querySelector('.accordion-header').addEventListener('click', () => {
+            accordion.classList.toggle('open');
+          });
+
+          container.appendChild(accordion);
+        });
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById('accordion-container').innerHTML = '<p>Error al cargar las actividades.</p>';
+      }
+    }
+
+    fetchUserActivities();
+  </script>
+
+</body>
+</html>
