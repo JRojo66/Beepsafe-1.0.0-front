@@ -260,9 +260,6 @@
               .addEventListener("click", async (e) => {
                 e.stopPropagation(); // para que no se abra/cierre el acordeón al hacer click
 
-
-
-
                 //const id = e.target.dataset.id;
                 const confirmDelete = confirm(
                   "¿Estás seguro de que querés eliminar esta actividad?"
@@ -284,7 +281,7 @@
                   alert("Actividad eliminada correctamente.");
                   fetchUserActivities(); // 🔄 recargar
                 } catch (err) {
-                  alert(err.message);
+                    alert(err.message);
                 }
               });
 
