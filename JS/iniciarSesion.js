@@ -23,7 +23,7 @@ const form = document.getElementById("iniciarSesionForm");
 const spinner = document.getElementById("spinner"); // debajo del form = document.getElementById...
 
 let intentosFallidos = parseInt(localStorage.getItem("intentosFallidos")) || 0;
-let MAX_INTENTOS_FALLIDOS = 3; // Default max intentos fallidos hasta que cargue del backend
+let MAX_INTENTOS_FALLIDOS = 5; // Default max intentos fallidos hasta que cargue del backend
 let BLOCK_TIME_MINUTES = 60; // Default tiempo de bloqueo entre intentos hasta que cargue del backend
 
 // Fetchear config apenas carga la página
@@ -66,8 +66,32 @@ form.addEventListener("submit", function (event) {
       "La contraseña debe tener al menos 6 caracteres.";
     return; // Detiene la ejecución de la función y no hace el fetch
   }
+
   if (isValid) {
     spinner.style.display = "block";
+// test
+    // fetch('http://localhost:8080//sessions/login', {
+    //   method: 'POST',
+    //   credentials: 'include',
+    //   headers: {
+    //     'Content-Type': 'application/json'
+    //   },
+    //   body: JSON.stringify({ email, password })
+    // })
+    // .then(res => {
+    //   console.log("🔄 Headers de respuesta", [...res.headers]);
+    //   return res.json();
+    // })
+    // .then(data => {
+    //   console.log("✅ Login OK", data);
+    // })
+    // .catch(err => {
+    //   console.error("❌ Error en login:", err);
+    // });
+    // fin test
+
+
+
     fetch(`${ROOT_URL}/api/sessions/login`, {
       method: "POST",
       credentials: "include", // 👈 NECESARIO PARA ENVIAR COOKIES
@@ -96,7 +120,7 @@ form.addEventListener("submit", function (event) {
         console.error("CATCH EJECUTADO:", error);
         const passwordErrorDiv = document.getElementById("passwordError");
         if (error.status === 401) {
-          // Credenciales inválidas
+          //Credenciales inválidas
           intentosFallidos++;
           localStorage.setItem("intentosFallidos", intentosFallidos); // 👉 Guarda en localStorage
           
@@ -106,8 +130,8 @@ form.addEventListener("submit", function (event) {
             const unblockTime = now + BLOCK_TIME_MINUTES * 60 * 1000; // tiempo futuro en ms
             localStorage.setItem("blockedUntil", unblockTime);
             const minutosRestantes = error.retryAfter || BLOCK_TIME_MINUTES; // por si no viene retryAfter
-            // Redirigir a la página de error y pasar el mensaje como parámetro en la URL
-            //passwordErrorDiv.textContent = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
+            //Redirigir a la página de error y pasar el mensaje como parámetro en la URL
+            passwordErrorDiv.textContent = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
             let messageErrorTime = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
             window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(
               messageErrorTime
@@ -116,11 +140,11 @@ form.addEventListener("submit", function (event) {
             passwordErrorDiv.textContent = `Credenciales inválidas. Intento ${intentosFallidos} de ${MAX_INTENTOS_FALLIDOS}.`;
           } 
         } else if (error.status === 429) {
-          // Ratelimit excedido
+          //Ratelimit excedido
           const now = Date.now();
           window.location.href = "errorIniciarSesion.html"
         } else {
-          // Otro error
+          //Otro error
           passwordErrorDiv.textContent =
             error.error || "Algo salió mal, intentalo nuevamente.";
         }

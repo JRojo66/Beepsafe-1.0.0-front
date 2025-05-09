@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mis Actividades2</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -23,6 +27,15 @@
         cursor: pointer;
         font-weight: bold;
       }
+
+      .toggle-icon i {
+        transition: transform 0.3s ease;
+      }
+
+      .accordion.open .toggle-icon i {
+        transform: rotate(180deg);
+      }
+
       .accordion-body {
         display: none;
         padding: 10px 15px;
@@ -216,7 +229,6 @@
           if (!res.ok) throw new Error("Respuesta no satisfactoria");
 
           const activities = await res.json(); // 👈 es un array, no un objeto
-          console.log("Actividades:", activities);
 
           if (!activities || activities.length === 0) {
             container.innerHTML = "<p>No tenés actividades cargadas.</p>";
@@ -230,6 +242,7 @@
 
             accordion.innerHTML = `
                 <div class="accordion-header">
+                <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
                     <span>${activity.name}</span>
                     <button class="delete-btn" data-id="${
                       activity._id
@@ -243,16 +256,69 @@
                     <strong>${eq.name}</strong><br/>
                     <span>${eq.description}</span><br/>
                     ${
-                      eq.photo
-                        ? `<img class="equipment-photo" src="${eq.photo}" alt="${eq.name}"/>`
+                      eq.photo?.trim()
+                        ? `<img class="equipment-photo" src="${encodeURI(
+                            eq.photo.trim()
+                          )}" alt="${eq.name}" />`
                         : ""
                     }
+                    <button class="delete-equipment-btn" 
+                    data-activity="${activity.name}" 
+                    data-eq-name="${eq.name}" 
+                    title="Eliminar equipo">🗑️</button>
                   </div>
                 `
                 )
                 .join("")}
+                <div class="add-equipment-form">
+                    <input type="text" placeholder="Nombre equipo" class="input-name" />
+                    <input type="text" placeholder="Descripción" class="input-desc" />
+                    <input type="text" placeholder="URL foto" class="input-photo" />
+                    <button class="add-equipment-btn">Agregar Equipo</button>
+                </div>
             </div>
           `;
+
+            // Delete equipment
+            accordion
+              .querySelectorAll(".delete-equipment-btn")
+              .forEach((btn) => {
+                btn.addEventListener("click", async (e) => {
+                  e.stopPropagation();
+                  const eqName = btn.dataset.eqName;
+                  const actName = btn.dataset.activity;
+
+                  const confirmDelete = confirm(
+                    `¿Eliminar el equipo "${eqName}" de la actividad "${actName}"?`
+                  );
+                  if (!confirmDelete) return;
+
+                  try {
+                    const res = await fetch(
+                      `${ROOT_URL}/api/activities/equipment`,
+                      {
+                        method: "DELETE",
+                        credentials: "include",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                          email,
+                          activity: actName,
+                          equipmentName: eqName,
+                        }),
+                      }
+                    );
+
+                    if (!res.ok) throw new Error("Error al eliminar equipo.");
+
+                    alert("Equipo eliminado correctamente.");
+                    fetchUserActivities(); // 🔄 recargar
+                  } catch (err) {
+                    alert(err.message);
+                  }
+                });
+              });
 
             // Delete activities
             accordion
@@ -281,7 +347,56 @@
                   alert("Actividad eliminada correctamente.");
                   fetchUserActivities(); // 🔄 recargar
                 } catch (err) {
-                    alert(err.message);
+                  alert(err.message);
+                }
+              });
+
+            // Add equipment
+            accordion
+              .querySelector(".add-equipment-btn")
+              .addEventListener("click", async (e) => {
+                e.stopPropagation();
+
+                const name = accordion
+                  .querySelector(".input-name")
+                  .value.trim();
+                const description = accordion
+                  .querySelector(".input-desc")
+                  .value.trim();
+                const photo = accordion
+                  .querySelector(".input-photo")
+                  .value.trim();
+
+                if (!name || !description) {
+                  alert(
+                    "Por favor completá al menos el nombre y la descripción del equipo."
+                  );
+                  return;
+                }
+
+                try {
+                  const res = await fetch(
+                    `${ROOT_URL}/api/activities/equipment`,
+                    {
+                      method: "POST",
+                      credentials: "include",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                        email,
+                        activity: activity.name,
+                        equipment: { name, description, photo },
+                      }),
+                    }
+                  );
+
+                  if (!res.ok) throw new Error("Error al agregar equipo.");
+
+                  alert("Equipo agregado correctamente.");
+                  fetchUserActivities(); // 🔄 recargar actividades
+                } catch (err) {
+                  alert(err.message);
                 }
               });
 

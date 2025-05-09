@@ -1,5 +1,5 @@
 window.addEventListener('DOMContentLoaded', async () => {
-    try {
+  try {
       const response = await fetch(`${ROOT_URL}/api/sessions/current`, {
         method: 'GET',
         credentials: 'include',
@@ -11,7 +11,6 @@ window.addEventListener('DOMContentLoaded', async () => {
       const data = await response.json();
       const nombreElemento = document.getElementById('nombre');
       nombreElemento.innerHTML = `<strong>${data.userJWT.name.toUpperCase()}!</strong>`;
-      // Se puede usar data.userJWT para personalizar la vista
     } catch (err) {
       console.warn('No autenticado, redirigiendo...');
       window.location.href = '/pages/IniciarSesion.html';
