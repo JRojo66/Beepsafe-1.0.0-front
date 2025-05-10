@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mis Actividades2</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
     />
+    <link rel="stylesheet" href="../styles/styles.css" />
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -173,21 +173,6 @@
         background: #eef;
         border-radius: 5px;
       }
-
-      /* Tailwind */
-      @keyframes fade-in {
-        from {
-          opacity: 0;
-          transform: translateY(-10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      .animate-fade-in {
-        animation: fade-in 0.3s ease-out;
-      }
     </style>
   </head>
   <body>
@@ -229,11 +214,28 @@
         </div>
       </div>
     </div>
-    <div id="toast-container" class="fixed top-5 right-5 space-y-3 z-50"></div>
 
     <script src="../JS/config.js"></script>
     <script>
-      async function fetchUserActivities() {
+      // Guardar el estado de los acordeones antes de recargar
+      function getAccordionState() {
+        const accordions = document.querySelectorAll(".accordion");
+        const state = [];
+        accordions.forEach((acc) => {
+          const activityName = acc
+            .querySelector(".accordion-header span:nth-child(2)")
+            ?.textContent.trim();
+          const isOpen = acc.classList.contains("open");
+          const isFormVisible =
+            acc.querySelector(".add-equipment-form")?.style.display !== "none";
+          if (activityName) {
+            state.push({ activityName, isOpen, isFormVisible });
+          }
+        });
+        return state;
+      }
+
+      async function fetchUserActivities(previousState = []) {
         const container = document.getElementById("accordion-container");
         container.innerHTML = ""; // Limpiar actividades anteriores
 
@@ -339,7 +341,8 @@
                     if (!res.ok) throw new Error("Error al eliminar equipo.");
 
                     alert("Equipo eliminado correctamente.");
-                    fetchUserActivities(); // 🔄 recargar
+                    const prevState = getAccordionState();
+                    fetchUserActivities(prevState);
                   } catch (err) {
                     alert(err.message);
                   }
@@ -371,7 +374,8 @@
                   if (!res.ok) throw new Error("Error al eliminar actividad.");
 
                   alert("Actividad eliminada correctamente.");
-                  fetchUserActivities(); // 🔄 recargar
+                  const prevState = getAccordionState();
+                  fetchUserActivities(prevState);
                 } catch (err) {
                   alert(err.message);
                 }
@@ -427,8 +431,10 @@
                   );
 
                   if (!res.ok) throw new Error("Error al agregar equipo.");
-                  showToast("Equipo Agregado", "success");
-                  fetchUserActivities(); // 🔄 recargar actividades
+
+                  // alert("Equipo agregado correctamente.");
+                  const prevState = getAccordionState();
+                  fetchUserActivities(prevState);
                 } catch (err) {
                   alert(err.message);
                 }
@@ -440,6 +446,17 @@
               .addEventListener("click", () => {
                 accordion.classList.toggle("open");
               });
+            // Restaurar estado previo del acordeón y formulario
+            const prev = previousState.find(
+              (p) => p.activityName === activity.name
+            );
+            if (prev?.isOpen) {
+              accordion.classList.add("open");
+            }
+            // if (prev?.isFormVisible) {
+            //   accordion.querySelector(".add-equipment-form").style.display =
+            //     "block";
+            // }
 
             container.appendChild(accordion);
           });
@@ -449,7 +466,8 @@
         }
       }
 
-      document.addEventListener("DOMContentLoaded", fetchUserActivities);
+document.addEventListener("DOMContentLoaded", () => fetchUserActivities([]));
+
 
       // Despliega el formulario para agregar Actividades
       const mostrarBtn = document.getElementById("mostrarFormularioActividad");
@@ -490,40 +508,16 @@
             throw new Error(data.message || "Error al guardar actividad.");
           }
 
-          showToast("Actividad agregada", "success");
+          alert("Actividad agregada con éxito.");
           formContainer.style.display = "none";
           actividadForm.reset();
-          fetchUserActivities(); // 🔄 recargar la lista
+          const prevState = getAccordionState();
+          fetchUserActivities(prevState);
+
         } catch (err) {
           errorDiv.textContent = err.message;
         }
       });
-
-      // Tailwind
-      function showToast(message, type = "success") {
-        const container = document.getElementById("toast-container");
-
-        const toast = document.createElement("div");
-        const baseClasses =
-          "px-4 py-2 rounded shadow-md text-white animate-fade-in duration-300";
-        const typeClasses = {
-          success: "bg-green-500",
-          error: "bg-red-500",
-          info: "bg-blue-500",
-        };
-
-        toast.className = `${baseClasses} ${
-          typeClasses[type] || typeClasses.info
-        }`;
-        toast.textContent = message;
-
-        container.appendChild(toast);
-
-        setTimeout(() => {
-          toast.classList.add("opacity-0");
-          setTimeout(() => container.removeChild(toast), 500);
-        }, 3000);
-      }
     </script>
   </body>
 </html>
