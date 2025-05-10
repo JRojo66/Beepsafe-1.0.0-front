@@ -216,6 +216,7 @@
     </div>
 
     <script src="../JS/config.js"></script>
+
     <script>
       // Guardar el estado de los acordeones antes de recargar
       function getAccordionState() {
@@ -235,7 +236,10 @@
         return state;
       }
 
-      async function fetchUserActivities(previousState = []) {
+      async function fetchUserActivities(
+        previousState = [],
+        scrollYToRestore = null
+      ) {
         const container = document.getElementById("accordion-container");
         container.innerHTML = ""; // Limpiar actividades anteriores
 
@@ -339,10 +343,10 @@
                     );
 
                     if (!res.ok) throw new Error("Error al eliminar equipo.");
-
-                    alert("Equipo eliminado correctamente.");
+                    // alert("Equipo eliminado");
                     const prevState = getAccordionState();
-                    fetchUserActivities(prevState);
+                    const prevScrollY = window.scrollY;
+                    fetchUserActivities(prevState, prevScrollY);
                   } catch (err) {
                     alert(err.message);
                   }
@@ -373,9 +377,10 @@
 
                   if (!res.ok) throw new Error("Error al eliminar actividad.");
 
-                  alert("Actividad eliminada correctamente.");
+                  // alert("Actividad eliminada");
                   const prevState = getAccordionState();
-                  fetchUserActivities(prevState);
+                  const prevScrollY = window.scrollY;
+                  fetchUserActivities(prevState, prevScrollY);
                 } catch (err) {
                   alert(err.message);
                 }
@@ -432,9 +437,10 @@
 
                   if (!res.ok) throw new Error("Error al agregar equipo.");
 
-                  // alert("Equipo agregado correctamente.");
+                  // alert("Equipo agregado");
                   const prevState = getAccordionState();
-                  fetchUserActivities(prevState);
+                  const prevScrollY = window.scrollY;
+                  fetchUserActivities(prevState, prevScrollY);
                 } catch (err) {
                   alert(err.message);
                 }
@@ -464,10 +470,15 @@
           console.error(err);
           container.innerHTML = "<p>Error al cargar las actividades.</p>";
         }
+
+        if (scrollYToRestore !== null) {
+          window.scrollTo(0, scrollYToRestore);
+        }
       }
 
-document.addEventListener("DOMContentLoaded", () => fetchUserActivities([]));
-
+      document.addEventListener("DOMContentLoaded", () =>
+        fetchUserActivities([])
+      );
 
       // Despliega el formulario para agregar Actividades
       const mostrarBtn = document.getElementById("mostrarFormularioActividad");
@@ -508,12 +519,12 @@ document.addEventListener("DOMContentLoaded", () => fetchUserActivities([]));
             throw new Error(data.message || "Error al guardar actividad.");
           }
 
-          alert("Actividad agregada con éxito.");
+          // alert("Actividad agregada");
           formContainer.style.display = "none";
           actividadForm.reset();
           const prevState = getAccordionState();
-          fetchUserActivities(prevState);
-
+          const prevScrollY = window.scrollY;
+          fetchUserActivities(prevState, prevScrollY);
         } catch (err) {
           errorDiv.textContent = err.message;
         }
