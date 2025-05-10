@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mis Actividades2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
@@ -164,6 +165,29 @@
       .modal-btn:hover {
         opacity: 0.9;
       }
+
+      .add-equipment-form {
+        display: none;
+        margin-top: 10px;
+        padding: 10px;
+        background: #eef;
+        border-radius: 5px;
+      }
+
+      /* Tailwind */
+      @keyframes fade-in {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in {
+        animation: fade-in 0.3s ease-out;
+      }
     </style>
   </head>
   <body>
@@ -205,6 +229,7 @@
         </div>
       </div>
     </div>
+    <div id="toast-container" class="fixed top-5 right-5 space-y-3 z-50"></div>
 
     <script src="../JS/config.js"></script>
     <script>
@@ -231,7 +256,7 @@
           const activities = await res.json(); // 👈 es un array, no un objeto
 
           if (!activities || activities.length === 0) {
-            container.innerHTML = "<p>No tenés actividades cargadas.</p>";
+            container.innerHTML = "<p>No hay actividades cargadas.</p>";
             return;
           }
 
@@ -270,11 +295,12 @@
                 `
                 )
                 .join("")}
-                <div class="add-equipment-form">
+                <button class="toggle-add-equipment botonActividad">Agregar equipo</button>
+                <div class="add-equipment-form" style="display:none;">
                     <input type="text" placeholder="Nombre equipo" class="input-name" />
                     <input type="text" placeholder="Descripción" class="input-desc" />
                     <input type="text" placeholder="URL foto" class="input-photo" />
-                    <button class="add-equipment-btn">Agregar Equipo</button>
+                    <button class="add-equipment-btn">Guardar Equipo</button>
                 </div>
             </div>
           `;
@@ -328,7 +354,7 @@
 
                 //const id = e.target.dataset.id;
                 const confirmDelete = confirm(
-                  "¿Estás seguro de que querés eliminar esta actividad?"
+                  "¿Estás seguro de que querés eliminar esta actividad? Se borraran los equipos de esta actividad también"
                 );
                 if (!confirmDelete) return;
 
@@ -352,6 +378,15 @@
               });
 
             // Add equipment
+            // Mostrar/ocultar formulario de agregar equipo
+            accordion
+              .querySelector(".toggle-add-equipment")
+              .addEventListener("click", () => {
+                const form = accordion.querySelector(".add-equipment-form");
+                form.style.display =
+                  form.style.display === "none" ? "block" : "none";
+              });
+
             accordion
               .querySelector(".add-equipment-btn")
               .addEventListener("click", async (e) => {
@@ -392,8 +427,7 @@
                   );
 
                   if (!res.ok) throw new Error("Error al agregar equipo.");
-
-                  alert("Equipo agregado correctamente.");
+                  showToast("Equipo Agregado", "success");
                   fetchUserActivities(); // 🔄 recargar actividades
                 } catch (err) {
                   alert(err.message);
@@ -456,7 +490,7 @@
             throw new Error(data.message || "Error al guardar actividad.");
           }
 
-          alert("Actividad agregada con éxito.");
+          showToast("Actividad agregada", "success");
           formContainer.style.display = "none";
           actividadForm.reset();
           fetchUserActivities(); // 🔄 recargar la lista
@@ -464,6 +498,32 @@
           errorDiv.textContent = err.message;
         }
       });
+
+      // Tailwind
+      function showToast(message, type = "success") {
+        const container = document.getElementById("toast-container");
+
+        const toast = document.createElement("div");
+        const baseClasses =
+          "px-4 py-2 rounded shadow-md text-white animate-fade-in duration-300";
+        const typeClasses = {
+          success: "bg-green-500",
+          error: "bg-red-500",
+          info: "bg-blue-500",
+        };
+
+        toast.className = `${baseClasses} ${
+          typeClasses[type] || typeClasses.info
+        }`;
+        toast.textContent = message;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+          toast.classList.add("opacity-0");
+          setTimeout(() => container.removeChild(toast), 500);
+        }, 3000);
+      }
     </script>
   </body>
 </html>
