@@ -1130,3 +1130,25 @@ select.menu {
     transform: rotate(360deg);
   }
 }
+
+/* MisEquiposActividades */
+.accordion {
+  background-color: var(--color-fondo);
+  color: white;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.accordion-header {
+  padding: 12px;
+  cursor: pointer;
+  font-weight: bold;
+  background-color: var(--color-principal);
+}
+
+.accordion-body {
+  background-color: white;
+  color: black;
+  padding: 10px;
+}
