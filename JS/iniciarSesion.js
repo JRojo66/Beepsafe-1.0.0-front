@@ -135,9 +135,7 @@ form.addEventListener("submit", function (event) {
             //Redirigir a la página de error y pasar el mensaje como parámetro en la URL
             passwordErrorDiv.textContent = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
             let messageErrorTime = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
-            window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(
-              messageErrorTime
-            )}`;
+            // window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(messageErrorTime)}`;
           } else {
             passwordErrorDiv.textContent = `Credenciales inválidas. Intento ${intentosFallidos} de ${MAX_INTENTOS_FALLIDOS}.`;
           } 
