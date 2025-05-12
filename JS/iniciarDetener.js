@@ -5,6 +5,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         credentials: 'include',
       });
       if (!response.ok) {
+        console.log("xxx");
         throw new Error('Token inválido');
       }
   
