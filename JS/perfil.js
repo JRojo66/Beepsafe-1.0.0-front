@@ -14,7 +14,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       // Se puede usar data.userJWT para personalizar la vista
     } catch (err) {
       console.warn('No autenticado, redirigiendo...');
-      window.location.href = '/pages/IniciarSesion.html';
+      window.location.href = '/pages/iniciarSesion.html';
     }
   });
 
