@@ -16,4 +16,5 @@ window.addEventListener('DOMContentLoaded', async () => {
       window.location.href = '/pages/iniciarSesion.html';
     }
   });
+  //
   
