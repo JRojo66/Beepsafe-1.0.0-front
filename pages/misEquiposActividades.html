@@ -41,28 +41,31 @@
     <button id="mostrarFormularioActividad">Agregar actividad</button>
 
     <!-- FORMULARIO PARA CARGAR ACTIVIDAD (INICIALMENTE OCULTO) -->
-    <div id="actividadFormContainer">
-      <form id="actividadForm" class="formularioActividad">
-        <div class="campo">
-          <input
-            type="text"
-            id="nuevaActividad"
-            name="nuevaActividad"
-            placeholder="Actividad"
-            required
-          />
+
+      <div id="actividadFormContainer">
+        <form id="actividadForm" class="add-activity-form"> 
+          <!-- antes formularioActividad -->
+          <!-- <div class="campo"> -->
+            <input class = "input-activity"
+              type="text"
+              id="nuevaActividad"
+              name="nuevaActividad"
+              placeholder="Actividad"
+              required
+            />
+          <!-- </div> -->
+          <!-- <div class="campo"> -->
+            <button type="submit" class="botonActividad">Agregar</button>
+          <!-- </div> -->
+        </form>
+        <!-- <div class="campo"> -->
+          <div id="actividadError" class="error-message"></div>
         </div>
-        <div class="campo">
-          <button type="submit" class="botonActividad">Agregar</button>
-        </div>
-      </form>
-      <div class="campo">
-        <div id="actividadError" class="error-message"></div>
-      </div>
-    </div>
+      <!-- </div> -->
+
 
     <!-- MODAL DE CONFIRMACIÓN -->
-    <div id="confirmModal" class="modal-overlay">
+    <!-- <div id="confirmModal" class="modal-overlay">
       <div class="modal-content">
         <p id="confirmMessage">
           ¿Estás seguro de que querés eliminar esta actividad?
@@ -72,6 +75,7 @@
           <button id="confirmNo" class="modal-btn cancelar">Cancelar</button>
         </div>
       </div>
+    </div> -->
     </div>
 
     <script src="../JS/config.js"></script>
