@@ -13,7 +13,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       nombreElemento.innerHTML = `<strong>${data.userJWT.name.toUpperCase()}!</strong>`;
     } catch (err) {
       console.warn('No autenticado, redirigiendo...');
-      window.location.href = '/pages/iniciarSesion.html';
+      window.location.href = 'iniciarSesion.html';
     }
   });
   //
