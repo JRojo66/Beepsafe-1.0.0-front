@@ -32,8 +32,8 @@ let BLOCK_TIME_MINUTES = 60; // Default tiempo de bloqueo entre intentos hasta q
 fetch(`${ROOT_URL}/api/config`)
   .then((response) => response.json())
   .then((config) => {
-    console.log("MAX_INTENTOS_FALLIDOS",MAX_INTENTOS_FALLIDOS);
     MAX_INTENTOS_FALLIDOS = config.maxLoginAttempts;
+    console.log("MAX_INTENTOS_FALLIDOS",MAX_INTENTOS_FALLIDOS);
     BLOCK_TIME_MINUTES = config.blockTimeMinutes;
   })
   .catch((error) => {
@@ -117,7 +117,7 @@ form.addEventListener("submit", function (event) {
       .then((data) => {
         console.log("DATA EN THEN:", data);
         localStorage.removeItem("intentosFallidos");
-        //window.location.href = "iniciarDetener.html";
+        window.location.href = "iniciarDetener.html";
       })
       .catch((error) => {
         console.error("CATCH EJECUTADO:", error);
