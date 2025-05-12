@@ -116,14 +116,13 @@ form.addEventListener("submit", function (event) {
       .then((data) => {
         console.log("DATA EN THEN:", data);
         localStorage.removeItem("intentosFallidos");
-        window.location.href = "/Beepsafe-1.0.0-front/pages/iniciarDetener.html";
-
+        window.location.href = "iniciarDetener.html";
       })
       .catch((error) => {
         console.error("CATCH EJECUTADO:", error);
         const passwordErrorDiv = document.getElementById("passwordError");
         if (error.status === 401) {
-          //Credenciales inválidas
+          //Credenciales inválidas//
           intentosFallidos++;
           localStorage.setItem("intentosFallidos", intentosFallidos); // 👉 Guarda en localStorage
           
