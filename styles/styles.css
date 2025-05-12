@@ -1,8 +1,8 @@
 :root {
-  --color-principal: #90FFEF;
-  --color-fondo: #0C243C;
+  --color-principal: #90ffef;
+  --color-fondo: #0c243c;
+  --color-fondo2: #300965;
 }
-
 
 html {
   font-size: 16px;
@@ -11,7 +11,7 @@ html {
 body {
   text-align: center;
   background-color: var(--color-fondo);
-  font-family: 'Roboto';
+  font-family: "Roboto";
 }
 
 p {
@@ -113,10 +113,6 @@ a {
     font-weight: normal; /* Grosor de la fuente (opcional) */
     opacity: 1; /* Asegura que el placeholder sea visible en Firefox */
   }
-/* 
-  .campo {
-    margin-bottom: 50px;
-  } */
 
   .campo label {
     display: block;
@@ -145,7 +141,6 @@ a {
   .campo input[type="password"]:focus,
   .campo textarea:focus {
     border-bottom-color: var(--color-principal);
-
   }
 
   input:-webkit-autofill,
@@ -181,81 +176,6 @@ a {
     background-color: #49d1b7;
   }
 
-  /* Actividades/Equipos */
-  .formularioActividad {
-    margin-left: 80px;
-    padding-top: 10px;
-    display: flex;
-  }
-  
-  #nuevaActividad {
-    height: 60%;
-    width: 200px;
-    border-color: transparent;
-    border-bottom-color: var(--color-principal);
-    color: white;
-    background-color: transparent;
-  }
-  
-  input::placeholder {
-    color: white;
-  }
-  
-  form button.botonActividad {
-    height: 20px; /* Igual que el input */
-    padding: 0 20px;
-    /* width: 80%; */
-    align-items: center;
-    justify-content: center; /* Centra el texto horizontalmente */
-    font-size: 16px;
-    background-color: var(--color-principal);
-    color: black;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-  }
-
-  form button.botonActividad:hover {
-    background-color: #49d1b7;
-  }
-
-  .formularioEquipo {
-    margin-left: 100px;
-    padding-top: 10px;
-    display: flex;
-  }
-
-  #nuevoEquipo {
-    height: 60%;
-    width: 200px;
-    border-color: transparent;
-    border-bottom-color: var(--color-principal);
-    color: white;
-    background-color: transparent;
-  }
-
-  form button.botonEquipo {
-    height: 20px; /* Igual que el input */
-    padding: 0 20px;
-    align-items: center;
-    justify-content: center; /* Centra el texto horizontalmente */
-    font-size: 16px;
-    background-color: var(--color-principal);
-    color: black;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-  }
-
-  form button.botonEquipo:hover {
-    background-color: #49d1b7;
-  }
-
-
-
-/* Fin ActividadesEquipos*/
   .iniciarSesion2 {
     width: 200px;
     background-color: var(--color-principal);
@@ -347,7 +267,9 @@ a {
   .campo input[type="tel"]:focus,
   .campo input[type="password"]:focus,
   .campo textarea:focus {
-    border-bottom-color: var(--color-principal); /* color de la linea de subrayado del formulario cuando lo estoy llenando*/
+    border-bottom-color: var(
+      --color-principal
+    ); /* color de la linea de subrayado del formulario cuando lo estoy llenando*/
   }
 
   input:-webkit-autofill,
@@ -384,43 +306,12 @@ a {
     background-color: #49d1b7;
   }
 
-    /* Actividades/Equipos */
-    .formularioActividad {
-      margin-left: 80px;
-      padding-top: 10px;
-      display: flex;
-    }
-    
-    #nuevaActividad {
-      height: 60%;
-      width: 200px;
-      border-color: transparent;
-      border-bottom-color: var(--color-principal);
-      color: white;
-      background-color: transparent;
-    }
-    
-    input::placeholder {
-      color: white;
-    }
-    
-    form button.botonActividad {
-      height: 20px; /* Igual que el input */
-      padding: 0 20px;
-      align-items: center;
-      justify-content: center; /* Centra el texto horizontalmente */
-      font-size: 16px;
-      background-color: var(--color-principal);
-      color: black;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-  
-    form button.botonActividad:hover {
-      background-color: #49d1b7;
-    }
+  /* Actividades/Equipos */
+  .formularioActividad {
+    margin-left: 80px;
+    padding-top: 10px;
+    display: flex;
+  }
 }
 
 .password-container {
@@ -491,7 +382,6 @@ select.menu {
   padding: 5px;
   border-radius: 4px; /* opcional */
 }
-
 
 .logoActividad {
   /* Margen superior del 20% del ancho del contenedor padre */
@@ -657,19 +547,17 @@ select.menu {
   background-color: var(--color-principal);
 }
 
-.imagenPerfil{
+.imagenPerfil {
   height: 18px;
   background-color: white;
   padding: 4px 0;
 }
 
-.imagenPerfilb{
+.imagenPerfilb {
   height: 18px;
   background-color: var(--color-principal);
   padding: 4px 0;
 }
-
-
 
 /*Perfil*/
 
@@ -692,7 +580,7 @@ select.menu {
   max-width: 380px;
 }
 
-.container-centra{
+.container-centra {
   display: flex;
   justify-content: center;
 }
@@ -701,12 +589,12 @@ select.menu {
   width: 85%;
 }
 
-
 .containerPerfil {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding-top: 10px;
+  margin-left: 7%;
 }
 
 .opciones {
@@ -714,6 +602,7 @@ select.menu {
   margin-left: 20px;
   width: 80%;
   text-align: left;
+  font-weight: 700;
 }
 .iniciob,
 .miPerfilb {
@@ -773,14 +662,14 @@ select.menu {
 }
 
 .encabezado {
-  margin: 22px;
+  margin: 2%;
 }
 
 .encabezadoBajada {
   font-size: 14px;
   text-align: center;
   margin: 3% auto;
-  width: 370px;
+  width: 80%;
 }
 
 .containerActividad {
@@ -911,6 +800,71 @@ select.menu {
 
 /* Mis equiposActividades*/
 
+  /* #nuevaActividad {
+    height: 60%;
+    width: 200px;
+    border-color: transparent;
+    border-bottom-color: var(--color-principal);
+    color: white;
+    background-color: transparent;
+  } */
+
+  
+  input::placeholder {
+    color: white;
+  }
+
+  form button.botonActividad {
+    height: 20px; /* Igual que el input */
+    padding: 0 20px;
+    align-items: center;
+    justify-content: center; /* Centra el texto horizontalmente */
+    font-size: 16px;
+    background-color: var(--color-principal);
+    color: black;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  form button.botonActividad:hover {
+    background-color: #49d1b7;
+  }
+
+  .formularioEquipo {
+    margin-left: 100px;
+    padding-top: 10px;
+    display: flex;
+  }
+
+  #nuevoEquipo {
+    height: 60%;
+    width: 200px;
+    border-color: transparent;
+    border-bottom-color: var(--color-principal);
+    color: white;
+    background-color: transparent;
+  }
+
+  form button.botonEquipo {
+    height: 20px; /* Igual que el input */
+    padding: 0 20px;
+    align-items: center;
+    justify-content: center; /* Centra el texto horizontalmente */
+    font-size: 16px;
+    background-color: var(--color-principal);
+    color: black;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  form button.botonEquipo:hover {
+    background-color: #49d1b7;
+  }
+
 .perfile {
   font-size: 1.8rem;
   width: 100%;
@@ -919,7 +873,6 @@ select.menu {
   background-color: var(--color-fondo);
   max-width: 380px;
 }
- 
 
 .opcionesActividades {
   font-size: 60%;
@@ -933,6 +886,216 @@ select.menu {
   width: 80%;
   text-align: left;
 }
+
+.accordion {
+  background: #fff;
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.accordion-header {
+  background: var(--color-fondo);
+  color: white;
+  padding: 15px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.toggle-icon i {
+  transition: transform 0.3s ease;
+}
+
+.accordion.open .toggle-icon i {
+  transform: rotate(180deg);
+}
+
+.accordion-body {
+  display: none;
+  padding: 10px 15px;
+  background-color: #f9f9f9;
+}
+.accordion.open .accordion-body {
+  display: block;
+}
+.equipment-item {
+    display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.equipment-photo {
+  height: 25px;
+  max-width: 100px;
+  display: block;
+}
+
+#add-activity-btn {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+#add-activity-btn:hover {
+  background-color: #218838;
+}
+
+#mostrarFormularioActividad {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: var(--color-fondo);
+  color: white;
+  border-color:white;
+  border-radius: 5px;
+  border-width: 1px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#actividadFormContainer {
+  margin-top: 20px;
+  display: none;
+}
+
+.formularioActividad .campo {
+  /* margin-left: 80px;
+  padding-top: 10px;
+  display: flex;
+  margin-bottom: 10px; */
+  margin-top: 10px;
+  padding: 10px;
+  background-color: var(--color-fondo);
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+}
+
+.campo{
+    margin-bottom: 10px;
+}
+.formularioActividad input {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.botonActividad {
+  background-color: var(--color-fondo);
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.botonActividad:hover {
+  background-color: var(--color-fondo);
+}
+.error-message {
+  color: red;
+  font-size: 14px;
+}
+.delete-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 18px;
+  margin-left: 10px;
+  cursor: pointer;
+  float: right;
+}
+.delete-btn:hover {
+  color: #ffdddd;
+}
+.modal-overlay {
+  display: none;
+  position: fixed;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  max-width: 350px;
+}
+
+.modal-buttons {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-around;
+}
+
+.modal-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.modal-btn.confirmar {
+  background-color: #dc3545;
+  color: white;
+}
+.modal-btn.cancelar {
+  background-color: #6c757d;
+  color: white;
+}
+.modal-btn:hover {
+  opacity: 0.9;
+}
+
+.add-equipment-form {
+  display: none;
+  margin-top: 10px;
+  padding: 10px;
+  background-color: var(--color-fondo);
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+}
+
+.delete-equipment-btn{
+  border: none;
+}
+
+.toggle-add-equipment{
+  background-color: var(--color-fondo);
+}
+
+.input-name, .input-desc, .input-photo, #nuevaActividad{
+background-color: var(--color-fondo);
+border-color: white;
+border-radius: 5px;
+font-size: 16px;
+margin: 2px;
+width: 90%;
+height: 24px;
+color: white;
+}
+
+.add-equipment-btn {
+  background-color: var(--color-fondo);
+  color: white;
+  padding: 8px 10px;
+  border-color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 60%;
+  margin: 5px;
+}
+
 
 /*Mensajes*/
 .areaMensaje {
@@ -1129,26 +1292,4 @@ select.menu {
   100% {
     transform: rotate(360deg);
   }
-}
-
-/* MisEquiposActividades */
-.accordion {
-  background-color: var(--color-fondo);
-  color: white;
-  border-radius: 10px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.accordion-header {
-  padding: 12px;
-  cursor: pointer;
-  font-weight: bold;
-  background-color: var(--color-principal);
-}
-
-.accordion-body {
-  background-color: white;
-  color: black;
-  padding: 10px;
 }
