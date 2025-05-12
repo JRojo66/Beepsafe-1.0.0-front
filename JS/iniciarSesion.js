@@ -117,7 +117,7 @@ form.addEventListener("submit", function (event) {
       .then((data) => {
         console.log("DATA EN THEN:", data);
         localStorage.removeItem("intentosFallidos");
-        window.location.href = "iniciarDetener.html";
+        //window.location.href = "iniciarDetener.html";
       })
       .catch((error) => {
         console.error("CATCH EJECUTADO:", error);
