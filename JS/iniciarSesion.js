@@ -32,6 +32,7 @@ let BLOCK_TIME_MINUTES = 60; // Default tiempo de bloqueo entre intentos hasta q
 fetch(`${ROOT_URL}/api/config`)
   .then((response) => response.json())
   .then((config) => {
+    console.log("MAX_INTENTOS_FALLIDOS",MAX_INTENTOS_FALLIDOS);
     MAX_INTENTOS_FALLIDOS = config.maxLoginAttempts;
     BLOCK_TIME_MINUTES = config.blockTimeMinutes;
   })

@@ -5,10 +5,9 @@ window.addEventListener('DOMContentLoaded', async () => {
         credentials: 'include',
       });
       if (!response.ok) {
-        console.log("xxx");
         throw new Error('Token inválido');
       }
-  
+  console.log("xxx");
       const data = await response.json();
       const nombreElemento = document.getElementById('nombre');
       nombreElemento.innerHTML = `<strong>${data.userJWT.name.toUpperCase()}!</strong>`;
