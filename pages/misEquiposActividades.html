@@ -10,10 +10,9 @@
     />
     <link rel="stylesheet" href="../styles/styles.css" />
   </head>
-  
+
   <body>
     <div class="configuracion">
-
       <!-- Flecha volver, icono mis amigos, titulo Mis equipos -->
       <a href="../pages/perfil.html" class="perfil">
         <div class="containerPerfil">
@@ -27,45 +26,40 @@
         </div>
       </a>
 
-       <!-- Fin flecha volver, icono mis amigos, titulo Mis equipos -->
+      <!-- Fin flecha volver, icono mis amigos, titulo Mis equipos -->
       <!-- Bajada encabezado -->
       <p class="encabezadoBajada">
-        Acá podés registrar tus actividades y equipos según según su categoría e incluso
-        agregar una foto. Es importante que quede detallado el equipo por
-        razones de identificación en caso de búsqueda.
+        Acá podés registrar tus actividades y equipos según según su categoría e
+        incluso agregar una foto. Es importante que quede detallado el equipo
+        por razones de identificación en caso de búsqueda.
       </p>
       <!-- Fin bajada encabezado -->
-       <br>
-    <div id="accordion-container"></div>
-    <!-- BOTÓN PARA MOSTRAR FORMULARIO -->
-    <button id="mostrarFormularioActividad">Agregar actividad</button>
+      <br />
+      <div id="accordion-container"></div>
+      <!-- BOTÓN PARA MOSTRAR FORMULARIO -->
+      <button id="mostrarFormularioActividad">Agregar actividad</button>
 
-    <!-- FORMULARIO PARA CARGAR ACTIVIDAD (INICIALMENTE OCULTO) -->
+      <!-- FORMULARIO PARA CARGAR ACTIVIDAD (INICIALMENTE OCULTO) -->
 
       <div id="actividadFormContainer">
-        <form id="actividadForm" class="add-activity-form"> 
-          <!-- antes formularioActividad -->
-          <!-- <div class="campo"> -->
-            <input class = "input-activity"
+        <div class="hijoDeActividadFormContainer">
+          <form id="actividadForm" class="add-activity-form">
+            <input
+              class="input-activity"
               type="text"
               id="nuevaActividad"
               name="nuevaActividad"
               placeholder="Actividad"
               required
             />
-          <!-- </div> -->
-          <!-- <div class="campo"> -->
             <button type="submit" class="botonActividad">Agregar</button>
-          <!-- </div> -->
-        </form>
-        <!-- <div class="campo"> -->
+          </form>
           <div id="actividadError" class="error-message"></div>
         </div>
-      <!-- </div> -->
+      </div>
 
-
-    <!-- MODAL DE CONFIRMACIÓN -->
-    <!-- <div id="confirmModal" class="modal-overlay">
+      <!-- MODAL DE CONFIRMACIÓN -->
+      <!-- <div id="confirmModal" class="modal-overlay">
       <div class="modal-content">
         <p id="confirmMessage">
           ¿Estás seguro de que querés eliminar esta actividad?

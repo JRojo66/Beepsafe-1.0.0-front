@@ -33,7 +33,6 @@ fetch(`${ROOT_URL}/api/config`)
   .then((response) => response.json())
   .then((config) => {
     MAX_INTENTOS_FALLIDOS = config.maxLoginAttempts;
-    console.log("MAX_INTENTOS_FALLIDOS",MAX_INTENTOS_FALLIDOS);
     BLOCK_TIME_MINUTES = config.blockTimeMinutes;
   })
   .catch((error) => {

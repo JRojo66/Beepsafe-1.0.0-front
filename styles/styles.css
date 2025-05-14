@@ -156,12 +156,12 @@ a {
     width: 100%; /* O un valor en px si prefieres un ancho fijo */
     height: 3.75rem; /* Equivalente a 60px si el font-size base es 16px */
     font-size: 1rem; /* Tamaño de fuente para el botón */
-    padding: 0.625rem 1.25rem; /* Ajustar padding con unidades relativas */
+    /* /* Ajustar padding con unidades relativas */
     background-color: var(--color-principal);
-    border: none;
+    /* border: none; */
     color: black;
-    padding: 10px 20px;
-    font-weight: bold;
+    /* padding: 10px 20px; */
+    /* font-weight: bold; */
     text-align: center;
     text-decoration: none;
     display: inline-block;
@@ -277,7 +277,7 @@ a {
   input:-webkit-autofill:focus,
   input:-webkit-autofill:active {
     /*Hace que el autofill tenga texto blanco con fondo negro*/
-    -webkit-box-shadow: 0 0 0 30px black inset !important; /* Fondo negro */
+    -webkit-box-shadow: 0 0 0 30px var(--color-fondo) inset !important; /* Fondo negro */
     -webkit-text-fill-color: white !important; /* Color del texto blanco */
     color: white !important; /* fallback para otros navegadores */
   }
@@ -286,11 +286,11 @@ a {
     width: 100%;
     height: 3.75rem; /* Equivalente a 60px si el font-size base es 16px */
     font-size: 1rem; /* Tamaño de fuente para el botón */
-    padding: 0.625rem 1.25rem; /* Ajustar padding con unidades relativas */
+    /* padding: 0.625rem 1.25rem; /* Ajustar padding con unidades relativas */
     background-color: var(--color-principal);
-    border: none;
+    /* border: none; */
     color: black;
-    padding: 10px 20px;
+    /* padding: 10px 20px; */
     font-weight: bold;
     text-align: center;
     text-decoration: none;
@@ -388,7 +388,7 @@ select.menu {
   margin-bottom: 5%;
   width: 45%; /* La imagen ocupará el 100% del ancho de su contenedor */
   height: 45%; /* La imagen ocupará el 100% de la altura de su contenedor */
-  padding-top: 30px;
+  padding-top: 5x;
   object-fit: contain; /* Ajusta la imagen para que quepa dentro del contenedor manteniendo sus proporciones */
   /* border: 1px solid yellow; */
   max-height: 100px;
@@ -815,22 +815,26 @@ select.menu {
   }
 
   form button.botonActividad {
-    height: 24px; /* Igual que el input */
-    padding: 0 20px;
-    margin: 2px;
-    align-items: center;
-    justify-content: center; /* Centra el texto horizontalmente */
-    font-size: 16px;
     background-color: var(--color-fondo);
+    border-width: 1 px;
+    border-color: white;
+    border-style: solid;
+    border-radius: 5px;
+    font-size: 16px;
+    margin: 5px;
+    padding: 8 10px;
+    width: 60%;
+    height: 36px;
+    /*height: 24px; /* Igual que el input */
     color: white;
-    border: none;
-    border-radius: 4px;
+    /* align-items: center; */
+    /*justify-content: center; /* Centra el texto horizontalmente */
     cursor: pointer;
-    font-weight: 100;
+    /* font-weight: 100; */
   }
 
   form button.botonActividad:hover {
-    background-color: #49d1b7;
+    background-color: var(--color-fondo);
   }
 
   .formularioEquipo {
@@ -863,7 +867,7 @@ select.menu {
   }
 
   form button.botonEquipo:hover {
-    background-color: #49d1b7;
+    background-color: var(--color-fondo);
   }
 
 .perfile {
@@ -931,7 +935,7 @@ select.menu {
   display: block;
 }
 
-#add-activity-btn {
+/* #add-activity-btn {
   margin-top: 20px;
   padding: 10px 20px;
   background-color: #28a745;
@@ -941,9 +945,11 @@ select.menu {
   font-size: 16px;
   cursor: pointer;
 }
-#add-activity-btn:hover {
+*/
+
+/* #add-activity-btn:hover {
   background-color: #218838;
-}
+}  */
 
 #mostrarFormularioActividad {
   margin-top: 20px;
@@ -957,9 +963,18 @@ select.menu {
   cursor: pointer;
 }
 
+
 #actividadFormContainer {
   margin-top: 20px;
-  display: none;
+  display: none;  
+}
+
+.hijoDeActividadFormContainer{
+  border-radius: 5px;
+  background-color: white;
+  display: flex;
+  justify-content: center;
+
 }
 
 .formularioActividad .campo {
@@ -983,17 +998,8 @@ select.menu {
   padding: 8px;
   box-sizing: border-box;
 }
-.botonActividad {
-  background-color: var(--color-fondo);
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-.botonActividad:hover {
-  background-color: var(--color-fondo);
-}
+
+
 .error-message {
   color: red;
   font-size: 14px;
@@ -1068,12 +1074,16 @@ select.menu {
 }
 
 .add-activity-form {
+  margin: 2%;
+  width: 90%;
   display: none;
-  margin-top: 10px;
-  padding: 10px;
-  background-color: white;
+  /* margin-top: 10px;
+  padding: 10px; */
+  background-color: var(--color-fondo);
   border-radius: 5px;
   display: flex;
+  align-items: center;
+  justify-content: center;
   flex-direction: column;
 }
 
@@ -1082,6 +1092,7 @@ select.menu {
 }
 
 .toggle-add-equipment{
+  color: white;
   background-color: var(--color-fondo);
 }
 
@@ -1089,7 +1100,7 @@ select.menu {
 background-color: var(--color-fondo);
 border-color: white;
 border-radius: 5px;
-font-size: 16px;
+font-size: 20px;
 margin: 2px;
 width: 90%;
 height: 24px;
@@ -1100,10 +1111,10 @@ color: white;
 background-color: var(--color-fondo);
 border-color: white;
 border-radius: 5px;
-font-size: 16px;
-margin: 2px;
-padding: 0 8px;
-width: 90%;
+font-size: 20px;
+margin: 4px;
+padding: 0 20px;
+width: 70%;
 height: 24px;
 color: white;
 }
