@@ -1096,7 +1096,7 @@ select.menu {
   background-color: var(--color-fondo);
 }
 
-.input-name, .input-desc, .input-photo{
+.input-name, .input-desc, .input-photo, .file-upload-label{
 background-color: var(--color-fondo);
 border-color: white;
 border-radius: 5px;
@@ -1129,6 +1129,16 @@ color: white;
   width: 60%;
   margin: 5px;
 }
+
+/* .file-upload-label {
+  background-color: #4CAF50;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-block;
+} */
+
 
 
 /*Mensajes*/

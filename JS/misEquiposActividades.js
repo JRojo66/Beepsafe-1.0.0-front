@@ -99,7 +99,10 @@ async function fetchUserActivities(
                     <input type="text" placeholder="Nombre equipo" class="input-name" />
                     <input type="text" placeholder="Descripción" class="input-desc" />
                     <!--<input type="text" placeholder="URL foto" class="input-photo" />-->
-                    <input type="file" accept="image/*" capture="environment" name="foto" />
+                    <label class="file-upload-label"> 📷 Tomar o subir foto
+                      <input type="file" accept="image/*" capture="environment" name="foto" style="display:none;" />
+                    </label>
+
                     
                     <button class="add-equipment-btn">Guardar Equipo</button>
                 </div>
@@ -208,8 +211,7 @@ async function fetchUserActivities(
           const formData = new FormData();
           formData.append("email", email);
           formData.append("activity", activity.name);
-          formData.append("name", name);
-          formData.append("description", description);
+          formData.append("equipment", JSON.stringify({ name, description }));
           if (photoFile) {
             formData.append("photo", photoFile);
           }
@@ -221,7 +223,11 @@ async function fetchUserActivities(
               body: formData, // no se necesita Content-Type, el navegador lo pone solo
             });
 
-            if (!res.ok) throw new Error("Error al agregar equipo *** ");
+            // if (!res.ok) throw new Error("Error al agregar equipo *** ");
+            if (!res.ok) {
+              const errorText = await res.text();
+              throw new Error("Error al agregar equipo: " + errorText);
+            }
 
             const prevState = getAccordionState();
             const prevScrollY = window.scrollY;
