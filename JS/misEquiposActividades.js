@@ -102,8 +102,8 @@ async function fetchUserActivities(
                     <input type="text" placeholder="Nombre equipo" class="input-name" />
                     <input type="text" placeholder="Descripción" class="input-desc" />
                     <!--<input type="text" placeholder="URL foto" class="input-photo" />-->
-                    <label class="file-upload-label">📷 Foto
-                    <input type="file" accept="image/*" capture="environment" name="foto" style="display:none;" />
+                    <label class="file-upload-label"> <span class="file-upload-text">📷 Foto <span/>
+                    <input type="file" accept="image/*" capture="environment" name="foto"/>
                     </label>
 
                     

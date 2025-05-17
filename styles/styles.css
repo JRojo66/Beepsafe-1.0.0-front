@@ -809,10 +809,6 @@ select.menu {
     background-color: transparent;
   } */
 
-  
-  input::placeholder {
-    color: white;
-  }
 
   form button.botonActividad {
     background-color: var(--color-fondo);
@@ -1132,13 +1128,19 @@ select.menu {
   color: white;
   padding: 2px 4px;
   border: 1px solid white;
-  border-radius: 8px;
+  border-radius: 5px;
   width: 90%;
   height: 24px;
   cursor: pointer;
   display: inline-block;
   text-align: left; 
 }
+
+.file-upload-text {
+  font-size: 14px;
+  color: white;
+}
+
 
 .input-activity {
 background-color: var(--color-fondo);
