@@ -102,9 +102,13 @@ async function fetchUserActivities(
                     <input type="text" placeholder="Nombre equipo" class="input-name" />
                     <input type="text" placeholder="Descripción" class="input-desc" />
                     <!--<input type="text" placeholder="URL foto" class="input-photo" />-->
-                    <label class="file-upload-label"> <span class="file-upload-text">📷 Foto <span/>
-                    <input type="file" accept="image/* "name="foto"/>
-                    </label>
+                  <div class="upload-buttons">
+                    <button class="upload-btn camera-btn">📷 Sacar foto</button>
+                    <button class="upload-btn gallery-btn">🖼️ Elegir desde galería</button>
+                    <input type="file" accept="image/*" capture="environment" class="camera-input" style="display:none;" />
+                    <input type="file" accept="image/*" class="gallery-input" style="display:none;" />
+                  </div>
+
 
                     
                     <button class="add-equipment-btn">Guardar Equipo</button>
@@ -192,6 +196,22 @@ async function fetchUserActivities(
           form.style.display = form.style.display === "none" ? "block" : "none";
         });
 
+      // Activar botones de subir foto desde cámara o galería
+      const form = accordion.querySelector(".add-equipment-form");
+      const cameraBtn = form.querySelector(".camera-btn");
+      const galleryBtn = form.querySelector(".gallery-btn");
+      const cameraInput = form.querySelector(".camera-input");
+      const galleryInput = form.querySelector(".gallery-input");
+
+      cameraBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        cameraInput.click();
+      });
+      galleryBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        galleryInput.click();
+      });
+
       accordion
         .querySelector(".add-equipment-btn")
         .addEventListener("click", async (e) => {
@@ -201,8 +221,10 @@ async function fetchUserActivities(
           const description = accordion
             .querySelector(".input-desc")
             .value.trim();
-          const fileInput = accordion.querySelector('input[type="file"]');
-          const photoFile = fileInput.files[0];
+          const fileInput = accordion.querySelector(".camera-input").files[0]
+            ? accordion.querySelector(".camera-input")
+            : accordion.querySelector(".gallery-input");
+          const photoFile = fileInput?.files[0];
 
           if (!name || !description) {
             alert(

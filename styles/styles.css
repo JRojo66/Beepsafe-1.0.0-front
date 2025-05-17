@@ -1141,6 +1141,29 @@ select.menu {
   color: white;
 }
 
+.upload-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.upload-btn {
+  background-color: #007bff;
+  color: white;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 14px;
+  width: 100%;
+}
+
+.upload-btn:hover {
+  background-color: #0056b3;
+}
+
 
 .input-activity {
 background-color: var(--color-fondo);
