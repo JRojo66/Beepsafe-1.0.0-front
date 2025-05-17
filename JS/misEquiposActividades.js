@@ -77,20 +77,23 @@ async function fetchUserActivities(
                 .map(
                   (eq) => `
                   <div class="equipment-item">
-                    <strong>${eq.name}</strong><br/>
-                    <span>${eq.description}</span><br/>
-                    ${
-                      eq.photo?.trim()
-                        ? `<img class="equipment-photo" src="${encodeURI(
-                            eq.photo.trim()
-                          )}" alt="${eq.name}" />`
-                        : ""
-                    }
-                    <button class="delete-equipment-btn" 
-                    data-activity="${activity.name}" 
-                    data-eq-name="${eq.name}" 
-                    title="Eliminar equipo">🗑️</button>
-                  </div>
+  <div class="equipment-text">
+    <strong>${eq.name}</strong>
+    <span>${eq.description}</span>
+  </div>
+  ${
+    eq.photo?.trim()
+      ? `<img class="equipment-photo" src="${encodeURI(
+          eq.photo.trim()
+        )}" alt="${eq.name}" />`
+      : ""
+  }
+  <button class="delete-equipment-btn" 
+    data-activity="${activity.name}" 
+    data-eq-name="${eq.name}" 
+    title="Eliminar equipo">🗑️</button>
+</div>
+
                 `
                 )
                 .join("")}
@@ -99,8 +102,8 @@ async function fetchUserActivities(
                     <input type="text" placeholder="Nombre equipo" class="input-name" />
                     <input type="text" placeholder="Descripción" class="input-desc" />
                     <!--<input type="text" placeholder="URL foto" class="input-photo" />-->
-                    <label class="file-upload-label"> 📷 Tomar o subir foto
-                      <input type="file" accept="image/*" capture="environment" name="foto" style="display:none;" />
+                    <label class="file-upload-label">📷 Foto
+                    <input type="file" accept="image/*" capture="environment" name="foto" style="display:none;" />
                     </label>
 
                     

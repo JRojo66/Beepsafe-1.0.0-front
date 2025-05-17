@@ -924,15 +924,27 @@ select.menu {
   display: block;
 }
 .equipment-item {
-    display: flex;
+  
+  display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 10px;
 }
 .equipment-photo {
-  height: 25px;
-  max-width: 100px;
-  display: block;
+  max-height: 100px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.equipment-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Ocupa el espacio disponible */
+}
+
+.equipment-text strong {
+  font-size: 1rem;
+  margin-bottom: 4px;
 }
 
 /* #add-activity-btn {
@@ -1087,8 +1099,12 @@ select.menu {
   flex-direction: column;
 }
 
-.delete-equipment-btn{
+.delete-equipment-btn {
+  width: 25%;
+  background: transparent;
   border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
 }
 
 .toggle-add-equipment{
@@ -1096,15 +1112,32 @@ select.menu {
   background-color: var(--color-fondo);
 }
 
-.input-name, .input-desc, .input-photo, .file-upload-label{
-background-color: var(--color-fondo);
-border-color: white;
-border-radius: 5px;
-font-size: 20px;
-margin: 2px;
-width: 90%;
-height: 24px;
-color: white;
+.input-name, .input-desc, .input-photo {
+  background-color: var(--color-fondo);
+  border-color: white;
+  border-radius: 5px;
+  font-size: 20px;
+  margin: 2px;
+  width: 90%;
+  height: 24px;
+  color: white;
+    /*color: #dcdcdc; /* Color gris claro (puedes cambiarlo) */
+    font-size: 14px; /* Tamaño de la fuente (opcional) */
+    font-weight: bold; /* Grosor de la fuente (opcional) */
+    opacity: 1
+}
+
+.file-upload-label {
+  background-color: var(--color-fondo);
+  color: white;
+  padding: 2px 4px;
+  border: 1px solid white;
+  border-radius: 8px;
+  width: 90%;
+  height: 24px;
+  cursor: pointer;
+  display: inline-block;
+  text-align: left; 
 }
 
 .input-activity {
@@ -1130,14 +1163,6 @@ color: white;
   margin: 5px;
 }
 
-/* .file-upload-label {
-  background-color: #4CAF50;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  display: inline-block;
-} */
 
 
 
