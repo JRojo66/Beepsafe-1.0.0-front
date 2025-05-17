@@ -103,8 +103,8 @@ async function fetchUserActivities(
                     <input type="text" placeholder="Descripción" class="input-desc" />
                     <!--<input type="text" placeholder="URL foto" class="input-photo" />-->
                   <div class="upload-buttons">
-                    <button class="upload-btn camera-btn">📷 Sacar foto</button>
-                    <button class="upload-btn gallery-btn">🖼️ Elegir desde galería</button>
+                    <button class="upload-btn camera-btn">📷 Cámara</button>
+                    <button class="upload-btn gallery-btn">🖼️ Galería</button>
                     <input type="file" accept="image/*" capture="environment" class="camera-input" style="display:none;" />
                     <input type="file" accept="image/*" class="gallery-input" style="display:none;" />
                   </div>

@@ -1143,21 +1143,26 @@ select.menu {
 
 .upload-buttons {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 10px 0;
+  flex-direction: row;
+  width: 92%;
+  height: 24px;
+  padding: 2px 4px;
+  border-radius: 5px;
+  align-items: center;
+  margin: 0 10px;
 }
 
 .upload-btn {
-  background-color: #007bff;
-  color: white;
-  padding: 8px;
-  border: none;
-  border-radius: 8px;
+  background-color: var(--color-fondo);
+  color: #dcdcdc;
+  padding: 0 8px;
+  border: 1px solid white;
+  border-radius: 5px;
   text-align: center;
   cursor: pointer;
   font-size: 14px;
   width: 100%;
+  height: 30px;
 }
 
 .upload-btn:hover {
