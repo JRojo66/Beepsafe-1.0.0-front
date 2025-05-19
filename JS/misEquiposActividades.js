@@ -66,35 +66,22 @@ async function fetchUserActivities(
 
       accordion.innerHTML = `
                 <div class="accordion-header">
-                <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
+                    <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
                     <span>${activity.name}</span>
-                    <button class="delete-btn" data-id="${
-                      activity._id
-                    }" title="Eliminar actividad">🗑️</button>
+                    <button class="delete-btn" data-id="${activity._id}" title="Eliminar actividad">🗑️</button>
                 </div>
             <div class="accordion-body">
               ${activity.equipment
                 .map(
                   (eq) => `
                   <div class="equipment-item">
-  <div class="equipment-text">
-    <strong>${eq.name}</strong>
-    <span>${eq.description}</span>
-  </div>
-  ${
-    eq.photo?.trim()
-      ? `<img class="equipment-photo" src="${encodeURI(
-          eq.photo.trim()
-        )}" alt="${eq.name}" />`
-      : ""
-  }
-  <button class="delete-equipment-btn" 
-    data-activity="${activity.name}" 
-    data-eq-name="${eq.name}" 
-    title="Eliminar equipo">🗑️</button>
-</div>
-
-                `
+                    <div class="equipment-text">
+                      <strong>${eq.name}</strong>
+                      <span>${eq.description}</span>
+                    </div>
+                      ${eq.photo?.trim()? `<img class="equipment-photo" src="${encodeURI(eq.photo.trim())}" alt="${eq.name}" />`:""}
+                      <button class="delete-equipment-btn" data-activity="${activity.name}" data-eq-name="${eq.name}" title="Eliminar equipo">🗑️</button>
+                  </div>`
                 )
                 .join("")}
                 <button class="toggle-add-equipment botonActividad">Agregar equipo</button>
@@ -143,6 +130,7 @@ async function fetchUserActivities(
             });
 
             if (!res.ok) throw new Error("Error al eliminar equipo.");
+            
             // alert("Equipo eliminado");
             const prevState = getAccordionState();
             const prevScrollY = window.scrollY;
@@ -262,81 +250,18 @@ async function fetchUserActivities(
           }
         });
 
-      // Anterior al que sube fotos
-      // accordion
-      //   .querySelector(".toggle-add-equipment")
-      //   .addEventListener("click", () => {
-      //     const form = accordion.querySelector(".add-equipment-form");
-      //     form.style.display =
-      //       form.style.display === "none" ? "block" : "none";
-      //   });
-
-      // accordion
-      //   .querySelector(".add-equipment-btn")
-      //   .addEventListener("click", async (e) => {
-      //     e.stopPropagation();
-
-      //     const name = accordion
-      //       .querySelector(".input-name")
-      //       .value.trim();
-      //     const description = accordion
-      //       .querySelector(".input-desc")
-      //       .value.trim();
-      //     const photo = accordion
-      //       .querySelector(".input-photo")
-      //       .value.trim();
-
-      //     if (!name || !description) {
-      //       alert(
-      //         "Por favor completá al menos el nombre y la descripción del equipo."
-      //       );
-      //       return;
-      //     }
-
-      //     try {
-      //       const res = await fetch(
-      //         `${ROOT_URL}/api/activities/equipment`,
-      //         {
-      //           method: "POST",
-      //           credentials: "include",
-      //           headers: {
-      //             "Content-Type": "application/json",
-      //           },
-      //           body: JSON.stringify({
-      //             email,
-      //             activity: activity.name,
-      //             equipment: { name, description, photo },
-      //           }),
-      //         }
-      //       );
-
-      //       if (!res.ok) throw new Error("Error al agregar equipo.");
-
-      //       // alert("Equipo agregado");
-      //       const prevState = getAccordionState();
-      //       const prevScrollY = window.scrollY;
-      //       fetchUserActivities(prevState, prevScrollY);
-      //     } catch (err) {
-      //       alert(err.message);
-      //     }
-      //   });
-
       // Hacer que se abra/cierre el menú al hacer click
       accordion
         .querySelector(".accordion-header")
         .addEventListener("click", () => {
           accordion.classList.toggle("open");
         });
+
       // Restaurar estado previo del acordeón y formulario
       const prev = previousState.find((p) => p.activityName === activity.name);
       if (prev?.isOpen) {
         accordion.classList.add("open");
       }
-      // if (prev?.isFormVisible) {
-      //   accordion.querySelector(".add-equipment-form").style.display =
-      //     "block";
-      // }
-
       container.appendChild(accordion);
     });
   } catch (err) {
@@ -360,8 +285,17 @@ const errorDiv = document.getElementById("actividadError");
 formContainer.style.display = "none";
 
 mostrarBtn.addEventListener("click", () => {
-  formContainer.style.display =
-    formContainer.style.display === "none" ? "block" : "none";
+  const toggleIcon = document.querySelector(".accordion-header-activity .toggle-icon i");
+
+  const isVisible = formContainer.style.display === "block";
+  formContainer.style.display = isVisible ? "none" : "block";
+
+  console.log("isVisible: ", isVisible);
+  console.log("toggleIcon: ", toggleIcon);
+
+  if (toggleIcon) {
+    toggleIcon.classList.toggle("rotate", !isVisible);
+  }
 });
 
 actividadForm.addEventListener("submit", async (e) => {

@@ -659,6 +659,9 @@ select.menu {
   padding-bottom: 3px;
   width: 380px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .encabezado {
@@ -895,6 +898,10 @@ select.menu {
   border-radius: 5px;
   overflow: hidden;
 }
+#accordion-container {
+  width: 100%;
+}
+
 .accordion-header {
   background: var(--color-fondo);
   color: white;
@@ -911,16 +918,21 @@ select.menu {
   transform: rotate(180deg);
 }
 
+.rotate {
+  transform: rotate(180deg);
+  transition: transform 0.3s ease;
+}
+
 .accordion-body {
   display: none;
   padding: 10px 15px;
   background-color: #f9f9f9;
+  width: 100%;
 }
 .accordion.open .accordion-body {
   display: block;
 }
 .equipment-item {
-  
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -960,15 +972,29 @@ select.menu {
 }  */
 
 #mostrarFormularioActividad {
+  /* margin-top: 20px;
+  padding: 10px 20px; */
+  background-color: var(--color-fondo);
+  color: white;
+  /* border-color:white;
+  border-radius: 5px;
+  border-width: 1px; */
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.accordion-header-activity{
   margin-top: 20px;
+  /* margin-left: 5px; */
   padding: 10px 20px;
   background-color: var(--color-fondo);
   color: white;
-  border-color:white;
+  border: solid;
+  border-color:#ccc;
   border-radius: 5px;
   border-width: 1px;
-  font-size: 16px;
-  cursor: pointer;
+  height: 16px;
+  width: 50%;
 }
 
 
