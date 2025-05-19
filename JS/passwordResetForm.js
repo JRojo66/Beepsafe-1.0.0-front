@@ -1,67 +1,66 @@
- // Mostrar/ocultar contraseña
-    function togglePassword(id, icon) {
-      const input = document.getElementById(id);
-      if (input.type === "password") {
-        input.type = "text";
-        icon.classList.remove("fa-eye");
-        icon.classList.add("fa-eye-slash");
-      } else {
-        input.type = "password";
-        icon.classList.remove("fa-eye-slash");
-        icon.classList.add("fa-eye");
-      }
-    }
+// Mostrar/ocultar contraseña
+function togglePassword(id, icon) {
+  const input = document.getElementById(id);
+  if (input.type === "password") {
+    input.type = "text";
+    icon.classList.remove("fa-eye");
+    icon.classList.add("fa-eye-slash");
+  } else {
+    input.type = "password";
+    icon.classList.remove("fa-eye-slash");
+    icon.classList.add("fa-eye");
+  }
+}
 
-    // Extraer token de la URL
-    function getParameterByName(name, url = window.location.href) {
-      name = name.replace(/[\[\]]/g, '\\$&');
-      const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
-      const results = regex.exec(url);
-      if (!results) return null;
-      if (!results[2]) return '';
-      return decodeURIComponent(results[2].replace(/\+/g, ' '));
-    }
+// Extraer token de la URL
+function getParameterByName(name, url = window.location.href) {
+  name = name.replace(/[\[\]]/g, "\\$&");
+  const regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)");
+  const results = regex.exec(url);
+  if (!results) return null;
+  if (!results[2]) return "";
+  return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
 
-    // Insertar token en el input hidden
-    const token = getParameterByName('token');
-    if (token) {
-      document.getElementById('token').value = token;
-    }
+// Insertar token en el input hidden
+const token = getParameterByName("token");
+if (token) {
+  document.getElementById("token").value = token;
+}
 
-    // Validación de contraseña
-    const form = document.getElementById('resetPasswordForm');
-    const passwordInput = document.getElementById('newPassword');
-    const passwordError = document.getElementById('passwordError');
+// Validación de contraseña
+const form = document.getElementById("resetPasswordForm");
+const passwordInput = document.getElementById("newPassword");
+const passwordError = document.getElementById("passwordError");
 
-    
-    const spinner = document.getElementById('spinner');
-    form.addEventListener('submit', async function (e) {
+const spinner = document.getElementById("spinner");
+form.addEventListener("submit", async function (e) {
   e.preventDefault(); // Evita que se recargue la página
 
   const password = passwordInput.value.trim();
 
   if (password.length < 6) {
-    passwordError.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+    passwordError.textContent =
+      "La contraseña debe tener al menos 6 caracteres.";
     passwordInput.focus();
     return;
   }
 
-  passwordError.textContent = ''; // Limpiar error
-  spinner.style.display = 'block';
+  passwordError.textContent = ""; // Limpiar error
+  spinner.style.display = "block";
 
-
-  const token = document.getElementById('token').value;
+  const token = document.getElementById("token").value;
 
   try {
-    const response = await fetch('http://localhost:8080/api/passwordReset', {
-      method: 'POST',
+    const response = await fetch(`${ROOT_URL}/api/passwordReset`, {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         newPassword: password,
-        token: token
-      })
+        token: token,
+      }),
     });
 
     if (!response.ok) {
@@ -69,15 +68,12 @@
       alert(`Error: ${error.error}`); // || 'Ocurrió un error'
       return;
     }
-    alert('Contraseña cambiada correctamente. Iniciá sesión.');
-    window.location.href = '../pages/iniciarSesion.html';
-
+    alert("Contraseña cambiada correctamente. Iniciá sesión.");
+    window.location.href = "../pages/iniciarSesion.html";
   } catch (error) {
-    console.error('Error al enviar nueva contraseña:', error);
-    alert('Ocurrió un error inesperado');
+    console.error("Error al enviar nueva contraseña:", error);
+    alert("Ocurrió un error inesperado");
   } finally {
-    spinner.style.display = 'none';
+    spinner.style.display = "none";
   }
 });
-
-

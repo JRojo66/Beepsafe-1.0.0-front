@@ -71,28 +71,6 @@ form.addEventListener("submit", function (event) {
 
   if (isValid) {
     spinner.style.display = "block";
-// test
-    // fetch('http://localhost:8080//sessions/login', {
-    //   method: 'POST',
-    //   credentials: 'include',
-    //   headers: {
-    //     'Content-Type': 'application/json'
-    //   },
-    //   body: JSON.stringify({ email, password })
-    // })
-    // .then(res => {
-    //   console.log("🔄 Headers de respuesta", [...res.headers]);
-    //   return res.json();
-    // })
-    // .then(data => {
-    //   console.log("✅ Login OK", data);
-    // })
-    // .catch(err => {
-    //   console.error("❌ Error en login:", err);
-    // });
-    // fin test
-
-
 
     fetch(`${ROOT_URL}/api/sessions/login`, {
       method: "POST",
@@ -201,7 +179,7 @@ document
       })
       .then((data) => {
         alert(
-          "Si el email está registrado, recibirás instrucciones para resetear tu contraseña."
+          "Abrí tu mail para restablecer tu contraseña"
         );
       })
       .catch((error) => {
