@@ -39,12 +39,12 @@ form.addEventListener("submit", async function (e) {
 
   const password = passwordInput.value.trim();
 
-  if (password.length < 6) {
-    passwordError.textContent =
-      "La contraseña debe tener al menos 6 caracteres.";
-    passwordInput.focus();
-    return;
-  }
+  // if (password.length < 6) {
+  //   passwordError.textContent =
+  //     "La contraseña debe tener al menos 6 caracteres.";
+  //   passwordInput.focus();
+  //   return;
+  // }
 
   passwordError.textContent = ""; // Limpiar error
   spinner.style.display = "block";
@@ -52,7 +52,7 @@ form.addEventListener("submit", async function (e) {
   const token = document.getElementById("token").value;
 
   try {
-    const response = await fetch(`${ROOT_URL}/api/passwordReset`, {
+    const response = await fetch(`${ROOT_URL_FRONT}/api/passwordReset`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
