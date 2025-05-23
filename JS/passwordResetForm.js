@@ -12,6 +12,8 @@ function togglePassword(id, icon) {
   }
 }
 
+
+
 // Extraer token de la URL
 function getParameterByName(name, url = window.location.href) {
   name = name.replace(/[\[\]]/g, "\\$&");
@@ -39,12 +41,12 @@ form.addEventListener("submit", async function (e) {
 
   const password = passwordInput.value.trim();
 
-  // if (password.length < 6) {
-  //   passwordError.textContent =
-  //     "La contraseña debe tener al menos 6 caracteres.";
-  //   passwordInput.focus();
-  //   return;
-  // }
+  if (password.length < 6) {
+    passwordError.textContent =
+      "La contraseña debe tener al menos 6 caracteres.";
+    passwordInput.focus();
+    return;
+  }
 
   passwordError.textContent = ""; // Limpiar error
   spinner.style.display = "block";
@@ -52,7 +54,7 @@ form.addEventListener("submit", async function (e) {
   const token = document.getElementById("token").value;
 
   try {
-    const response = await fetch(`${ROOT_URL_FRONT}/api/passwordReset`, {
+    const response = await fetch(`${ROOT_URL}/api/passwordReset`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -62,7 +64,7 @@ form.addEventListener("submit", async function (e) {
         token: token,
       }),
     });
-
+    
     if (!response.ok) {
       const error = await response.json();
       alert(`Error: ${error.error}`); // || 'Ocurrió un error'
@@ -71,7 +73,7 @@ form.addEventListener("submit", async function (e) {
     alert("Contraseña cambiada correctamente. Iniciá sesión.");
     window.location.href = "../pages/iniciarSesion.html";
   } catch (error) {
-    console.error("Error al enviar nueva contraseña:", error);
+    console.error("Error al enviar nueva contraseña:xxx", error);
     alert("Ocurrió un error inesperado");
   } finally {
     spinner.style.display = "none";
