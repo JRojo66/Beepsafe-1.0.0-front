@@ -2,7 +2,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     try {
       const response = await fetch(`${ROOT_URL}/api/sessions/current`, {
         method: 'GET',
-        credentials: 'include',
+        // credentials: 'include',
+        headers: {
+        "Authorization": `Bearer ${localStorage.getItem("token")}`
+  }
       });
       if (!response.ok) {
         throw new Error('Token inválido');

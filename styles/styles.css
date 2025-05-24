@@ -11,7 +11,7 @@ html {
 body {
   text-align: center;
   background-color: var(--color-fondo);
-  font-family: "Roboto";
+  font-family: -apple-system, BlinkMacSystemFont, Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 p {
