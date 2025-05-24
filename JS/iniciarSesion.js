@@ -64,8 +64,8 @@ form.addEventListener("submit", function (event) {
 
   // Validar la longitud de la contraseña
   if (password.length < 6) {
-    passwordError.textContent =
-      "La contraseña debe tener al menos 6 caracteres.";
+    document.getElementById("passwordError").textContent =
+    "La contraseña debe tener al menos 6 caracteres.";
     return; // Detiene la ejecución de la función y no hace el fetch
   }
 
@@ -74,9 +74,9 @@ form.addEventListener("submit", function (event) {
 
     fetch(`${ROOT_URL}/api/sessions/login`, {
       method: "POST",
-      credentials: "include", // 👈 NECESARIO PARA ENVIAR COOKIES
+      //credentials: "include", // 👈 NECESARIO PARA ENVIAR COOKIES     windows
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json",                             //iOS
       },
       body: JSON.stringify({
         email: email,
@@ -93,7 +93,14 @@ form.addEventListener("submit", function (event) {
       })
       .then((data) => {
         console.log("DATA EN THEN:", data);
+        //localStorage.setItem("token", data.token);    // iOS
+        // ✅ Guardar token JWT en localStorage
+        localStorage.setItem("token", data.token);
+
+        // ✅ Limpiar intentos fallidos si existían
         localStorage.removeItem("intentosFallidos");
+
+        // ✅ Redirigir a la página protegida
         window.location.href = "iniciarDetener.html";
       })
       .catch((error) => {
@@ -124,7 +131,7 @@ form.addEventListener("submit", function (event) {
         } else {
           //Otro error
           passwordErrorDiv.textContent =
-            error.error || "Algo salió mal, intentalo nuevamentexxx.";
+            error.error || "Algo salió mal, intentalo nuevamente.";
         }
       })
       .finally(() => {
