@@ -124,7 +124,7 @@ form.addEventListener("submit", function (event) {
         } else {
           //Otro error
           passwordErrorDiv.textContent =
-            error.error || "Algo salió mal, intentalo nuevamente.";
+            error.error || "Algo salió mal, intentalo nuevamentexxx.";
         }
       })
       .finally(() => {
