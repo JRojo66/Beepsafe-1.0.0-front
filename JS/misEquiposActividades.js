@@ -39,7 +39,11 @@ async function fetchUserActivities(
   try {
     // Obtener email del usuario desde JWT (en cookie)
     const resUser = await fetch(`${ROOT_URL}/api/sessions/current`, {
-      credentials: "include",
+      // credentials: "include",                                            windows - android
+      headers: {          
+         "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
+        }
+
     });
     const { userJWT } = await resUser.json();
     const email = userJWT.email;
@@ -47,7 +51,10 @@ async function fetchUserActivities(
     // Obtener actividades desde la DB usando el email
 
     const res = await fetch(`${ROOT_URL}/api/activities/${email}`, {
-      credentials: "include",
+      // credentials: "include",                                            windows - android
+      headers: {          
+         "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
+        }
     });
 
     if (!res.ok) throw new Error("Respuesta no satisfactoria");
@@ -118,10 +125,11 @@ async function fetchUserActivities(
           try {
             const res = await fetch(`${ROOT_URL}/api/activities/equipment`, {
               method: "DELETE",
-              credentials: "include",
-              headers: {
-                "Content-Type": "application/json",
+              //credentials: "include",                                   windows - android
+              headers: {          
+              "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
               },
+
               body: JSON.stringify({
                 email,
                 activity: actName,
@@ -156,10 +164,11 @@ async function fetchUserActivities(
           try {
             const res = await fetch(`${ROOT_URL}/api/activities`, {
               method: "DELETE",
-              credentials: "include",
-              headers: {
-                "Content-Type": "application/json",
+              //credentials: "include",                                         windows - android
+              headers: {          
+              "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
               },
+
               body: JSON.stringify({ email, activity: activity.name }),
             });
 
@@ -232,7 +241,11 @@ async function fetchUserActivities(
           try {
             const res = await fetch(`${ROOT_URL}/api/activities/equipment`, {
               method: "POST",
-              credentials: "include",
+              //credentials: "include",                                         windows - android
+              headers: {          
+             "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
+              },
+
               body: formData, // no se necesita Content-Type, el navegador lo pone solo
             });
 
@@ -310,10 +323,10 @@ actividadForm.addEventListener("submit", async (e) => {
   try {
     const res = await fetch(`${ROOT_URL}/api/activities`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
+        headers: {          
+         "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
+        },
+      // credentials: "include",                                            windows - android
       body: JSON.stringify({ activity: actividad }),
     });
 
