@@ -325,8 +325,8 @@ actividadForm.addEventListener("submit", async (e) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",                             //iOS
+        "Authorization": `Bearer ${localStorage.getItem("token")}`,
       },
-      "Authorization": `Bearer ${localStorage.getItem("token")}`,
       // credentials: "include",                                            windows - android
       body: JSON.stringify({ activity: actividad }),
     });
@@ -344,6 +344,6 @@ actividadForm.addEventListener("submit", async (e) => {
     fetchUserActivities(prevState, prevScrollY);
   } catch (err) {
     console.log("xxx");
-    errorDiv.textContent = "xxx"//err.message;
+    errorDiv.textContent = err.message;
   }
 });
