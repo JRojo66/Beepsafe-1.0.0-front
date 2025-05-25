@@ -126,7 +126,8 @@ async function fetchUserActivities(
             const res = await fetch(`${ROOT_URL}/api/activities/equipment`, {
               method: "DELETE",
               //credentials: "include",                                   windows - android
-              headers: {          
+              headers: {       
+              "Content-Type": "application/json",          
               "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
               },
 
