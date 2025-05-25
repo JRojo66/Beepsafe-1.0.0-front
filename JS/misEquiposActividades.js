@@ -231,7 +231,7 @@ async function fetchUserActivities(
           }
 
           const formData = new FormData();
-          // formData.append("email", email);
+          formData.append("email", email);
           formData.append("activity", activity.name);
           formData.append("equipment", JSON.stringify({ name, description }));
           if (photoFile) {
