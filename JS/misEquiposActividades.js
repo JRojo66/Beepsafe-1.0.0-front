@@ -231,7 +231,7 @@ async function fetchUserActivities(
           }
 
           const formData = new FormData();
-          formData.append("email", email);
+          // formData.append("email", email);
           formData.append("activity", activity.name);
           formData.append("equipment", JSON.stringify({ name, description }));
           if (photoFile) {
@@ -326,6 +326,7 @@ actividadForm.addEventListener("submit", async (e) => {
       headers: {
         "Content-Type": "application/json",                             //iOS
       },
+      "Authorization": `Bearer ${localStorage.getItem("token")}`,
       // credentials: "include",                                            windows - android
       body: JSON.stringify({ activity: actividad }),
     });
