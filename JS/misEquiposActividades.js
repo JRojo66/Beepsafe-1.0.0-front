@@ -323,9 +323,9 @@ actividadForm.addEventListener("submit", async (e) => {
   try {
     const res = await fetch(`${ROOT_URL}/api/activities`, {
       method: "POST",
-        headers: {          
-         "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
-        },
+      headers: {
+        "Content-Type": "application/json",                             //iOS
+      },
       // credentials: "include",                                            windows - android
       body: JSON.stringify({ activity: actividad }),
     });
