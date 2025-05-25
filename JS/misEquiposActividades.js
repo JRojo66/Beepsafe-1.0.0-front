@@ -342,6 +342,7 @@ actividadForm.addEventListener("submit", async (e) => {
     const prevScrollY = window.scrollY;
     fetchUserActivities(prevState, prevScrollY);
   } catch (err) {
+    console.log("xxx");
     errorDiv.textContent = err.message;
   }
 });

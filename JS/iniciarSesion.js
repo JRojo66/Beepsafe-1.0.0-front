@@ -72,8 +72,6 @@ form.addEventListener("submit", function (event) {
   if (isValid) {
     spinner.style.display = "block";
 
-    console.log("xxx");
-
     fetch(`${ROOT_URL}/api/sessions/login`, {
       method: "POST",
       //credentials: "include", // 👈 NECESARIO PARA ENVIAR COOKIES     windows
