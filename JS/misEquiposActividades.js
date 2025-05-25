@@ -37,7 +37,7 @@ async function fetchUserActivities(
   container.innerHTML = ""; // Limpiar actividades anteriores
 
   try {
-    // Obtener email del usuario desde JWT (en cookie)
+    // Obtener email del usuario desde JWT
     const resUser = await fetch(`${ROOT_URL}/api/sessions/current`, {
       // credentials: "include",                                            windows - android
       headers: {          
@@ -165,7 +165,8 @@ async function fetchUserActivities(
             const res = await fetch(`${ROOT_URL}/api/activities`, {
               method: "DELETE",
               //credentials: "include",                                         windows - android
-              headers: {          
+              headers: {
+              "Content-Type": "application/json",               
               "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
               },
 
@@ -343,7 +344,6 @@ actividadForm.addEventListener("submit", async (e) => {
     const prevScrollY = window.scrollY;
     fetchUserActivities(prevState, prevScrollY);
   } catch (err) {
-    console.log("xxx");
     errorDiv.textContent = err.message;
   }
 });
