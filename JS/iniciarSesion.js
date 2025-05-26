@@ -14,19 +14,19 @@ function togglePassword(id, icon) {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const toggleIcon = document.getElementById("togglePasswordIcon");
-  const passwordInput = document.getElementById("password");
+// document.addEventListener("DOMContentLoaded", () => {
+//   const toggleIcon = document.getElementById("togglePasswordIcon");
+//   const passwordInput = document.getElementById("password");
 
-  toggleIcon.addEventListener("click", function () {
-    const type = passwordInput.type === "password" ? "text" : "password";
-    passwordInput.type = type;
+//   toggleIcon.addEventListener("click", function () {
+//     const type = passwordInput.type === "password" ? "text" : "password";
+//     passwordInput.type = type;
 
-    // Alternar el ícono del ojito si querés
-    this.classList.toggle("fa-eye");
-    this.classList.toggle("fa-eye-slash");
-  });
-});
+//     // Alternar el ícono del ojito si querés
+//     this.classList.toggle("fa-eye");
+//     this.classList.toggle("fa-eye-slash");
+//   });
+// });
 
 
 // Validación de email
