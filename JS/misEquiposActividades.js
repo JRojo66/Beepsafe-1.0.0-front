@@ -251,7 +251,6 @@ async function fetchUserActivities(
               body: formData, // no se necesita Content-Type, el navegador lo pone solo
             });
 
-            // if (!res.ok) throw new Error("Error al agregar equipo *** ");
             if (!res.ok) {
               const errorText = await res.text();
               throw new Error("Error al agregar equipo: " + errorText);
