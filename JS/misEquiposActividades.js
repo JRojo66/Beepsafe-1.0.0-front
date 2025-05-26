@@ -216,10 +216,13 @@ async function fetchUserActivities(
         .addEventListener("click", async (e) => {
           e.stopPropagation();
 
-          const name = accordion.querySelector(".input-name").value.trim();
-          const description = accordion
+          const sanitize = (str) =>
+          str.replace(/[<>"'\/]/g, "");
+
+          const name = sanitize(accordion.querySelector(".input-name").value.trim());
+          const description = sanitize(accordion
             .querySelector(".input-desc")
-            .value.trim();
+            .value.trim());
           const fileInput = accordion.querySelector(".camera-input").files[0]
             ? accordion.querySelector(".camera-input")
             : accordion.querySelector(".gallery-input");

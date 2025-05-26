@@ -14,6 +14,21 @@ function togglePassword(id, icon) {
   }
 }
 
+document.addEventListener("DOMContentLoaded", () => {
+  const toggleIcon = document.getElementById("togglePasswordIcon");
+  const passwordInput = document.getElementById("password");
+
+  toggleIcon.addEventListener("click", function () {
+    const type = passwordInput.type === "password" ? "text" : "password";
+    passwordInput.type = type;
+
+    // Alternar el ícono del ojito si querés
+    this.classList.toggle("fa-eye");
+    this.classList.toggle("fa-eye-slash");
+  });
+});
+
+
 // Validación de email
 function isValidEmail(email) {
   // Expresión regular para validar un formato de email básico
