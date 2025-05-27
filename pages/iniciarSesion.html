@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- <meta http-equiv="Content-Security-Policy" content="
+    <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
       style-src 'self' https://cdnjs.cloudflare.com;
-      script-src 'self';
+      script-src 'self' 'unsafe-inline' http://localhost:8080 https://jrojo66.github.io;
+      connect-src 'self' http://localhost:8080 https://beepsafe-p11h.onrender.com http://beepsafe-10-0-back-production.up.railway.app;
       img-src 'self';
       font-src https://cdnjs.cloudflare.com;
       object-src 'none';
-    "> -->
+    ">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 
@@ -20,7 +21,7 @@
 </head>
 <body>
     <img class="logo2" src="../imagenes/logo beepsafe fondo azul oscuro.png" alt="logo">
-    <div id="spinner" class="spinner" style="display: none;"></div>
+    <div id="spinner" class="spinner hidden"></div>
     <form id="iniciarSesionForm">
       <div class="formulario">
         <div class="campo">
@@ -29,7 +30,8 @@
         </div>
         <div class="campo password-container">
           <input type="password" id="password" name="password" placeholder="Contraseña">
-          <i class="fa fa-eye ojo" onclick="togglePassword('password', this)"></i>
+          <!-- <i class="fa fa-eye ojo" onclick="togglePassword('password', this)"></i> -->
+           <i class="fa fa-eye ojo" data-target="password"></i>
         </div>
         <div id="passwordError" class="error-message"></div>
         <button type="submit" class="iniciarSesion2">Iniciar Sesión</button>

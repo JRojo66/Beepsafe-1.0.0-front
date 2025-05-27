@@ -14,6 +14,20 @@ function togglePassword(id, icon) {
   }
 }
 
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".ojo").forEach(icon => {
+    icon.addEventListener("click", () => {
+      const targetId = icon.getAttribute("data-target");
+      const passwordInput = document.getElementById(targetId);
+      const isPassword = passwordInput.type === "password";
+      passwordInput.type = isPassword ? "text" : "password";
+      icon.classList.toggle("fa-eye");
+      icon.classList.toggle("fa-eye-slash");
+    });
+  });
+});
+
+
 // document.addEventListener("DOMContentLoaded", () => {
 //   const toggleIcon = document.getElementById("togglePasswordIcon");
 //   const passwordInput = document.getElementById("password");
