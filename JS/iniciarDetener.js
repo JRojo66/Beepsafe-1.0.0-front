@@ -1,4 +1,4 @@
-// iniciarDetener.js o perfil.js
+// Evita el cache. Es necesario para  para iOS
 document.querySelectorAll('a').forEach(link => {
     link.addEventListener('click', function (e) {
         const href = this.getAttribute('href');
