@@ -1,18 +1,18 @@
 
 
 // Muestra/oculta las contraseñas al hacer click en el ojito
-function togglePassword(id, icon) {
-  let input = document.getElementById(id);
-  if (input.type === "password") {
-    input.type = "text";
-    icon.classList.remove("fa-eye");
-    icon.classList.add("fa-eye-slash");
-  } else {
-    input.type = "password";
-    icon.classList.remove("fa-eye-slash");
-    icon.classList.add("fa-eye");
-  }
-}
+// function togglePassword(id, icon) {
+//   let input = document.getElementById(id);
+//   if (input.type === "password") {
+//     input.type = "text";
+//     icon.classList.remove("fa-eye");
+//     icon.classList.add("fa-eye-slash");
+//   } else {
+//     input.type = "password";
+//     icon.classList.remove("fa-eye-slash");
+//     icon.classList.add("fa-eye");
+//   }
+// }
 
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".ojo").forEach(icon => {
