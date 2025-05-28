@@ -1,3 +1,15 @@
+// iniciarDetener.js o perfil.js
+document.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', function (e) {
+        const href = this.getAttribute('href');
+        if (href) {
+            e.preventDefault();
+            window.location.href = href + '?t=' + new Date().getTime(); // evita caché
+        }
+    });
+});
+
+
 window.addEventListener('DOMContentLoaded', async () => {
   try {
       const response = await fetch(`${ROOT_URL}/api/sessions/current`, {
