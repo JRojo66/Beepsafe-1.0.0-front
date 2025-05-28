@@ -63,7 +63,7 @@ a {
   margin: 0% auto; /* Margen arriba y abajo, centrado horizontal */
   text-decoration: none;
   padding: 0px;
-  width: fit-content;
+  /* width: fit-content; */
   text-align: center;
   font-size: 110%;
   transition: background-color 0.3s ease;
@@ -513,6 +513,7 @@ select.menu {
   margin-top: 0px;
   border-radius: 30px;
   background-color: white;
+  overflow:hidden;
 }
 
 .inicio,
@@ -538,6 +539,7 @@ select.menu {
   background-color: var(--color-principal);
   border: none;
   font-size: 8px;
+  cursor: pointer;
 }
 
 .botonPerfil {
@@ -545,6 +547,7 @@ select.menu {
   background-color: white;
   border: none;
   font-size: 8px;
+  cursor: pointer;
 }
 
 .imagenHome {
