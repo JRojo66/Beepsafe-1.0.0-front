@@ -193,7 +193,6 @@ a {
   display: none;
 }
 
-
 /* Media query para pantallas de más de 900px de ancho */
 @media (min-width: 901px) {
   /* Usamos 901px para evitar solapamientos */
@@ -505,10 +504,11 @@ select.menu {
   align-items: center;
   max-width: 440px;
 }
+
 .flex-container2 {
   width: 100%;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   padding: 0px;
   margin-top: 0px;
   border-radius: 30px;
@@ -516,9 +516,16 @@ select.menu {
   overflow:hidden;
 }
 
-.inicio,
-.miPerfil {
+.enlaceDiv {
+  display: block;
+  text-decoration: none;
+  color: inherit;
   width: 50%;
+}
+
+
+.miPerfil {
+  width: 100%;
   display: flex;
   flex-direction: column; /* Hacemos que los elementos dentro de cada columna se apilen */
   align-items: center;
@@ -526,6 +533,11 @@ select.menu {
 }
 
 .inicio {
+  width: 50%;
+  display: flex;
+  flex-direction: column; /* Hacemos que los elementos dentro de cada columna se apilen */
+  align-items: center;
+  padding: 10px 0px;
   background-color: var(--color-principal);
   border-radius: 30px;
 }
@@ -612,7 +624,7 @@ select.menu {
   text-align: left;
   font-weight: 700;
 }
-.iniciob,
+
 .miPerfilb {
   width: 50%;
   display: flex;
@@ -622,6 +634,11 @@ select.menu {
 }
 
 .iniciob {
+  width: 100%;
+  display: flex;
+  flex-direction: column; /* Hacemos que los elementos dentro de cada columna se apilen */
+  align-items: center;
+  padding: 10px 0px;
   background-color: white;
   border-radius: 30px;
 }
