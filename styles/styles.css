@@ -838,16 +838,19 @@ select.menu {
   } */
 
 
-  form button.botonActividad {
+  .botonActividad {
     background-color: var(--color-fondo);
-    border-width: 1 px;
+    border-width: 1px;
     border-color: white;
     border-style: solid;
     border-radius: 5px;
     font-size: 16px;
-    margin: 5px;
-    padding: 8 10px;
-    width: 60%;
+    font-weight: normal;
+    margin-top: 40px;
+    padding: 10px 20px 15px 20px;
+    /* margin: 5px;
+    padding: 14px 20px; */
+    /* width: 60%; */
     height: 36px;
     /*height: 24px; /* Igual que el input */
     color: white;
@@ -856,6 +859,8 @@ select.menu {
     cursor: pointer;
     /* font-weight: 100; */
   }
+
+  
 
   form button.botonActividad:hover {
     background-color: var(--color-fondo);
@@ -998,7 +1003,7 @@ select.menu {
 
 #mostrarFormularioActividad {
   /* margin-top: 20px;
-  padding: 10px 20px; */
+    padding: 14px 20px;
   background-color: var(--color-fondo);
   color: white;
   /* border-color:white;
@@ -1011,7 +1016,7 @@ select.menu {
 .accordion-header-activity{
   margin-top: 20px;
   /* margin-left: 5px; */
-  padding: 10px 20px;
+  padding: 10px 20px 15px 20px;
   background-color: var(--color-fondo);
   color: white;
   border: solid;
@@ -1154,10 +1159,26 @@ select.menu {
   font-size: 1.2rem;
 }
 
-.toggle-add-equipment{
+.toggle-add-equipment {
+  font-weight: normal;
   color: white;
   background-color: var(--color-fondo);
+  margin: 20px auto;
+  padding: 10px 20px;
+  border: 1px solid white;
+  border-radius: 5px;
+  width: fit-content;
+  display: inline-flex;               /* ✅ importante para centrar texto verticalmente */
+  align-items: center;               /* ✅ centra el texto verticalmente */
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  line-height: 1;                    /* ✅ elimina el “aire” extra */
+  vertical-align: middle;
+  height: 20px;
 }
+
+
 
 .input-name, .input-desc, .input-photo {
   background-color: var(--color-fondo);
@@ -1243,8 +1264,6 @@ color: white;
   width: 60%;
   margin: 5px;
 }
-
-
 
 
 /*Mensajes*/
