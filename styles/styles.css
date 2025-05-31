@@ -944,6 +944,14 @@ select.menu {
   transition: transform 0.3s ease;
 }
 
+.toggle-icon {
+  transition: transform 0.3s ease;
+}
+
+.toggle-icon.rotate {
+  transform: rotate(180deg);
+}
+
 .accordion.open .toggle-icon i {
   transform: rotate(180deg);
 }

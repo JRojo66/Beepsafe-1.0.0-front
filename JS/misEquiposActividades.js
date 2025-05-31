@@ -91,7 +91,8 @@ async function fetchUserActivities(
                   </div>`
                 )
                 .join("")}
-                <span class="toggle-add-equipment botonActividad">Agregar equipo</span>
+                <span class="toggle-add-equipment botonActividad">
+                <i class="fas fa-chevron-down toggle-icon"></i>Agregar equipo</span>
                 <div class="add-equipment-form" style="display:none;">
                     <input type="text" placeholder="Nombre equipo" class="input-name" />
                     <input type="text" placeholder="Descripción" class="input-desc" />
@@ -185,12 +186,20 @@ async function fetchUserActivities(
       // Add equipment
       // Mostrar/ocultar formulario de agregar equipo
 
-      accordion
-        .querySelector(".toggle-add-equipment")
-        .addEventListener("click", () => {
-          const form = accordion.querySelector(".add-equipment-form");
-          form.style.display = form.style.display === "none" ? "block" : "none";
-        });
+accordion
+  .querySelector(".toggle-add-equipment")
+  .addEventListener("click", () => {
+    const form = accordion.querySelector(".add-equipment-form");
+    const toggleIcon = accordion.querySelector(".toggle-add-equipment .toggle-icon");
+
+    const isVisible = form.style.display === "block";
+    form.style.display = isVisible ? "none" : "block";
+
+    if (toggleIcon) {
+      toggleIcon.classList.toggle("rotate", !isVisible);
+    }
+  });
+
 
       // Activar botones de subir foto desde cámara o galería
       const form = accordion.querySelector(".add-equipment-form");
