@@ -108,10 +108,10 @@ a {
   input::placeholder,
   textarea::placeholder {
     /* Estilo general para todos los navegadores modernos */
-    color: #dcdcdc; /* Color gris claro (puedes cambiarlo) */
+    color: white; /* Color gris claro (puedes cambiarlo) */
     font-size: 14px; /* Tamaño de la fuente (opcional) */
     font-weight: normal; /* Grosor de la fuente (opcional) */
-    opacity: 1; /* Asegura que el placeholder sea visible en Firefox */
+    opacity: 0.7; /* Asegura que el placeholder sea visible en Firefox */
   }
 
   .campo label {
@@ -961,7 +961,7 @@ select.menu {
   margin-bottom: 10px;
 }
 .equipment-photo {
-  min-width: 150px;
+  min-width: 180px;
   max-height: 100px;
   border-radius: 6px;
   object-fit: cover;
