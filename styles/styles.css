@@ -961,7 +961,7 @@ select.menu {
   margin-bottom: 10px;
 }
 .equipment-photo {
-  min-width: 180px;
+  width: 180px;
   max-height: 100px;
   border-radius: 6px;
   object-fit: cover;
