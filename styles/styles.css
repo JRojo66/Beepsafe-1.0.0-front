@@ -340,7 +340,7 @@ a {
   display: flex; /* Convierte el contenedor en flexible */
   width: 100%; /* O el ancho que necesites */
   max-width: 500px;
-  margin: 0 auto;
+  margin: 10% auto 0px auto;
   padding-bottom: 5%;
   justify-content: center;
   align-items: center;
@@ -838,26 +838,18 @@ select.menu {
   } */
 
 
-  .botonActividad {
+ form button.botonActividad {
     background-color: var(--color-fondo);
-    border-width: 1px;
-    border-color: white;
-    border-style: solid;
-    border-radius: 5px;
-    font-size: 16px;
-    font-weight: normal;
-    margin-top: 40px;
-    padding: 10px 20px 15px 20px;
-    /* margin: 5px;
-    padding: 14px 20px; */
-    /* width: 60%; */
-    height: 36px;
-    /*height: 24px; /* Igual que el input */
     color: white;
-    /* align-items: center; */
-    /*justify-content: center; /* Centra el texto horizontalmente */
-    cursor: pointer;
-    /* font-weight: 100; */
+    padding: 8 10px;
+    border-color: white;
+    border-radius: 5px;
+    font-size: 13.33px;
+    margin: 5px;
+    width: 60%;
+    border-style: solid;
+    height: 36px;
+    border-width: 1 px;
   }
 
   
@@ -944,14 +936,6 @@ select.menu {
   transition: transform 0.3s ease;
 }
 
-.toggle-icon {
-  transition: transform 0.3s ease;
-}
-
-.toggle-icon.rotate {
-  transform: rotate(180deg);
-}
-
 .accordion.open .toggle-icon i {
   transform: rotate(180deg);
 }
@@ -977,6 +961,7 @@ select.menu {
   margin-bottom: 10px;
 }
 .equipment-photo {
+  min-width: 150px;
   max-height: 100px;
   border-radius: 6px;
   object-fit: cover;
@@ -1183,7 +1168,8 @@ select.menu {
   cursor: pointer;
   line-height: 1;                    /* ✅ elimina el “aire” extra */
   vertical-align: middle;
-  height: 20px;
+  height: 16px;
+
 }
 
 
@@ -1268,9 +1254,9 @@ color: white;
   padding: 8px 10px;
   border-color: white;
   border-radius: 5px;
-  cursor: pointer;
-  width: 60%;
   margin: 5px;
+  width: 60%;
+  cursor: pointer;
 }
 
 

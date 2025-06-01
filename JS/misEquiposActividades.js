@@ -11,6 +11,32 @@
 //     console.error("Error al obtener actividades del usuario:", error);
 //   });
 
+// Verifica que esté logueado
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+      const response = await fetch(`${ROOT_URL}/api/sessions/current`, {
+        method: 'GET',
+        // credentials: 'include',                                            windows - android
+        headers: {          
+         "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Token inválido');
+      }
+
+      
+      //const data = await response.json();
+      //console.log(data);
+      // const nombreElemento = document.getElementById('nombre');
+      // nombreElemento.innerHTML = `<strong>${data.userJWT.name.toUpperCase()}!</strong>`;
+      
+    } catch (err) {
+      console.warn('No autenticado, redirigiendo...', err);
+      window.location.href = 'iniciarSesion.html';
+    }
+  });
+
 // Guardar el estado de los acordeones antes de recargar
 function getAccordionState() {
   const accordions = document.querySelectorAll(".accordion");

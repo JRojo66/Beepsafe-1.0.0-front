@@ -11,7 +11,7 @@
 
 
 
-
+// Verifica que esté logueado
 window.addEventListener('DOMContentLoaded', async () => {
     try {
       const response = await fetch(`${ROOT_URL}/api/sessions/current`, {
