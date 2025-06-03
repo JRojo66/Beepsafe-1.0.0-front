@@ -3,9 +3,12 @@ const cerrarSesionBtn = document.getElementById('cerrarSesionBtn');
 if (cerrarSesionBtn) {
   cerrarSesionBtn.addEventListener('click', function() {
     console.log('Botón de cerrar sesión clickeado'); 
-    fetch('http://localhost:8080/api/sessions/logout', {
+    fetch(`${ROOT_URL}/api/sessions/logout`, {
       method: 'GET',
-      credentials: 'include' // 👈 NECESARIO para que se envíe la cookie connect.sid
+      // credentials: "include",                                            windows - android
+      headers: {          
+         "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
+        }
     })
     .then(response => {
         console.log(response);

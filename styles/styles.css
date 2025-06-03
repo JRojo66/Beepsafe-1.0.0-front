@@ -509,7 +509,7 @@ select.menu {
   justify-content: center;
   padding: 0px;
   margin-top: 0px;
-  border-radius: 20px;
+  border-radius: 50px;
   background-color: white;
   overflow:hidden;
 }
@@ -537,11 +537,11 @@ select.menu {
   align-items: center;
   padding: 10px 0px;
   background-color: var(--color-principal);
-  border-radius: 20px;
+  border-radius: 50px;
 }
 .miPerfil {
   background-color: white;
-  border-radius: 20px;
+  border-radius: 50%;
 }
 
 .botonInicio {
@@ -580,13 +580,12 @@ select.menu {
 /*Perfil*/
 
 .contenedor-padre3 {
-  padding: 0.625rem 1.25rem; /* Ajustar padding con unidades relativas */
-  margin: 130px auto;
+  margin: 200px 0;
   border-radius: 20px;
   display: flex;
   justify-content: center;
   align-items: center;
-  max-width: 440px;
+  max-width: 800px;
 }
 
 .perfil {
@@ -640,7 +639,7 @@ select.menu {
   align-items: center;
   padding: 10px 0px;
   background-color: white;
-  border-radius: 20px;
+  border-radius: 50%;
 }
 .miPerfilb {
   background-color: var(--color-principal);
@@ -1178,7 +1177,7 @@ select.menu {
 .input-name, .input-desc, .input-photo {
   background-color: var(--color-fondo);
   border-color: white;
-  border-radius: 20px;
+  border-radius: 5px;
   font-size: 20px;
   margin: 2px;
   width: 90%;
@@ -1224,7 +1223,7 @@ select.menu {
   color: #dcdcdc;
   padding: 0 8px;
   border: 1px solid white;
-  border-radius: 20px;
+  border-radius: px;
   text-align: center;
   cursor: pointer;
   font-size: 14px;
