@@ -67,14 +67,20 @@ form.addEventListener("submit", async function (e) {
     
     if (!response.ok) {
       const error = await response.json();
-      alert(`Error: ${error.error}`); // || 'Ocurrió un error'
+      //alert(`Error: ${error.error}`); // || 'Ocurrió un error'
+      showConfirmOkOnly(`Error: ${error.error}`);
       return;
     }
-    alert("Contraseña cambiada correctamente. Iniciá sesión.");
+    // alert("Contraseña cambiada correctamente. Iniciá sesión.");
+    showToast("Contraseña cambiada correctamente. Iniciá sesión.", "success")
+    setTimeout(() => {
     window.location.href = "../pages/iniciarSesion.html";
+    }, 4000); 
+    //window.location.href = "../pages/iniciarSesion.html";
   } catch (error) {
-    console.error("Error al enviar nueva contraseña:xxx", error);
-    alert("Ocurrió un error inesperado");
+    console.error(`Error al enviar nueva contraseña: ${error}`, error);
+    // alert("Ocurrió un error inesperado");
+    showToast("❗ Ocurrió un error inesperado", "error");
   } finally {
     spinner.style.display = "none";
   }

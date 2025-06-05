@@ -214,9 +214,7 @@ document
         return response.json();
       })
       .then((data) => {
-        alert(
-          "Abrí tu mail para restablecer tu contraseña"
-        );
+        showConfirmOkOnly("📬 Abrí tu mail para restablecer tu contraseña");
       })
       .catch((error) => {
         console.error("Error en reset de contraseña:", error);
