@@ -11,7 +11,6 @@
 //     console.error("Error al obtener actividades del usuario:", error);
 //   });
 
-
 // Verifica que esté logueado
 window.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -34,6 +33,9 @@ window.addEventListener("DOMContentLoaded", async () => {
     window.location.href = "iniciarSesion.html";
   }
 });
+
+// spinner
+const spinner = document.getElementById("spinner");
 
 // Guardar el estado de los acordeones antes de recargar
 function getAccordionState() {
@@ -59,6 +61,8 @@ async function fetchUserActivities(
 ) {
   const container = document.getElementById("accordion-container");
   container.innerHTML = ""; // Limpiar actividades anteriores
+
+  spinner.style.display = "block"; // ⬅️ Mostrar spinner al comenzar
 
   try {
     // Obtener email del usuario desde JWT
@@ -188,8 +192,8 @@ async function fetchUserActivities(
           e.stopPropagation(); // para que no se abra/cierre el acordeón al hacer click
 
           //const id = e.target.dataset.id;
-          const confirmDelete = confirm(
-            "¿Estás seguro de que querés eliminar esta actividad? Se borraran los equipos de esta actividad también"
+          const confirmDelete = await showConfirm(
+            "¿Estás seguro de que querés eliminar esta actividad? Se borrarán los equipos de esta actividad también."
           );
           if (!confirmDelete) return;
 
@@ -256,6 +260,8 @@ async function fetchUserActivities(
         .addEventListener("click", async (e) => {
           e.stopPropagation();
 
+          spinner.style.display = "block"; // ⬅️ Mostrar spinner
+
           const sanitize = (str) => str.replace(/[<>"'\/]/g, "");
 
           const name = sanitize(
@@ -274,6 +280,7 @@ async function fetchUserActivities(
               "Por favor completá al menos el nombre y la descripción del equipo.",
               "error"
             );
+            spinner.style.display = "none"; // ⬅️ Ocultarlo si hay error de validación
             return;
           }
 
@@ -304,9 +311,11 @@ async function fetchUserActivities(
             const prevState = getAccordionState();
             const prevScrollY = window.scrollY;
             fetchUserActivities(prevState, prevScrollY);
-            showToast("Equipo Agregado", "success")
+            showToast("Equipo Agregado", "success");
           } catch (err) {
             showToast(`error al agregar el equipo ${err.message}`, "error");
+          } finally {
+            spinner.style.display = "none"; // ⬅️ Ocultar spinner
           }
         });
 
@@ -332,6 +341,7 @@ async function fetchUserActivities(
   if (scrollYToRestore !== null) {
     window.scrollTo(0, scrollYToRestore);
   }
+    spinner.style.display = "none"; // ⬅️ Ocultar spinner
 }
 
 document.addEventListener("DOMContentLoaded", () => fetchUserActivities([]));

@@ -80,7 +80,12 @@ form.addEventListener("submit", async function (e) {
   } catch (error) {
     console.error(`Error al enviar nueva contraseña: ${error}`, error);
     // alert("Ocurrió un error inesperado");
-    showToast("❗ Ocurrió un error inesperado", "error");
+    // showToast(`❗ Ocurrió un error inesperado: ${error}`, "error");
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+    showConfirmOkOnly("🚫 Error de red o política CORS. Verificá la conexión o contactá soporte.");
+  } else {
+    showConfirmOkOnly(`❗ Error inesperado: ${error.message}`);
+  }
   } finally {
     spinner.style.display = "none";
   }
