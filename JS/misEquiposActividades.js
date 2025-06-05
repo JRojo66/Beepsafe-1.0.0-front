@@ -11,31 +11,73 @@
 //     console.error("Error al obtener actividades del usuario:", error);
 //   });
 
-// Verifica que esté logueado
-window.addEventListener('DOMContentLoaded', async () => {
-  try {
-      const response = await fetch(`${ROOT_URL}/api/sessions/current`, {
-        method: 'GET',
-        // credentials: 'include',                                            windows - android
-        headers: {          
-         "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
-        }
-      });
-      if (!response.ok) {
-        throw new Error('Token inválido');
-      }
+// toasts
+function showToast(message, type = "info") {
+  const container = document.getElementById("toast-container");
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
 
-      
-      //const data = await response.json();
-      //console.log(data);
-      // const nombreElemento = document.getElementById('nombre');
-      // nombreElemento.innerHTML = `<strong>${data.userJWT.name.toUpperCase()}!</strong>`;
-      
-    } catch (err) {
-      console.warn('No autenticado, redirigiendo...', err);
-      window.location.href = 'iniciarSesion.html';
-    }
+  setTimeout(() => {
+    toast.remove();
+  }, 4000); // mismo que duración de animación
+}
+
+// Confirm
+function showConfirm(message = "¿Estás seguro?") {
+  return new Promise((resolve) => {
+    const modal = document.getElementById("confirm-modal");
+    const messageElement = document.getElementById("confirm-message");
+    const btnYes = document.getElementById("confirm-yes");
+    const btnNo = document.getElementById("confirm-no");
+
+    messageElement.textContent = message;
+    modal.classList.remove("hidden");
+
+    const cleanup = () => {
+      modal.classList.add("hidden");
+      btnYes.removeEventListener("click", onYes);
+      btnNo.removeEventListener("click", onNo);
+    };
+
+    const onYes = () => {
+      cleanup();
+      resolve(true);
+    };
+
+    const onNo = () => {
+      cleanup();
+      resolve(false);
+    };
+
+    btnYes.addEventListener("click", onYes);
+    btnNo.addEventListener("click", onNo);
   });
+}
+
+// Verifica que esté logueado
+window.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const response = await fetch(`${ROOT_URL}/api/sessions/current`, {
+      method: "GET",
+      // credentials: 'include',                                            windows - android
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`, // iOS
+      },
+    });
+    if (!response.ok) {
+      throw new Error("Token inválido");
+    }
+
+    //const data = await response.json();
+    //console.log(data);
+    // const nombreElemento = document.getElementById('nombre');
+    // nombreElemento.innerHTML = `<strong>${data.userJWT.name.toUpperCase()}!</strong>`;
+  } catch (err) {
+    window.location.href = "iniciarSesion.html";
+  }
+});
 
 // Guardar el estado de los acordeones antes de recargar
 function getAccordionState() {
@@ -66,10 +108,9 @@ async function fetchUserActivities(
     // Obtener email del usuario desde JWT
     const resUser = await fetch(`${ROOT_URL}/api/sessions/current`, {
       // credentials: "include",                                            windows - android
-      headers: {          
-         "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
-        }
-
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`, // iOS
+      },
     });
     const { userJWT } = await resUser.json();
     const email = userJWT.email;
@@ -78,9 +119,9 @@ async function fetchUserActivities(
 
     const res = await fetch(`${ROOT_URL}/api/activities/${email}`, {
       // credentials: "include",                                            windows - android
-      headers: {          
-         "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
-        }
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`, // iOS
+      },
     });
 
     if (!res.ok) throw new Error("Respuesta no satisfactoria");
@@ -101,7 +142,9 @@ async function fetchUserActivities(
                 <div class="accordion-header">
                     <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
                     <span>${activity.name}</span>
-                    <button class="delete-btn" data-id="${activity._id}" title="Eliminar actividad">🗑️</button>
+                    <button class="delete-btn" data-id="${
+                      activity._id
+                    }" title="Eliminar actividad">🗑️</button>
                 </div>
             <div class="accordion-body">
               ${activity.equipment
@@ -112,8 +155,18 @@ async function fetchUserActivities(
                       <strong>${eq.name}</strong>
                       <span>${eq.description}</span>
                     </div>
-                      ${eq.photo?.trim()? `<img class="equipment-photo" src="${encodeURI(eq.photo.trim())}" alt="${eq.name}" />`:""}
-                      <button class="delete-equipment-btn" data-activity="${activity.name}" data-eq-name="${eq.name}" title="Eliminar equipo">🗑️</button>
+                      ${
+                        eq.photo?.trim()
+                          ? `<img class="equipment-photo" src="${encodeURI(
+                              eq.photo.trim()
+                            )}" alt="${eq.name}" />`
+                          : ""
+                      }
+                      <button class="delete-equipment-btn" data-activity="${
+                        activity.name
+                      }" data-eq-name="${
+                    eq.name
+                  }" title="Eliminar equipo">🗑️</button>
                   </div>`
                 )
                 .join("")}
@@ -141,18 +194,16 @@ async function fetchUserActivities(
           const eqName = btn.dataset.eqName;
           const actName = btn.dataset.activity;
 
-          const confirmDelete = confirm(
-            `¿Eliminar el equipo "${eqName}" de la actividad "${actName}"?`
-          );
-          if (!confirmDelete) return;
+          const confirmed = await showConfirm("¿Eliminar este equipo?");
+          if (!confirmed) return;
 
           try {
             const res = await fetch(`${ROOT_URL}/api/activities/equipment`, {
               method: "DELETE",
               //credentials: "include",                                   windows - android
-              headers: {       
-              "Content-Type": "application/json",          
-              "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token")}`, // iOS
               },
 
               body: JSON.stringify({
@@ -163,13 +214,13 @@ async function fetchUserActivities(
             });
 
             if (!res.ok) throw new Error("Error al eliminar equipo.");
-            
-            // alert("Equipo eliminado");
+
+            showToast("Equipo eliminado", "success");
             const prevState = getAccordionState();
             const prevScrollY = window.scrollY;
             fetchUserActivities(prevState, prevScrollY);
           } catch (err) {
-            alert(err.message);
+            showToast(`error al eliminar el equipo ${err.message}`, "error");
           }
         });
       });
@@ -191,8 +242,8 @@ async function fetchUserActivities(
               method: "DELETE",
               //credentials: "include",                                         windows - android
               headers: {
-              "Content-Type": "application/json",               
-              "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token")}`, // iOS
               },
 
               body: JSON.stringify({ email, activity: activity.name }),
@@ -200,32 +251,33 @@ async function fetchUserActivities(
 
             if (!res.ok) throw new Error("Error al eliminar actividad.");
 
-            // alert("Actividad eliminada");
+            showToast("Actividad eliminada", "success");
             const prevState = getAccordionState();
             const prevScrollY = window.scrollY;
             fetchUserActivities(prevState, prevScrollY);
           } catch (err) {
-            alert(err.message);
+            showToast(`error al eliminar la actividad ${err.message}`, "error");
           }
         });
 
       // Add equipment
       // Mostrar/ocultar formulario de agregar equipo
 
-accordion
-  .querySelector(".toggle-add-equipment")
-  .addEventListener("click", () => {
-    const form = accordion.querySelector(".add-equipment-form");
-    const toggleIcon = accordion.querySelector(".toggle-add-equipment .toggle-icon");
+      accordion
+        .querySelector(".toggle-add-equipment")
+        .addEventListener("click", () => {
+          const form = accordion.querySelector(".add-equipment-form");
+          const toggleIcon = accordion.querySelector(
+            ".toggle-add-equipment .toggle-icon"
+          );
 
-    const isVisible = form.style.display === "block";
-    form.style.display = isVisible ? "none" : "block";
+          const isVisible = form.style.display === "block";
+          form.style.display = isVisible ? "none" : "block";
 
-    if (toggleIcon) {
-      toggleIcon.classList.toggle("rotate", !isVisible);
-    }
-  });
-
+          if (toggleIcon) {
+            toggleIcon.classList.toggle("rotate", !isVisible);
+          }
+        });
 
       // Activar botones de subir foto desde cámara o galería
       const form = accordion.querySelector(".add-equipment-form");
@@ -248,21 +300,23 @@ accordion
         .addEventListener("click", async (e) => {
           e.stopPropagation();
 
-          const sanitize = (str) =>
-          str.replace(/[<>"'\/]/g, "");
+          const sanitize = (str) => str.replace(/[<>"'\/]/g, "");
 
-          const name = sanitize(accordion.querySelector(".input-name").value.trim());
-          const description = sanitize(accordion
-            .querySelector(".input-desc")
-            .value.trim());
+          const name = sanitize(
+            accordion.querySelector(".input-name").value.trim()
+          );
+          const description = sanitize(
+            accordion.querySelector(".input-desc").value.trim()
+          );
           const fileInput = accordion.querySelector(".camera-input").files[0]
             ? accordion.querySelector(".camera-input")
             : accordion.querySelector(".gallery-input");
           const photoFile = fileInput?.files[0];
 
           if (!name || !description) {
-            alert(
-              "Por favor completá al menos el nombre y la descripción del equipo."
+            showToast(
+              "Por favor completá al menos el nombre y la descripción del equipo.",
+              "error"
             );
             return;
           }
@@ -279,8 +333,8 @@ accordion
             const res = await fetch(`${ROOT_URL}/api/activities/equipment`, {
               method: "POST",
               //credentials: "include",                                         windows - android
-              headers: {          
-             "Authorization": `Bearer ${localStorage.getItem("token")}`        // iOS 
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`, // iOS
               },
 
               body: formData, // no se necesita Content-Type, el navegador lo pone solo
@@ -295,7 +349,7 @@ accordion
             const prevScrollY = window.scrollY;
             fetchUserActivities(prevState, prevScrollY);
           } catch (err) {
-            alert(err.message);
+            showToast(`error al agregar el equipo ${err.message}`, "error");
           }
         });
 
@@ -334,7 +388,9 @@ const errorDiv = document.getElementById("actividadError");
 formContainer.style.display = "none";
 
 mostrarBtn.addEventListener("click", () => {
-  const toggleIcon = document.querySelector(".accordion-header-activity .toggle-icon i");
+  const toggleIcon = document.querySelector(
+    ".accordion-header-activity .toggle-icon i"
+  );
 
   const isVisible = formContainer.style.display === "block";
   formContainer.style.display = isVisible ? "none" : "block";
@@ -360,8 +416,8 @@ actividadForm.addEventListener("submit", async (e) => {
     const res = await fetch(`${ROOT_URL}/api/activities`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",                             //iOS
-        "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "application/json", //iOS
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
       // credentials: "include",                                            windows - android
       body: JSON.stringify({ activity: actividad }),
@@ -372,13 +428,13 @@ actividadForm.addEventListener("submit", async (e) => {
       throw new Error(data.message || "Error al guardar actividad.");
     }
 
-    // alert("Actividad agregada");
+    showToast("Actividad agregada", "success");
     formContainer.style.display = "none";
     actividadForm.reset();
     const prevState = getAccordionState();
     const prevScrollY = window.scrollY;
     fetchUserActivities(prevState, prevScrollY);
   } catch (err) {
-    errorDiv.textContent = err.message;
+    showToast(`error al agregar la actividad ${err.message}`, "error");
   }
 });
