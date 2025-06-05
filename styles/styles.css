@@ -119,6 +119,7 @@ p {
   justify-content: end;
 }
 .logoutbutton {
+  all: unset; /* ⬅️ Elimina todos los estilos nativos (como bordes en iOS) */
   font-size: 18px;
   font-weight: bold;
   color: var(--color-principal);
