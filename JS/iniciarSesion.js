@@ -219,7 +219,7 @@ document
       })
       .catch((error) => {
         console.error("Error en reset de contraseña:", error);
-        alert("xxx",error.message);
+        alert("error: "+error.message);
       })
       .finally(() => {
         spinner.style.display = "none"; //spinner
