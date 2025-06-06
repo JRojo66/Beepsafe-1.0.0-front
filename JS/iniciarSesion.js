@@ -51,6 +51,10 @@ function isValidEmail(email) {
 }
 
 const form = document.getElementById("iniciarSesionForm");
+document.querySelector(".iniciarSesion2").addEventListener("click", function () {
+  form.requestSubmit();
+});
+
 const spinner = document.getElementById("spinner"); // debajo del form = document.getElementById...
 
 let intentosFallidos = parseInt(localStorage.getItem("intentosFallidos")) || 0;
