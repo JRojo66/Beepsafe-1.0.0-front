@@ -196,9 +196,6 @@ document
     // Enviar fetch POST a /api/sessions/passwordReset
     // spinner
     spinner.style.display = "block";
-    // desabilita el boton despues de enviar la solicitud
-    const submitBtn = form.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
 
     fetch(`${ROOT_URL}/api/sessions/passwordReset`, {
       method: "POST",
@@ -226,6 +223,5 @@ document
       })
       .finally(() => {
         spinner.style.display = "none"; //spinner
-        submitBtn.disabled = false; // vuelve a habilitar el boton de send
       });
   });
