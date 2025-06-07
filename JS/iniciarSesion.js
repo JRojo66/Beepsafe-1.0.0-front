@@ -219,7 +219,7 @@ document
       })
       .catch((error) => {
         console.error("Error en reset de contraseña:", error);
-        showConfirmOkOnly("❌ No se pudo enviar el email. Por favor, intentá más tarde.");
+        alert("error: "+error.message);
       })
       .finally(() => {
         spinner.style.display = "none"; //spinner
