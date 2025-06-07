@@ -72,7 +72,7 @@ form.addEventListener("submit", async function (e) {
       return;
     }
     // alert("Contraseña cambiada correctamente. Iniciá sesión.");
-    showToast("Contraseña cambiada correctamente. Iniciá sesión.", "success")
+    showToast("Contraseña cambiada correctamente. Redirigiendo a Iniciar Sesión", "success")
     setTimeout(() => {
     window.location.href = "../pages/iniciarSesion.html";
     }, 4000); 
