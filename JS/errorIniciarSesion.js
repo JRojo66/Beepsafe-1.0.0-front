@@ -1,4 +1,6 @@
-const blockedUntil = parseInt(localStorage.getItem("blockedUntil"));
+const urlParams = new URLSearchParams(window.location.search);
+const email = urlParams.get("email");
+const blockedUntil = parseInt(localStorage.getItem(`blockedUntil_${email}`));
 
 if (blockedUntil && Date.now() < blockedUntil) {
   const tiempoRestante = blockedUntil - Date.now();
@@ -6,7 +8,7 @@ if (blockedUntil && Date.now() < blockedUntil) {
 }
 
 // Obtener el mensaje de error de la URL
-const urlParams = new URLSearchParams(window.location.search);
+//const urlParams = new URLSearchParams(window.location.search);
 const errorMessage = urlParams.get("error");
 const errorDisplay = document.getElementById("errorMessageDisplay");
 
@@ -16,23 +18,22 @@ if (errorMessage) {
 }
 
 function mostrarCuentaRegresiva(tiempoRestante) {
- 
   const intervalo = setInterval(() => {
     const ahora = Date.now();
     const diferencia =
-      parseInt(localStorage.getItem("blockedUntil")) - ahora;
+      parseInt(localStorage.getItem(`blockedUntil_${email}`)) - ahora;
 
     if (diferencia <= 0) {
       clearInterval(intervalo);
-      localStorage.removeItem("blockedUntil");
-      localStorage.removeItem("intentosFallidos");
+      localStorage.removeItem(`blockedUntil_${email}`);
+      localStorage.removeItem(`intentosFallidos_${email}`);
       errorDisplay.textContent = "Ya puedes volver a intentar iniciar sesión.";
       return;
     }
 
     const minutos = Math.floor(diferencia / 60000);
     const segundos = Math.floor((diferencia % 60000) / 1000);
-    
+
     errorDisplay.textContent = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutos}m ${segundos}s.`;
   }, 1000);
 }

@@ -1,5 +1,3 @@
-
-
 // Muestra/oculta las contraseñas al hacer click en el ojito
 // function togglePassword(id, icon) {
 //   let input = document.getElementById(id);
@@ -15,7 +13,7 @@
 // }
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".ojo").forEach(icon => {
+  document.querySelectorAll(".ojo").forEach((icon) => {
     icon.addEventListener("click", () => {
       const targetId = icon.getAttribute("data-target");
       const passwordInput = document.getElementById(targetId);
@@ -35,15 +33,16 @@ function isValidEmail(email) {
 }
 
 const form = document.getElementById("iniciarSesionForm");
-document.querySelector(".iniciarSesion2").addEventListener("click", function () {
-  form.requestSubmit();
-});
+document
+  .querySelector(".iniciarSesion2")
+  .addEventListener("click", function () {
+    form.requestSubmit();
+  });
 
 const spinner = document.getElementById("spinner"); // debajo del form = document.getElementById...
 
-let intentosFallidos = parseInt(localStorage.getItem("intentosFallidos")) || 0;
 let MAX_INTENTOS_FALLIDOS = 5; // Default max intentos fallidos hasta que cargue del backend
-let BLOCK_TIME_MINUTES = 60; // Default tiempo de bloqueo entre intentos hasta que cargue del backend
+let BLOCK_TIME_MINUTES = 1; // Default tiempo de bloqueo entre intentos hasta que cargue del backend
 
 // Fetchear config apenas carga la página
 fetch(`${ROOT_URL}/api/config`)
@@ -51,7 +50,8 @@ fetch(`${ROOT_URL}/api/config`)
   .then((config) => {
     MAX_INTENTOS_FALLIDOS = config.maxLoginAttempts;
     BLOCK_TIME_MINUTES = config.blockTimeMinutes;
-    console.log(BLOCK_TIME_MINUTES);
+    console.log("🛠️ Config cargada:", config);
+    console.log("⏳ BLOCK_TIME_MINUTES:", BLOCK_TIME_MINUTES);
   })
   .catch((error) => {
     console.error("❌ Error cargando config del backend:", error);
@@ -83,9 +83,22 @@ form.addEventListener("submit", function (event) {
   // Validar la longitud de la contraseña
   if (password.length < 6) {
     document.getElementById("passwordError").textContent =
-    "La contraseña debe tener al menos 6 caracteres.";
+      "La contraseña debe tener al menos 6 caracteres.";
     return; // Detiene la ejecución de la función y no hace el fetch
   }
+
+  // const emailActual = localStorage.getItem("emailActual");
+  let intentosFallidos =
+    parseInt(localStorage.getItem(`intentosFallidos_${email}`)) || 0;
+
+  // if (emailActual === email) {
+  //   intentosFallidos =
+  //     parseInt(localStorage.getItem(`intentosFallidos_${email}`)) || 0;
+  // } else {
+  //   localStorage.setItem("emailActual", email);
+  //   intentosFallidos = 0;
+  //   localStorage.setItem(`intentosFallidos_${email}`, intentosFallidos);
+  // }
 
   if (isValid) {
     spinner.style.display = "block";
@@ -94,7 +107,7 @@ form.addEventListener("submit", function (event) {
       method: "POST",
       //credentials: "include", // 👈 NECESARIO PARA ENVIAR COOKIES     windows
       headers: {
-        "Content-Type": "application/json",                             //iOS
+        "Content-Type": "application/json", //iOS
       },
       body: JSON.stringify({
         email: email,
@@ -116,7 +129,7 @@ form.addEventListener("submit", function (event) {
         localStorage.setItem("token", data.token);
 
         // ✅ Limpiar intentos fallidos si existían
-        localStorage.removeItem("intentosFallidos");
+        localStorage.removeItem(`intentosFallidos_${email}`);
 
         // ✅ Redirigir a la página protegida
         window.location.href = "iniciarDetener.html";
@@ -127,25 +140,27 @@ form.addEventListener("submit", function (event) {
         if (error.status === 401) {
           //Credenciales inválidas//
           intentosFallidos++;
-          localStorage.setItem("intentosFallidos", intentosFallidos); // 👉 Guarda en localStorage
-          
+          localStorage.setItem(`intentosFallidos_${email}`, intentosFallidos); // 👉 Guarda en localStorage
+
           if (intentosFallidos >= MAX_INTENTOS_FALLIDOS) {
-            localStorage.removeItem("intentosFallidos"); // 👉 Reseteamos los intentos al bloquear
+            localStorage.removeItem(`intentosFallidos_${email}`); // 👉 Reseteamos los intentos al bloquear
             const now = Date.now();
             const unblockTime = now + BLOCK_TIME_MINUTES * 60 * 1000; // tiempo futuro en ms
-            localStorage.setItem("blockedUntil", unblockTime);
+            localStorage.setItem(`blockedUntil_${email}`, unblockTime);
             const minutosRestantes = error.retryAfter || BLOCK_TIME_MINUTES; // por si no viene retryAfter
             //Redirigir a la página de error y pasar el mensaje como parámetro en la URL
             passwordErrorDiv.textContent = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
             let messageErrorTime = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
-            window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(messageErrorTime)}`;
+            window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(
+              messageErrorTime
+            )}&email=${encodeURIComponent(email)}`;
           } else {
             passwordErrorDiv.textContent = `Credenciales inválidas. Intento ${intentosFallidos} de ${MAX_INTENTOS_FALLIDOS}.`;
-          } 
+          }
         } else if (error.status === 429) {
           //Ratelimit excedido
           const now = Date.now();
-          window.location.href = "errorIniciarSesion.html"
+          window.location.href = "errorIniciarSesion.html";
         } else {
           //Otro error
           passwordErrorDiv.textContent =
@@ -204,7 +219,9 @@ document
       })
       .catch((error) => {
         console.error("Error en reset de contraseña:", error);
-        showConfirmOkOnly("❌ No se pudo enviar el email. Por favor, intentá más tarde.");
+        showConfirmOkOnly(
+          "❌ No se pudo enviar el email. Por favor, intentá más tarde."
+        );
       })
       .finally(() => {
         spinner.style.display = "none"; //spinner
