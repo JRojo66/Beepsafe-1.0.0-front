@@ -27,22 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-
-// document.addEventListener("DOMContentLoaded", () => {
-//   const toggleIcon = document.getElementById("togglePasswordIcon");
-//   const passwordInput = document.getElementById("password");
-
-//   toggleIcon.addEventListener("click", function () {
-//     const type = passwordInput.type === "password" ? "text" : "password";
-//     passwordInput.type = type;
-
-//     // Alternar el ícono del ojito si querés
-//     this.classList.toggle("fa-eye");
-//     this.classList.toggle("fa-eye-slash");
-//   });
-// });
-
-
 // Validación de email
 function isValidEmail(email) {
   // Expresión regular para validar un formato de email básico
@@ -67,6 +51,7 @@ fetch(`${ROOT_URL}/api/config`)
   .then((config) => {
     MAX_INTENTOS_FALLIDOS = config.maxLoginAttempts;
     BLOCK_TIME_MINUTES = config.blockTimeMinutes;
+    console.log(BLOCK_TIME_MINUTES);
   })
   .catch((error) => {
     console.error("❌ Error cargando config del backend:", error);
