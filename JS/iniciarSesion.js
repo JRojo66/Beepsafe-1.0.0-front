@@ -91,15 +91,6 @@ form.addEventListener("submit", function (event) {
   let intentosFallidos =
     parseInt(localStorage.getItem(`intentosFallidos_${email}`)) || 0;
 
-  // if (emailActual === email) {
-  //   intentosFallidos =
-  //     parseInt(localStorage.getItem(`intentosFallidos_${email}`)) || 0;
-  // } else {
-  //   localStorage.setItem("emailActual", email);
-  //   intentosFallidos = 0;
-  //   localStorage.setItem(`intentosFallidos_${email}`, intentosFallidos);
-  // }
-
   if (isValid) {
     spinner.style.display = "block";
 
@@ -130,15 +121,17 @@ form.addEventListener("submit", function (event) {
 
         // ✅ Limpiar intentos fallidos si existían
         localStorage.removeItem(`intentosFallidos_${email}`);
+        console.log(data);
 
         // ✅ Redirigir a la página protegida
-        window.location.href = "iniciarDetener.html";
+        //window.location.href = "iniciarDetener.html";
       })
       .catch((error) => {
         console.error("CATCH EJECUTADO:", error);
         const passwordErrorDiv = document.getElementById("passwordError");
         if (error.status === 401) {
           //Credenciales inválidas//
+          let intentosFallidos = parseInt(localStorage.getItem(`intentosFallidos_${email}`)) || 0;
           intentosFallidos++;
           localStorage.setItem(`intentosFallidos_${email}`, intentosFallidos); // 👉 Guarda en localStorage
 
