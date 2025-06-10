@@ -97,13 +97,7 @@ form.addEventListener("submit", function (event) {
         if (error.status === 429) {
           const retryAfter = error.retryAfter || 600;
           const unblockTime = Date.now() + retryAfter * 60 * 1000;
-          const mensaje = `Demasiados intentos fallidos. Intentá nuevamente en ${retryAfter} minutos.`;
-          // console.log(`errorIniciarSesion.html?error=${encodeURIComponent(
-          //   mensaje
-          // )}&retryAfter=${retryAfter}&email=${encodeURIComponent(email)}&unblockTime=${unblockTime}`);
-          window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(
-            mensaje
-          )}&retryAfter=${retryAfter}&email=${encodeURIComponent(email)}&unblockTime=${unblockTime}`;
+          window.location.href = `errorIniciarSesion.html?retryAfter=${retryAfter}&email=${encodeURIComponent(email)}&unblockTime=${unblockTime}`; 
         } else {
           //Otro error
           passwordErrorDiv.textContent =

@@ -8,14 +8,7 @@ if (unblockTime && Date.now() < unblockTime) {
   mostrarCuentaRegresiva(tiempoRestante);
 }
 
-// Obtener el mensaje de error de la URL
-const errorMessage = urlParams.get("error");
 const errorDisplay = document.getElementById("errorMessageDisplay");
-
-// Mostrar el mensaje de error si está presente
-if (errorMessage) {
-  errorDisplay.textContent = decodeURIComponent(errorMessage);
-}
 
 function mostrarCuentaRegresiva(tiempoRestante) {
   const intervalo = setInterval(() => {
