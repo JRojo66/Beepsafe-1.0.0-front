@@ -1,37 +1,35 @@
+document.addEventListener("DOMContentLoaded", function () {
+  const urlParams = new URLSearchParams(window.location.search);
+  const unblockTime = parseInt(urlParams.get("unblockTime"), 10);
+  const retryAfter = urlParams.get("retryAfter");
+  const errorMessage = urlParams.get("error");
+  const errorDisplay = document.getElementById("errorMessageDisplay");
 
-const urlParams = new URLSearchParams(window.location.search);
-const unblockTime = urlParams.get("unblockTime");
-const retryAfter = urlParams.get("retryAfter")
+  if (errorDisplay && errorMessage) {
+    errorDisplay.textContent = decodeURIComponent(errorMessage);
+  }
 
-if (unblockTime && Date.now() < unblockTime) {
-  const tiempoRestante = unblockTime - Date.now();
-  mostrarCuentaRegresiva(tiempoRestante);
-}
+  if (unblockTime && Date.now() < unblockTime) {
+    const tiempoRestante = unblockTime - Date.now();
+    mostrarCuentaRegresiva(tiempoRestante, unblockTime, errorDisplay);
+  }
 
-// Obtener el mensaje de error de la URL
-const errorMessage = urlParams.get("error");
-const errorDisplay = document.getElementById("errorMessageDisplay");
+  function mostrarCuentaRegresiva(tiempoRestante, unblockTime, errorDisplay) {
+    const intervalo = setInterval(() => {
+      const ahora = Date.now();
+      const diferencia = unblockTime - ahora;
 
-// Mostrar el mensaje de error si está presente
-if (errorMessage) {
-  errorDisplay.textContent = decodeURIComponent(errorMessage);
-}
+      if (diferencia <= 0) {
+        clearInterval(intervalo);
+        errorDisplay.textContent =
+          "Ya puedes volver a intentar iniciar sesión.";
+        return;
+      }
 
-function mostrarCuentaRegresiva(tiempoRestante) {
-  const intervalo = setInterval(() => {
-    const ahora = Date.now();
-    const diferencia =
-      unblockTime - ahora;
+      const minutos = Math.floor(diferencia / 60000);
+      const segundos = Math.floor((diferencia % 60000) / 1000);
 
-    if (diferencia <= 0) {
-      clearInterval(intervalo);
-      errorDisplay.textContent = "Ya puedes volver a intentar iniciar sesión.";
-      return;
-    }
-
-    const minutos = Math.floor(diferencia / 60000);
-    const segundos = Math.floor((diferencia % 60000) / 1000);
-
-    errorDisplay.textContent = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutos}m ${segundos}s.`;
-  }, 1000);
-}
+      errorDisplay.textContent = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutos}m ${segundos}s.`;
+    }, 1000);
+  }
+});
