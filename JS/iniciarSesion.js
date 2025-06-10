@@ -121,10 +121,9 @@ form.addEventListener("submit", function (event) {
 
         // ✅ Limpiar intentos fallidos si existían
         localStorage.removeItem(`intentosFallidos_${email}`);
-        console.log(data);
 
         // ✅ Redirigir a la página protegida
-        //window.location.href = "iniciarDetener.html";
+        window.location.href = "iniciarDetener.html";
       })
       .catch((error) => {
         console.error("CATCH EJECUTADO:", error);
