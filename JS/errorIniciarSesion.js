@@ -1,25 +1,14 @@
-const retryAfter = urlParams.get("retryAfter");
-
-if (!blockedUntil && retryAfter) {
-  const tiempoMs = parseInt(retryAfter) * 60 * 1000;
-  const future = Date.now() + tiempoMs;
-  localStorage.setItem(`blockedUntil_${email}`, future);
-}
 
 const urlParams = new URLSearchParams(window.location.search);
-const email = urlParams.get("email");
-const blockedUntil = parseInt(localStorage.getItem(`blockedUntil_${email}`));
+const unblockTime = urlParams.get("unblockTime");
+const retryAfter = urlParams.get("retryAfter")
 
-
-
-
-if (blockedUntil && Date.now() < blockedUntil) {
-  const tiempoRestante = blockedUntil - Date.now();
+if (unblockTime && Date.now() < unblockTime) {
+  const tiempoRestante = unblockTime - Date.now();
   mostrarCuentaRegresiva(tiempoRestante);
 }
 
 // Obtener el mensaje de error de la URL
-//const urlParams = new URLSearchParams(window.location.search);
 const errorMessage = urlParams.get("error");
 const errorDisplay = document.getElementById("errorMessageDisplay");
 
@@ -32,12 +21,10 @@ function mostrarCuentaRegresiva(tiempoRestante) {
   const intervalo = setInterval(() => {
     const ahora = Date.now();
     const diferencia =
-      parseInt(localStorage.getItem(`blockedUntil_${email}`)) - ahora;
+      unblockTime - ahora;
 
     if (diferencia <= 0) {
       clearInterval(intervalo);
-      localStorage.removeItem(`blockedUntil_${email}`);
-      localStorage.removeItem(`intentosFallidos_${email}`);
       errorDisplay.textContent = "Ya puedes volver a intentar iniciar sesión.";
       return;
     }

@@ -1,17 +1,3 @@
-// Muestra/oculta las contraseñas al hacer click en el ojito
-// function togglePassword(id, icon) {
-//   let input = document.getElementById(id);
-//   if (input.type === "password") {
-//     input.type = "text";
-//     icon.classList.remove("fa-eye");
-//     icon.classList.add("fa-eye-slash");
-//   } else {
-//     input.type = "password";
-//     icon.classList.remove("fa-eye-slash");
-//     icon.classList.add("fa-eye");
-//   }
-// }
-
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".ojo").forEach((icon) => {
     icon.addEventListener("click", () => {
@@ -40,22 +26,6 @@ document
   });
 
 const spinner = document.getElementById("spinner"); // debajo del form = document.getElementById...
-
-let MAX_INTENTOS_FALLIDOS = 5; // Default max intentos fallidos hasta que cargue del backend
-let BLOCK_TIME_MINUTES = 1; // Default tiempo de bloqueo entre intentos hasta que cargue del backend
-
-// Fetchear config apenas carga la página
-fetch(`${ROOT_URL}/api/config`)
-  .then((response) => response.json())
-  .then((config) => {
-    MAX_INTENTOS_FALLIDOS = config.maxLoginAttempts;
-    BLOCK_TIME_MINUTES = config.blockTimeMinutes;
-    console.log("🛠️ Config cargada:", config);
-    console.log("⏳ BLOCK_TIME_MINUTES:", BLOCK_TIME_MINUTES);
-  })
-  .catch((error) => {
-    console.error("❌ Error cargando config del backend:", error);
-  });
 
 form.addEventListener("submit", function (event) {
   event.preventDefault(); // Evita el envío del formulario por defecto
@@ -86,10 +56,6 @@ form.addEventListener("submit", function (event) {
       "La contraseña debe tener al menos 6 caracteres.";
     return; // Detiene la ejecución de la función y no hace el fetch
   }
-
-  // const emailActual = localStorage.getItem("emailActual");
-  // let intentosFallidos =
-  //   parseInt(localStorage.getItem(`intentosFallidos_${email}`)) || 0;
 
   if (isValid) {
     spinner.style.display = "block";
@@ -128,38 +94,13 @@ form.addEventListener("submit", function (event) {
       .catch((error) => {
         console.error("CATCH EJECUTADO:", error);
         const passwordErrorDiv = document.getElementById("passwordError");
-        // if (error.status === 401) {
-          //Credenciales inválidas//
-          // let intentosFallidos =
-          //   parseInt(localStorage.getItem(`intentosFallidos_${email}`)) || 0;
-          // intentosFallidos++;
-          // localStorage.setItem(`intentosFallidos_${email}`, intentosFallidos); // 👉 Guarda en localStorage
-
-          // if (intentosFallidos >= MAX_INTENTOS_FALLIDOS) {
-          //   localStorage.removeItem(`intentosFallidos_${email}`); // 👉 Reseteamos los intentos al bloquear
-          //   const now = Date.now();
-          //   const unblockTime = now + BLOCK_TIME_MINUTES * 60 * 1000; // tiempo futuro en ms
-          //   localStorage.setItem(`blockedUntil_${email}`, unblockTime);
-          //   const minutosRestantes = error.retryAfter || BLOCK_TIME_MINUTES; // por si no viene retryAfter
-          //   //Redirigir a la página de error y pasar el mensaje como parámetro en la URL
-          //   passwordErrorDiv.textContent = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
-          //   let messageErrorTime = `Has excedido el número máximo de intentos. Podrás intentar nuevamente en ${minutosRestantes} minutos.`;
-          //   window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(
-          //     messageErrorTime
-          //   )}&email=${encodeURIComponent(email)}`;
-          // } else {
-          //   passwordErrorDiv.textContent = `Credenciales inválidas. Intento ${intentosFallidos} de ${MAX_INTENTOS_FALLIDOS}.`;
-          // }
-        // } else 
         if (error.status === 429) {
-          const retryAfter = error.retryAfter || BLOCK_TIME_MINUTES;
+          const retryAfter = error.retryAfter || 600;
           const unblockTime = Date.now() + retryAfter * 60 * 1000;
-          localStorage.setItem(`blockedUntil_${email}`, unblockTime);
-
           const mensaje = `Demasiados intentos fallidos. Intentá nuevamente en ${retryAfter} minutos.`;
           window.location.href = `errorIniciarSesion.html?error=${encodeURIComponent(
             mensaje
-          )}&retryAfter=${retryAfter}&email=${encodeURIComponent(email)}`;
+          )}&retryAfter=${retryAfter}&email=${encodeURIComponent(email)}&unblockTime=${unblockTime}`;
         } else {
           //Otro error
           passwordErrorDiv.textContent =
