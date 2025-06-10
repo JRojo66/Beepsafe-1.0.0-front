@@ -1,6 +1,17 @@
+const retryAfter = urlParams.get("retryAfter");
+
+if (!blockedUntil && retryAfter) {
+  const tiempoMs = parseInt(retryAfter) * 60 * 1000;
+  const future = Date.now() + tiempoMs;
+  localStorage.setItem(`blockedUntil_${email}`, future);
+}
+
 const urlParams = new URLSearchParams(window.location.search);
 const email = urlParams.get("email");
 const blockedUntil = parseInt(localStorage.getItem(`blockedUntil_${email}`));
+
+
+
 
 if (blockedUntil && Date.now() < blockedUntil) {
   const tiempoRestante = blockedUntil - Date.now();
