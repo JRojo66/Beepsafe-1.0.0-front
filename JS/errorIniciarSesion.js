@@ -1,20 +1,16 @@
-
 const urlParams = new URLSearchParams(window.location.search);
-const unblockTime = urlParams.get("unblockTime");
-const retryAfter = urlParams.get("retryAfter")
+const unblockTime = parseInt(urlParams.get("unblockTime"), 10);
+const errorDisplay = document.getElementById("errorMessageDisplay");
 
 if (unblockTime && Date.now() < unblockTime) {
   const tiempoRestante = unblockTime - Date.now();
   mostrarCuentaRegresiva(tiempoRestante);
 }
 
-const errorDisplay = document.getElementById("errorMessageDisplay");
-
 function mostrarCuentaRegresiva(tiempoRestante) {
   const intervalo = setInterval(() => {
     const ahora = Date.now();
-    const diferencia =
-      unblockTime - ahora;
+    const diferencia = unblockTime - ahora;
 
     if (diferencia <= 0) {
       clearInterval(intervalo);

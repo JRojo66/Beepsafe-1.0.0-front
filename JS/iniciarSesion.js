@@ -95,9 +95,10 @@ form.addEventListener("submit", function (event) {
         console.error("CATCH EJECUTADO:", error);
         const passwordErrorDiv = document.getElementById("passwordError");
         if (error.status === 429) {
-          const retryAfter = error.retryAfter || 600;
-          const unblockTime = Date.now() + retryAfter * 60 * 1000;
-          window.location.href = `errorIniciarSesion.html?retryAfter=${retryAfter}&email=${encodeURIComponent(email)}&unblockTime=${unblockTime}`; 
+          const unblockTime = error.unblockTime || Date.now() + 10 * 60 * 1000; // fallback
+          window.location.href = `errorIniciarSesion.html?email=${encodeURIComponent(
+            email
+          )}&unblockTime=${unblockTime}`;
         } else {
           //Otro error
           passwordErrorDiv.textContent =
