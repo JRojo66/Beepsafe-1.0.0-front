@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Procesando Google...</title>
+</head>
+<body>
+  <p>Procesando autorización...</p>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+
+    if (code) {
+      // Enviá el código al backend
+      fetch("https://TU_BACKEND.com/api/google/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          localStorage.setItem("googleContacts", JSON.stringify(data.contacts));
+          window.location.href = "/pages/misContactos.html";
+        })
+        .catch((err) => {
+          console.error("Error al obtener contactos:", err);
+          alert("Error al obtener contactos");
+        });
+    } else {
+      alert("Autorización cancelada o fallida");
+    }
+  </script>
+</body>
+</html>
