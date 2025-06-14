@@ -1,8 +1,8 @@
 const btnImportar = document.getElementById("btnImportarGoogle");
 
 btnImportar.addEventListener("click", () => {
-  const clientId = "TU_CLIENT_ID_DE_GOOGLE";
-  const redirectUri = "https://jrojo66.github.io/Beepsafe-1.0.0-front//pages/googleCallback.html";
+  const clientId = "208323455256-ori44vokdn55k8vc9bruqhkhqk7q1dkf.apps.googleusercontent.com";
+  const redirectUri = "https://jrojo66.github.io/Beepsafe-1.0.0-front/pages/googleCallback.html";
   const scope = "https://www.googleapis.com/auth/contacts.readonly";
 
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(scope)}&access_type=online&prompt=consent`;
