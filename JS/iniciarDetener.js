@@ -31,7 +31,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       
     } catch (err) {
       // console.warn('No autenticado, redirigiendo...');
-      //window.location.href = 'iniciarSesion.html';
+      window.location.href = 'iniciarSesion.html';
     }
   });
   
