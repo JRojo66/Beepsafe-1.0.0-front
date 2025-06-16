@@ -13,7 +13,7 @@
 
     if (code) {
       // Enviá el código al backend
-      fetch(`${ROOT_URL}/api/google/contacts`, {  // Pasar a env
+      fetch(`${ROOT_URL}/api/google/contacts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code }),
@@ -21,7 +21,7 @@
         .then((res) => res.json())
         .then((data) => {
           localStorage.setItem("googleContacts", JSON.stringify(data.contacts));
-          window.location.href = "/Beepsafe-1.0.0-front/pages/misContactos.html"; // Pasar a env
+          window.location.href = `${FRONT_URL}/pages/misContactos.html`;
         })
         .catch((err) => {
           console.error("Error al obtener contactos:", err);
