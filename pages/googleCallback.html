@@ -21,7 +21,7 @@
         .then((res) => res.json())
         .then((data) => {
           localStorage.setItem("googleContacts", JSON.stringify(data.contacts));
-          window.location.href = "/Beepsafe-1.0.0-front/pages/misContactos.html";
+          window.location.href = "/Beepsafe-1.0.0-front/pages/misContactos.html"; // Pasar a env
         })
         .catch((err) => {
           console.error("Error al obtener contactos:", err);
