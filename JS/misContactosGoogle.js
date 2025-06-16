@@ -3,13 +3,13 @@ const btnImportar = document.getElementById("btnImportarGoogle");
 btnImportar.addEventListener("click", () => {
   const clientId ="535159863210-aq1il4k0d3tj3rqv9oovt9l683foqrso.apps.googleusercontent.com";
   const redirectUri = `${FRONT_URL}/pages/googleCallback.html`;
-  console.log(redirectUri);
+  //console.log(redirectUri);
   const scope = "https://www.googleapis.com/auth/contacts.readonly";
 
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(
     scope
   )}&access_type=online&prompt=consent`;
-  console.log(authUrl);
+  //console.log(authUrl);
   window.location.href = authUrl;
 });
 
