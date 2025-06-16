@@ -17,19 +17,42 @@ window.addEventListener("DOMContentLoaded", () => {
   const contacts = JSON.parse(contactsRaw);
   const container = document.getElementById("google-contacts-list");
 
+  // contacts.forEach((c) => {
+  //   const div = document.createElement("div");
+  //   div.classList.add("contacto");
+
+  //   div.innerHTML = `
+  //     <label class="contacto-label">
+  //       <input type="checkbox" />
+  //       <strong>${c.nombre}</strong> - ${c.email} ${c.telefono}
+  //     </label>
+  //   `;
+
+  //   container.appendChild(div);
+  // });
+
+
   contacts.forEach((c) => {
-    const div = document.createElement("div");
-    div.classList.add("contacto");
+  const div = document.createElement("div");
+  div.classList.add("contacto");
 
-    div.innerHTML = `
-      <label class="contacto-label">
-        <input type="checkbox" />
-        <strong>${c.nombre}</strong> - ${c.email} ${c.telefono}
-      </label>
-    `;
+  const label = document.createElement("label");
+  label.classList.add("contacto-label");
 
-    container.appendChild(div);
-  });
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+
+  label.appendChild(checkbox);
+
+  const texto = document.createTextNode(
+    ` ${c.nombre} - ${c.email} ${c.telefono}`
+  );
+
+  label.appendChild(texto);
+  div.appendChild(label);
+  container.appendChild(div);
+});
+
 
   // Limpiar después de usar
   localStorage.removeItem("googleContacts");
