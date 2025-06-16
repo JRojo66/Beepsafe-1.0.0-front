@@ -4,7 +4,7 @@ const ROOT_URL = "https://beepsafe-p11h.onrender.com" // Para produccion
 
 
 // const FRONT_URL = "http://localhost:57621";
-const FRONT_URL = "https://jrojo66.github.io/Beepsafe-1.0.0-front/";
+const FRONT_URL = "https://jrojo66.github.io/Beepsafe-1.0.0-front";
 
 
 // const isLocalhost = location.hostname === "localhost";
