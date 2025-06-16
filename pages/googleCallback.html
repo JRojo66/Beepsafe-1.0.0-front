@@ -13,7 +13,7 @@
 
     if (code) {
       // Enviá el código al backend
-      fetch("https://beepsafe-p11h.onrender.com/api/google/contacts", {  // Pasar a env
+      fetch(`${ROOT_URL}/api/google/contacts`, {  // Pasar a env
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code }),
