@@ -12,7 +12,7 @@
       const code = urlParams.get("code");
 
       if (code) {
-        const redirect_uri = `${window.location.origin}/pages/googleCallback.html`;
+        const redirect_uri = `${FRONT_URL}/pages/googleCallback.html`;
         // Envía el port al backend, para que no haya que definirlo cada vez en las variables de entorno en desarrollo
         // Enviá el código al backend
         fetch(`${ROOT_URL}/api/google/contacts`, {
