@@ -1571,6 +1571,27 @@ color: white;
   }
 }
 
-.contacto-label {
+/* Mis contactos*/
+.tabla-contactos {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1em;
+}
+
+.tabla-contactos th,
+.tabla-contactos td {
+  border: 1px solid #ccc;
+  padding: 0.5em;
+  text-align: left;
+}
+
+.tabla-contactos th {
+  background-color: #f9f9f9;
+}
+.tabla-contactos td:first-child {
   color: white;
 }
+
+/* .contacto-label {
+  color: white;
+} */

@@ -24,11 +24,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     if (!response.ok) {
       throw new Error("Token inválido");
     }
-
-    //const data = await response.json();
-    //console.log(data);
-    // const nombreElemento = document.getElementById('nombre');
-    // nombreElemento.innerHTML = `<strong>${data.userJWT.name.toUpperCase()}!</strong>`;
   } catch (err) {
     window.location.href = "iniciarSesion.html";
   }
