@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Contactos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
     <link rel="stylesheet" href="../styles/styles.css">
 </head>
 <body>
@@ -16,105 +18,24 @@
                 <div class="opciones">Mis contactos</div>
             </div>
         </a>
-        <p class="encabezadoBajada">Estos son los contactos a quienes enviaras tus mensajes</p>
+        <p class="encabezadoBajada">Estos son los contactos a quienes enviaras tus mensajes y que podrán ver que estás realizando una actividad</p>
         <div class="break"></div>
-        <!-- <div class="container-centra">
-            <div class="container-desplegable">
-                <a href="" class="perfilb">
-                    <div class="containerPerfil">
-                        <img src="../imagenes/perfilFondoBlancoChico.png" alt="mensajeDeInicio">
-                        <div class="opciones">Amigos</div>
-                        <img src="../imagenes/desplegableBlanco.png" alt="desplegable">
-                    </div>
-                </a>
-                <a href="" class="perfilc">
-                    <div class="containerPerfil">
-                        <div class="opcionesAmigos">Juan</div>
-                        <div class="opcionesAmigos">11 3456 7890</div>
-                    </div>
-                </a>
-                <a href="" class="perfilc">
-                    <div class="containerPerfil">
-                        <div class="opcionesAmigos">Pedro</div>
-                        <div class="opcionesAmigos">11 3456 1234</div>
-                    </div>
-                </a>
-                <a href="" class="perfilc">
-                    <div class="containerPerfil">
-                        <div class="opcionesAmigos">Luis</div>
-                        <div class="opcionesAmigos">11 3456 3456</div>
-                    </div>
-                </a>
-                    <a href="" class="perfilc">
-                        <div class="containerPerfil">
-                            <button class="opcionesAmigos">Agregar amigo</button>                    
-                        </div>
-                    </a>
-                </a>
+
+        <!-- Mis Contactos -->
+<div class="accordion-header-activity">
+  <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
+  <span id="toggleMisContactos">Mis contactos</span>
+</div>
+<div id="mis-contactos-list" class="contactos-lista" style="display: none;"></div>
+
+<!-- Contactos de Google -->
+<div class="accordion-header-activity">
+  <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
+  <span id="toggleGoogleContactos">Importar contactos desde Google</span>
+</div>
+<div id="google-contacts-list" class="contactos-lista" style="display: none;"></div>
 
 
-                <div class="break"></div>
-                <a href="" class="perfilb">
-                    <div class="containerPerfil">
-                        <img src="../imagenes/amigos.PNG" alt="mensajeDeFin">
-                        <div class="opciones">Grupos</div>
-                        <img src="../imagenes/desplegableBlanco.png" alt="desplegable">
-                    </div>
-                </a>
-                <a href="" class="perfilc">
-                    <div class="containerPerfil">
-                        <div class="opcionesAmigos">El Ombú</div>
-                        <img class="desplegable"src="../imagenes/desplegableBlanco.png" alt="desplegable">
-                    </div>
-                </a>
-                    <a href="" class="perfilc">
-                        <div class="containerPerfil">
-                            <div class="opcionesAmigosb">Juan</div>
-                            <div class="opcionesAmigosb">11 3456 7890</div>
-                        </div>
-                    </a>
-                    <a href="" class="perfilc">
-                        <div class="containerPerfil">
-                            <div class="opcionesAmigosb">Pedro</div>
-                            <div class="opcionesAmigosb">11 3456 1234</div>
-                        </div>
-                    </a>
-                    <a href="" class="perfilc">
-                        <div class="containerPerfil">
-                            <div class="opcionesAmigosb">Luis</div>
-                            <div class="opcionesAmigosb">11 3456 3456</div>
-                        </div>
-                    </a>
-                        <a href="" class="perfilc">
-                            <div class="containerPerfil">
-                                <button class="opcionesAmigosb">Agregar amigo al grupo</button>                    
-                            </div>
-                        </a>
-                </a>
-                <a href="" class="perfilc">
-                    <div class="containerPerfil">
-                        <div class="opcionesAmigos">Treking el Chalten</div>
-                        <img class="desplegable"src="../imagenes/desplegableBlanco.png" alt="desplegable">
-                    </div>
-                </a>
-                <a href="" class="perfilc">
-                    <div class="containerPerfil">
-                        <div class="opcionesAmigos">Kayak Rio Manso</div>
-                        <img class="desplegable"src="../imagenes/desplegableBlanco.png" alt="desplegable">
-                    </div>
-                </a>
-                    <a href="" class="perfilc">
-                        <div class="containerPerfil">
-                            <button class="opcionesAmigos">Agregar Grupo</button>                    
-                        </div>
-                    </a>
-            <div>
-        <div class="break"></div> -->
-        <button id="btnImportarGoogle" class="btn-importar">
-            <i class="fab fa-google"></i> Importar contactos desde Google
-        </button>
-
-<div id="google-contacts-list" class="contactos-lista"></div>
 
     </div>
 </div>

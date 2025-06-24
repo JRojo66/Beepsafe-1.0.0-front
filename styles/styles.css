@@ -1124,16 +1124,24 @@ select.menu {
   margin-top: 20px;
   /* margin-left: 5px; */
   padding: 10px 20px 15px 20px;
+  margin-bottom: 10px;
   background-color: var(--color-fondo);
   color: white;
   border: solid;
   border-color:#ccc;
   border-radius: 20px;
   border-width: 1px;
-  height: 16px;
+  height: 32px;
   width: 50%;
 }
 
+.accordion-header-activity .toggle-icon {
+  transition: transform 0.3s ease;
+}
+
+.accordion-header-activity .toggle-icon.rotate {
+  transform: rotate(180deg);
+}
 
 #actividadFormContainer {
   margin-top: 20px;
@@ -1592,6 +1600,3 @@ color: white;
   color: white;
 }
 
-/* .contacto-label {
-  color: white;
-} */
