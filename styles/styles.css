@@ -1600,3 +1600,45 @@ color: white;
   color: white;
 }
 
+.google-contact-wrapper {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 0 1em; /* Opcional para que no quede pegado */
+  overflow-x: hidden; /* Para forzar que no se expanda */
+}
+
+.contacto-row > div {
+  min-width: 0;
+  word-break: break-word;
+}
+
+.contactos-lista {
+  max-width: 440px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 1em; /* Opcional para dar aire a los lados */
+  overflow-x: hidden;
+}
+
+.contacto-row > div {
+  min-width: 0;
+  word-break: break-word;
+}
+
+.btn-agregar {
+  min-width: 100px;
+  padding: 0.4em 1em;
+  text-align: center;
+  display: inline-block;
+  background-color: var(--color-fondo); /* opcional */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1em;
+  cursor: pointer;
+  white-space: nowrap; /* 👉 evita que se divida en 2 líneas */
+}
+

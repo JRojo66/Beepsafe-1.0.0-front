@@ -1,38 +1,23 @@
 let contactosGoogleCargados = null;
+let contactosGoogleCargadosCompleta = null;
+let terminoBusqueda = "";
+let googleContactPage = 1;
+const GOOGLE_PAGE_SIZE = 20;
 
 function renderizarContactos(contactos, containerId) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = ""; // Limpiamos antes
+  renderizarCabecera(containerId);
+  renderizarFilas(contactos, containerId);
+}
 
-  const header = document.createElement("div");
-  header.style.display = "flex";
-  header.style.fontWeight = "bold";
-  header.style.color = "white";
-  header.style.gap = "1em";
-  header.style.marginBottom = "0.5em";
-  const columnas = [
-    "Nombre",
-    "Quiero que reciba mis mensajes",
-    "Quiero que me vea",
-  ];
+function renderizarFilas(contactos, containerId) {
+  const container =
+    containerId === "google-contacts-list"
+      ? document.getElementById("google-contacts-body") ||
+        document.getElementById(containerId)
+      : document.getElementById(containerId);
 
-  if (containerId === "mis-contactos-list") {
-    columnas.push("Eliminar");
-  }
-
-  if (containerId === "google-contacts-list") {
-    columnas.push("Acción");
-  }
-
-  columnas.forEach((title, i) => {
-    const col = document.createElement("div");
-    col.textContent = title;
-    col.style.flex = i === 0 ? "2" : "1";
-    col.style.textAlign = "center";
-    header.appendChild(col);
-  });
-
-  container.appendChild(header);
+  const rows = container.querySelectorAll(".contacto-row");
+  rows.forEach((row) => row.remove()); // Borra solo filas anteriores
 
   contactos.forEach((c) => {
     const row = document.createElement("div");
@@ -166,7 +151,11 @@ function renderizarContactos(contactos, containerId) {
       const btnAccion = document.createElement("button");
       btnAccion.textContent = "Agregar";
       btnAccion.classList.add("btn-agregar");
-      btnAccion.style.flex = "1";
+      btnAccion.style.flex = "unset";
+      btnAccion.style.minWidth = "90px";
+      btnAccion.style.padding = "0.4em 1em";
+      btnAccion.style.textAlign = "center";
+      btnAccion.style.display = "inline-block";
 
       btnAccion.addEventListener("click", async () => {
         const endpoint = `${ROOT_URL}/api/contacts`;
@@ -202,9 +191,10 @@ function renderizarContactos(contactos, containerId) {
               );
             }
           );
-
           // ✅ Volver a renderizar los contactos filtrados
-          renderizarContactos(contactosGoogleCargados, "google-contacts-list");
+          contactosGoogleCargadosCompleta = contactosFiltrados;
+          googleContactPage = 1;
+          renderizarContactosPaginados("google-contacts-list");
 
           // 🆕 ✅ Refrescar "Mis Contactos"
           const res = await fetch(`${ROOT_URL}/api/contacts`, {
@@ -227,7 +217,8 @@ function renderizarContactos(contactos, containerId) {
       row.appendChild(btnCol);
     }
 
-    container.appendChild(row);
+    const body = document.getElementById("google-contacts-body");
+    (body || container).appendChild(row);
   });
 }
 
@@ -274,10 +265,159 @@ async function refrescarContactosGoogle() {
       (gc) => !nombresGuardados.has(gc.nombre.trim().toLowerCase())
     );
 
-    contactosGoogleCargados = contactosFiltrados;
-    renderizarContactos(contactosFiltrados, "google-contacts-list");
+    contactosGoogleCargadosCompleta = contactosFiltrados;
+    // contactosGoogleCargados = contactosFiltrados.slice(0, 20);
+    googleContactPage = 1;
+    renderizarContactosPaginados("google-contacts-list");
   } catch (err) {
     console.warn("Error al refrescar contactos de Google:", err.message);
+  }
+}
+
+function renderizarCabecera(containerId) {
+  const container = document.getElementById(containerId);
+
+  // ✅ Evita renderizar cabecera si ya existe
+  if (container.querySelector(".contactos-header")) return;
+  
+  // Cra un wrapper para el cuadro de texto del filtro y la lupita
+  const searchWrapper = document.createElement("div");
+  searchWrapper.style.marginBottom = "0.5em";
+  searchWrapper.style.display = "flex";
+  searchWrapper.style.alignItems = "center";
+  searchWrapper.style.gap = "0.5em";
+  searchWrapper.style.maxWidth = "440px";
+  searchWrapper.style.margin = "0 auto 0.5em auto";
+
+  // Crea la lupita
+  const searchIcon = document.createElement("i");
+  searchIcon.className = "fas fa-search";
+  searchIcon.style.color = "white";
+
+  // Crea el cuadro de texto 
+  const searchInput = document.createElement("input");
+  searchInput.type = "text";
+  searchInput.placeholder = "Buscar contacto...";
+  searchInput.style.flex = "1";
+  searchInput.style.padding = "0.3em 0.5em";
+  searchInput.style.borderRadius = "0.3em";
+  searchInput.style.border = "1px solid #ccc";
+  searchInput.style.width = "100%";
+  searchInput.style.boxSizing = "border-box";
+
+  //Agrega los elemntos
+  searchWrapper.appendChild(searchIcon);
+  searchWrapper.appendChild(searchInput);
+  container.appendChild(searchWrapper);
+
+  // Agrega los títulos de las columnas
+  const header = document.createElement("div");
+  header.classList.add("contactos-header");
+  header.style.display = "flex";
+  header.style.fontWeight = "bold";
+  header.style.color = "white";
+  header.style.gap = "1em";
+  header.style.marginBottom = "0.5em";
+  header.style.flexWrap = "wrap";
+
+  const columnas = [
+    "Nombre",
+    "Quiero que reciba mis mensajes",
+    "Quiero que me vea",
+    containerId === "google-contacts-list" ? "Acción" : "Eliminar",
+  ];
+
+  
+  columnas.forEach((title, i) => {
+    const col = document.createElement("div");
+    col.textContent = title;
+    col.style.flex = i === 0 ? "2" : "1";
+    col.style.textAlign = "center";
+    col.style.minWidth = "0";
+    col.style.overflow = "hidden";
+    col.style.textOverflow = "ellipsis";
+    header.appendChild(col);
+  });
+
+  container.appendChild(header);
+
+  // Evento de búsqueda
+  searchInput.addEventListener("input", () => {
+    terminoBusqueda = searchInput.value.trim().toLowerCase();
+
+    if (containerId === "google-contacts-list") {
+      googleContactPage = 1;
+      renderizarContactosPaginados(containerId);
+    }
+  });
+
+  // Solo si no existe el body aún, lo creamos
+  let body = container.querySelector("#google-contacts-body");
+  if (!body) {
+    body = document.createElement("div");
+    body.id = "google-contacts-body";
+    container.appendChild(body);
+  }
+}
+
+function renderizarContactosPaginados(containerId) {
+
+  const desde = 0;
+  const hasta = googleContactPage * GOOGLE_PAGE_SIZE;
+  console.log(desde);                                                   // clg desde
+  console.log(hasta);                                                  // clg hasta
+
+  const base = contactosGoogleCargadosCompleta || [];
+  console.log(base);                                                    // clg contactos del usuario en Google primeros 100, sacando los contactos del usuario
+  // Si termino buqueda tiene valor, filtra base por terminó búsqueda
+  const filtrados = terminoBusqueda
+    ? base.filter((c) => c.nombre.toLowerCase().includes(terminoBusqueda))
+    : base;
+
+  console.log(base);                                                    // clg contactos del usuario en Google primeros 100, sacando los contactos del usuario, filtrados por teminoBusqueda
+  const visibles = filtrados.slice(desde, hasta);
+  contactosGoogleCargados = filtrados;
+
+  console.log(visibles);                                                // clg contactos del usuario en Google primeros 100, sacando los contactos del usuario, filtrados por teminoBusqueda, desde-hasta
+  console.log(containerId);                                             // clg a donde mostrarlo
+  renderizarCabecera(containerId);
+
+  const container = document.getElementById(containerId);
+  let body = document.getElementById("google-contacts-body");
+
+  if (containerId === "google-contacts-list") {
+    if (!body) {
+      body = document.createElement("div");
+      body.id = "google-contacts-body";
+      container.appendChild(body);
+    }
+  } else {
+    body = container;
+  }
+
+  body.innerHTML = ""; // limpia filas + botón previos
+
+  renderizarFilas(visibles, containerId);
+
+  if (filtrados.length > hasta) {
+    const verMasBtn = document.createElement("button");
+    verMasBtn.id = "btn-ver-mas-contactos";
+    verMasBtn.textContent = "Ver más";
+    verMasBtn.style.margin = "1em auto";
+    verMasBtn.style.display = "block";
+    verMasBtn.style.padding = "0.5em 1em";
+    verMasBtn.style.borderRadius = "0.3em";
+    verMasBtn.style.border = "none";
+    verMasBtn.style.backgroundColor = "#007bff";
+    verMasBtn.style.color = "white";
+    verMasBtn.style.cursor = "pointer";
+
+    verMasBtn.addEventListener("click", () => {
+      googleContactPage++;
+      renderizarContactosPaginados(containerId);
+    });
+
+    body.appendChild(verMasBtn);
   }
 }
 
@@ -309,9 +449,10 @@ window.addEventListener("DOMContentLoaded", async () => {
   // 📦 Si venimos de Google con contactos ya cargados en localStorage
   const contactsRaw = localStorage.getItem("googleContacts");
   if (contactsRaw) {
+    console.log(contactsRaw);                                                                                 // clg contactos en LocalStorage
     try {
       const contacts = JSON.parse(contactsRaw);
-
+      // Busca los contactos de este usuario
       const { contactos: contactosGuardados } = await fetch(
         `${ROOT_URL}/api/contacts`,
         {
@@ -320,18 +461,23 @@ window.addEventListener("DOMContentLoaded", async () => {
           },
         }
       ).then((res) => res.json());
+      console.log(contactosGuardados);                                                                        // clg contactos del usuario en Google primeros 100
 
       const nombresGuardados = new Set(
         contactosGuardados.map((c) => c.nombre.trim().toLowerCase())
       );
 
+      console.log(nombresGuardados);                                                                         // clg contactos del usuario pasados a minuscula
+
       const contactosFiltrados = contacts.filter(
         (c) => !nombresGuardados.has(c.nombre.trim().toLowerCase())
       );
 
-      contactosGoogleCargados = contactosFiltrados;
-      renderizarContactos(contactosFiltrados, "google-contacts-list");
-      googleContactsList.style.display = "block";
+      console.log(contactosFiltrados);                                                                      // clg contactos del usuario en Google primeros 100, sacando los contactos del usuario
+
+      contactosGoogleCargadosCompleta = contactosFiltrados; // Pasa la variable local a una global
+      googleContactPage = 1; // tambien es global
+      renderizarContactosPaginados("google-contacts-list");                                                // manda como parámetro donde mostrarlo
 
       if (localStorage.getItem("misContactosEstabanAbiertos") === "true") {
         misContactosList.style.display = "block";
@@ -399,8 +545,10 @@ window.addEventListener("DOMContentLoaded", async () => {
           const contactosFiltrados = contactosGoogleCargados.filter(
             (c) => !nombresGuardados.has(c.nombre.trim().toLowerCase())
           );
-          contactosGoogleCargados = contactosFiltrados;
-          renderizarContactos(contactosFiltrados, "google-contacts-list");
+          contactosGoogleCargadosCompleta = contactosFiltrados;
+          googleContactPage = 1;
+          renderizarContactosPaginados("google-contacts-list");
+
           return;
         } catch (err) {
           console.warn("Error al volver a filtrar contactos:", err.message);
@@ -432,8 +580,9 @@ window.addEventListener("DOMContentLoaded", async () => {
             (c) => !nombresGuardados.has(c.nombre.trim().toLowerCase())
           );
 
-          contactosGoogleCargados = contactosFiltrados;
-          renderizarContactos(contactosFiltrados, "google-contacts-list");
+          contactosGoogleCargadosCompleta = contactosFiltrados;
+          googleContactPage = 1;
+          renderizarContactosPaginados("google-contacts-list");
 
           // Solo mostrar si el usuario venía de importar
           if (abrirGoogle) {
