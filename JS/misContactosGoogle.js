@@ -4,6 +4,8 @@ let contactosGoogleCargadosCompleta = null;
 let terminoBusqueda = "";
 let googleContactPage = 1;
 const GOOGLE_PAGE_SIZE = 20;
+let abrirGoogleContactsAlVolver = false;
+
 
 function inicializarGoogleContactList() {
   const desde = 0;
