@@ -22,24 +22,34 @@
         <div class="break"></div>
 
         <!-- Mis Contactos -->
-<div class="accordion-header-activity">
-  <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
-  <span id="toggleMisContactos">Mis contactos</span>
-</div>
-<div id="mis-contactos-list" class="contactos-lista" style="display: none;"></div>
+        <div id="toggleMisContactos" class="accordion-header-activity">
+        <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
+        <span>Mis contactos</span>
+        </div>
+        <div id="mis-contactos-list" class="contactos-lista" style="display: none;"></div>
 
-<!-- Contactos de Google -->
-<div class="accordion-header-activity">
-  <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
-  <span id="toggleGoogleContactos">Importar contactos desde Google</span>
-</div>
-<div id="google-contacts-list" class="contactos-lista" style="display: none;"></div>
-
-
-
+        <!-- Contactos de Google -->
+        <div  id="toggleGoogleContactos" class="accordion-header-activity">
+        <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
+        <span>Importar contactos desde Google</span>
+        </div>
+        <div id="google-contacts-list" class="contactos-lista" style="display: none;"></div>
     </div>
 </div>
+<div id="toast-container"></div>
+<!-- Confirm Modal -->
+<div id="confirm-modal" class="modal hidden">
+    <div class="modal-content">
+    <p id="confirm-message">¿Estás seguro?</p>
+    <div class="modal-buttons">
+        <button id="confirm-yes">Sí</button>
+        <button id="confirm-no">No</button>
+    </div>
+    </div>
+</div>
+
 <script src="../JS/config.js"></script>
+<script src="../JS/utils.js"></script>
 <script src="../JS/misContactosGoogle.js" defer></script>
 <script src="../JS/misContactos.js" defer></script>
 

@@ -1,8 +1,13 @@
+let contactosMisContactosCompleta = []; // todos los contactos filtrados
+let paginaActualMisContactos = 1;
+const PAGE_SIZE_MIS_CONTACTOS = 10;
 let terminoBusquedaMisContactos = "";
 
 function renderizarMisContactos(contactos) {
+  contactosMisContactosCompleta = contactos;
+  paginaActualMisContactos = 1;
   renderizarCabeceraMisContactos(contactos);
-  renderizarFilasMisContactos(contactos);
+  renderizarFilasMisContactos(); // sin parámetro
 }
 
 async function renderizarCabeceraMisContactos(contactos) {
@@ -78,16 +83,23 @@ async function renderizarCabeceraMisContactos(contactos) {
     const filtrados = termino
       ? contactos.filter((c) => c.nombre.toLowerCase().includes(termino))
       : contactos;
-    renderizarFilasMisContactos(filtrados, "mis-contactos-list");
+    contactosMisContactosCompleta = filtrados;
+    paginaActualMisContactos = 1;
+    renderizarFilasMisContactos();
   });
 }
 
-function renderizarFilasMisContactos(contactos) {
+function renderizarFilasMisContactos() {
   const containerMC = document.getElementById("mis-contactos-list");
+  const body = document.getElementById("mis-contacts-body");
   const rows = containerMC.querySelectorAll(".contacto-row");
   rows.forEach((row) => row.remove()); // Borra filas renderizadas
 
-  contactos.forEach((c) => {
+  const desde = (paginaActualMisContactos - 1) * PAGE_SIZE_MIS_CONTACTOS;
+  const hasta = paginaActualMisContactos * PAGE_SIZE_MIS_CONTACTOS;
+  const visibles = contactosMisContactosCompleta.slice(desde, hasta);
+
+  visibles.forEach((c) => {
     const row = document.createElement("div");
     row.classList.add("contacto-row");
     row.style.display = "flex";
@@ -175,7 +187,7 @@ function renderizarFilasMisContactos(contactos) {
     eliminarCol.appendChild(btnEliminar);
 
     btnEliminar.addEventListener("click", async () => {
-      const confirmar = confirm(`¿Eliminar a ${c.nombre}?`); // Alert
+      const confirmar = await showConfirm(`¿Eliminar a ${c.nombre}?`);
       if (!confirmar) return;
 
       try {
@@ -191,7 +203,7 @@ function renderizarFilasMisContactos(contactos) {
 
         if (!response.ok) {
           const err = await response.json();
-          alert("Error: " + err.error);
+          showToast("Error: " + err.error, "error");
           return;
         }
 
@@ -202,7 +214,6 @@ function renderizarFilasMisContactos(contactos) {
           },
         });
         const { contactos } = await res.json();
-
         // 🔁 Refrescar lista de contactos de Google
         if (typeof refrescarContactosGoogle === "function") {
           await refrescarContactosGoogle(); // <- importante usar await para que se actualice a tiempo
@@ -211,7 +222,7 @@ function renderizarFilasMisContactos(contactos) {
         renderizarMisContactos(contactos, "mis-contactos-list");
       } catch (err) {
         console.error("Error al eliminar contacto:", err);
-        alert("No se pudo eliminar el contacto");
+        showToast("No se pudo eliminar el contacto", "error");
       }
     });
 
@@ -219,6 +230,8 @@ function renderizarFilasMisContactos(contactos) {
 
     const body = document.getElementById("mis-contacts-body");
     (body || containerMC).appendChild(row);
+
+    renderizarControlesPaginadoMisContactos();
   });
 }
 
@@ -235,12 +248,100 @@ async function actualizarContacto(nombre, mensajes, visibilidad) {
 
     if (!response.ok) {
       const err = await response.json();
-      alert("Error al actualizar contacto: " + err.error);
+      showToast("Error al actualizar contacto: " + err.error, "error");
     }
   } catch (err) {
     console.error("Error al actualizar contacto:", err);
-    alert("No se pudo conectar con el servidor");
+    showToast("No se pudo conectar con el servidor", "error");
   }
+}
+
+function renderizarControlesPaginadoMisContactos() {
+  const container =
+    document.getElementById("mis-contacts-body") ||
+    document.getElementById("mis-contactos-list");
+  let paginador = document.getElementById("paginador-mis-contactos");
+  if (paginador) paginador.remove(); // borra si ya existe
+
+  const totalPaginas = Math.ceil(
+    contactosMisContactosCompleta.length / PAGE_SIZE_MIS_CONTACTOS
+  );
+  if (totalPaginas <= 1) return;
+
+  paginador = document.createElement("div");
+  paginador.id = "paginador-mis-contactos";
+  paginador.style.textAlign = "center";
+  paginador.style.marginTop = "1em";
+
+  const crearBoton = (texto, habilitado, accion) => {
+    const btn = document.createElement("button");
+    btn.textContent = texto;
+    btn.disabled = !habilitado;
+    btn.style.margin = "0 0.3em";
+    btn.style.padding = "0.3em 0.7em";
+    btn.style.borderRadius = "0.3em";
+    btn.style.border = "none";
+    btn.style.cursor = habilitado ? "pointer" : "default";
+    btn.style.backgroundColor = habilitado ? "#007bff" : "#ccc";
+    btn.style.color = "white";
+    if (habilitado) btn.addEventListener("click", accion);
+    return btn;
+  };
+
+  paginador.appendChild(
+    crearBoton("⏮", paginaActualMisContactos > 1, () => {
+      paginaActualMisContactos = 1;
+      renderizarFilasMisContactos();
+    })
+  );
+
+  paginador.appendChild(
+    crearBoton("◀", paginaActualMisContactos > 1, () => {
+      paginaActualMisContactos--;
+      renderizarFilasMisContactos();
+    })
+  );
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.min = 1;
+  input.max = totalPaginas;
+  input.value = paginaActualMisContactos;
+  input.style.width = "40px";
+  input.style.textAlign = "center";
+  input.addEventListener("change", () => {
+    const nueva = parseInt(input.value);
+    if (!isNaN(nueva) && nueva >= 1 && nueva <= totalPaginas) {
+      paginaActualMisContactos = nueva;
+      renderizarFilasMisContactos();
+    } else {
+      input.value = paginaActualMisContactos;
+    }
+  });
+
+  const span = document.createElement("span");
+  span.textContent = ` / ${totalPaginas}`;
+  span.style.margin = "0 0.3em";
+  span.style.color = "white";
+
+  paginador.appendChild(input);
+  paginador.appendChild(span);
+
+  paginador.appendChild(
+    crearBoton("▶", paginaActualMisContactos < totalPaginas, () => {
+      paginaActualMisContactos++;
+      renderizarFilasMisContactos();
+    })
+  );
+
+  paginador.appendChild(
+    crearBoton("⏭", paginaActualMisContactos < totalPaginas, () => {
+      paginaActualMisContactos = totalPaginas;
+      renderizarFilasMisContactos();
+    })
+  );
+
+  container.appendChild(paginador);
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -266,6 +367,12 @@ window.addEventListener("DOMContentLoaded", async () => {
   toggleMisContactos?.addEventListener("click", async () => {
     const isVisible = misContactosList.style.display === "block";
     misContactosList.style.display = isVisible ? "none" : "block"; // Togglea el estado de is Visible
+    
+    // Rota el icono de chevron
+    const icon = toggleMisContactos.querySelector("i");
+    if (icon) {
+      icon.classList.toggle("rotate", !isVisible);
+    }
 
     if (!isVisible) {
       try {

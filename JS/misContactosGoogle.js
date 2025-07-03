@@ -2,11 +2,11 @@
 let googleContactsMemory = null;
 let terminoBusqueda = "";
 let googleContactPage = 1;
-const GOOGLE_PAGE_SIZE = 20;
+const GOOGLE_PAGE_SIZE = 10;
 let abrirGoogleContactsAlVolver = false;
 
 function inicializarGoogleContactList() {
-  const desde = 0;
+  const desde = (googleContactPage - 1) * GOOGLE_PAGE_SIZE;
   const hasta = googleContactPage * GOOGLE_PAGE_SIZE;
 
   const base = contactosGoogleCargadosCompleta || [];
@@ -31,25 +31,96 @@ function inicializarGoogleContactList() {
 
   renderizarFilas(visibles);
 
-  if (filtrados.length > hasta) {
-    const verMasBtn = document.createElement("button");
-    verMasBtn.id = "btn-ver-mas-contactos";
-    verMasBtn.textContent = "Ver más";
-    verMasBtn.style.margin = "1em auto";
-    verMasBtn.style.display = "block";
-    verMasBtn.style.padding = "0.5em 1em";
-    verMasBtn.style.borderRadius = "0.3em";
-    verMasBtn.style.border = "none";
-    verMasBtn.style.backgroundColor = "#007bff";
-    verMasBtn.style.color = "white";
-    verMasBtn.style.cursor = "pointer";
+  const totalPaginas = Math.ceil(filtrados.length / GOOGLE_PAGE_SIZE);
 
-    verMasBtn.addEventListener("click", () => {
+  // Contenedor de paginación
+  const paginacion = document.createElement("div");
+  paginacion.id = "paginacion-contactos";
+  paginacion.style.display = "flex";
+  paginacion.style.justifyContent = "center";
+  paginacion.style.alignItems = "center";
+  paginacion.style.gap = "0.5em";
+  paginacion.style.marginTop = "1em";
+  paginacion.style.color = "white";
+
+  // Botón ⏮ (Primera página)
+  const btnPrimera = document.createElement("button");
+  btnPrimera.innerHTML = "⏮";
+  btnPrimera.disabled = googleContactPage === 1;
+  btnPrimera.style.opacity = btnPrimera.disabled ? "0.5" : "1";
+  btnPrimera.addEventListener("click", () => {
+    googleContactPage = 1;
+    inicializarGoogleContactList();
+  });
+  paginacion.appendChild(btnPrimera);
+
+  // Botón ◀ (Anterior)
+  const btnAnterior = document.createElement("button");
+  btnAnterior.innerHTML = "◀";
+  btnAnterior.disabled = googleContactPage === 1;
+  btnAnterior.style.opacity = btnAnterior.disabled ? "0.5" : "1";
+  btnAnterior.addEventListener("click", () => {
+    if (googleContactPage > 1) {
+      googleContactPage--;
+      inicializarGoogleContactList();
+    }
+  });
+  paginacion.appendChild(btnAnterior);
+
+  // Cuadro editable de número de página
+  const inputPagina = document.createElement("input");
+  inputPagina.type = "number";
+  inputPagina.value = googleContactPage;
+  inputPagina.min = 1;
+  inputPagina.max = totalPaginas;
+  inputPagina.style.width = "3em";
+  inputPagina.style.textAlign = "center";
+  inputPagina.style.padding = "0.3em";
+  inputPagina.style.borderRadius = "0.3em";
+  inputPagina.style.border = "1px solid #ccc";
+  inputPagina.style.backgroundColor = "#f8f9fa";
+
+  inputPagina.addEventListener("change", () => {
+    let nuevaPagina = parseInt(inputPagina.value);
+    if (isNaN(nuevaPagina) || nuevaPagina < 1) nuevaPagina = 1;
+    if (nuevaPagina > totalPaginas) nuevaPagina = totalPaginas;
+    googleContactPage = nuevaPagina;
+    inicializarGoogleContactList();
+  });
+  paginacion.appendChild(inputPagina);
+
+  // Total de páginas
+  const totalSpan = document.createElement("span");
+  totalSpan.textContent = ` / ${totalPaginas}`;
+  paginacion.appendChild(totalSpan);
+
+  // Botón ▶ (Siguiente)
+  const btnSiguiente = document.createElement("button");
+  btnSiguiente.innerHTML = "▶";
+  btnSiguiente.disabled = googleContactPage >= totalPaginas;
+  btnSiguiente.style.opacity = btnSiguiente.disabled ? "0.5" : "1";
+  btnSiguiente.addEventListener("click", () => {
+    if (googleContactPage < totalPaginas) {
       googleContactPage++;
-      inicializarGoogleContactList(); // vuelve a llamar con nueva página
-    });
+      inicializarGoogleContactList();
+    }
+  });
+  paginacion.appendChild(btnSiguiente);
 
-    body.appendChild(verMasBtn);
+  // Botón ⏭ (Última página)
+  const btnUltima = document.createElement("button");
+  btnUltima.innerHTML = "⏭";
+  btnUltima.disabled = googleContactPage >= totalPaginas;
+  btnUltima.style.opacity = btnUltima.disabled ? "0.5" : "1";
+  btnUltima.addEventListener("click", () => {
+    googleContactPage = totalPaginas;
+    inicializarGoogleContactList();
+  });
+  paginacion.appendChild(btnUltima);
+
+  // Agregar al body
+  if (body) {
+    body.appendChild(paginacion);
   }
 }
 
@@ -132,7 +203,7 @@ function renderizarFilas(contactos) {
 
         if (!response.ok) {
           const err = await response.json();
-          alert("Error: " + err.error);
+          showToast("Error: " + err.error, "error");
           return;
         }
 
@@ -161,7 +232,7 @@ function renderizarFilas(contactos) {
           renderizarMisContactos(nuevosContactos);
         }
       } catch (err) {
-        alert("Error al conectar con el servidor");
+        showToast("Error al conectar con el servidor", "error");
         console.error(err);
       }
     });
@@ -324,6 +395,12 @@ window.addEventListener("DOMContentLoaded", async () => {
       const isVisible = googleContactsList.style.display === "block";
       googleContactsList.style.display = isVisible ? "none" : "block";
 
+      // Rota el icono de chevron
+      const icon = toggleGoogleContactos.querySelector("i");
+      if (icon) {
+        icon.classList.toggle("rotate", !isVisible);
+      }
+
       // Busca los contactos de Google en la base de datos
       const response = await fetch(`${ROOT_URL}/api/google/tempContacts`, {
         headers: {
@@ -343,6 +420,7 @@ window.addEventListener("DOMContentLoaded", async () => {
         )}&access_type=online&prompt=consent`;
         localStorage.setItem("abrirGoogleContactsAlVolver", "true");
         window.location.href = authUrl;
+        console.log("isVisible: ", isVisible);
         return; // Evita continuar si se va a redirigir
       }
 
@@ -367,9 +445,20 @@ window.addEventListener("DOMContentLoaded", async () => {
       inicializarGoogleContactList();
     } catch (err) {
       console.error("Error al procesar contactos de Google:", err);
-      alert("No se pudieron cargar los contactos desde Google.");
+      showToast("No se pudieron cargar los contactos desde Google.", "error");
     }
   });
+  // ✅ Si volvimos de Google y tenemos bandera activa
+  const abrirGoogle = localStorage.getItem("abrirGoogleContactsAlVolver");
+  if (abrirGoogle === "true") {
+    localStorage.removeItem("abrirGoogleContactsAlVolver");
+
+    // ✅ Simular clic en el botón para abrir contactos de Google
+    const btnGoogle = document.getElementById("toggleGoogleContactos");
+    if (btnGoogle) {
+      btnGoogle.click(); // Esto ejecuta la lógica de carga y renderizado
+    }
+  }
 });
 // Pone la función refrescarContactosGoogle disponible globalmente
 window.refrescarContactosGoogle = refrescarContactosGoogle;
