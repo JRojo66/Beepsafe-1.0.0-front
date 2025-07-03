@@ -1,11 +1,9 @@
 // Estado global
-let contactosGoogleCargados = null;
-let contactosGoogleCargadosCompleta = null;
+let googleContactsMemory = null;
 let terminoBusqueda = "";
 let googleContactPage = 1;
 const GOOGLE_PAGE_SIZE = 20;
 let abrirGoogleContactsAlVolver = false;
-
 
 function inicializarGoogleContactList() {
   const desde = 0;
@@ -180,11 +178,13 @@ function renderizarFilas(contactos) {
 }
 
 async function refrescarContactosGoogle() {
-  const googleRaw = localStorage.getItem("googleContacts");
-  if (!googleRaw) return;
-
   try {
-    const googleContacts = JSON.parse(googleRaw);
+    const response = await fetch(`${ROOT_URL}/api/google/tempContacts`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    const { contactos: googleContacts } = await response.json();
 
     const res = await fetch(`${ROOT_URL}/api/contacts`, {
       headers: {
@@ -202,7 +202,6 @@ async function refrescarContactosGoogle() {
     );
 
     contactosGoogleCargadosCompleta = contactosFiltrados;
-    // contactosGoogleCargados = contactosFiltrados.slice(0, 20);
     googleContactPage = 1;
     inicializarGoogleContactList();
   } catch (err) {
@@ -280,6 +279,21 @@ function renderizarCabecera() {
   }
 }
 
+async function cargarContactosGoogleDesdeBackend() {
+  try {
+    const res = await fetch(`${ROOT_URL}/api/google/tempContacts`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    const { contactos } = await res.json();
+    return contactos;
+  } catch (err) {
+    console.warn("No se pudieron recuperar contactos desde el backend:", err);
+    return [];
+  }
+}
+
 window.addEventListener("DOMContentLoaded", async () => {
   // 🔒 Verifica que esté logueado
   try {
@@ -303,124 +317,59 @@ window.addEventListener("DOMContentLoaded", async () => {
   );
   const googleContactsList = document.getElementById("google-contacts-list");
 
-  // 📦 Si venimos de Google con contactos ya cargados en localStorage
-  const contactsRaw = localStorage.getItem("googleContacts");
-  if (contactsRaw) {
+  // Ejecuta cuando el usuario hace click en el botón de importar contactos desde Google
+  toggleGoogleContactos?.addEventListener("click", async () => {
     try {
-      const contacts = JSON.parse(contactsRaw);
-      // Busca los contactos de este usuario
-      const { contactos: contactosGuardados } = await fetch(
-        `${ROOT_URL}/api/contacts`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      ).then((res) => res.json());
+      // Cambia el estado de visibilidad del contenedor de contactos de Google
+      const isVisible = googleContactsList.style.display === "block";
+      googleContactsList.style.display = isVisible ? "none" : "block";
 
+      // Busca los contactos de Google en la base de datos
+      const response = await fetch(`${ROOT_URL}/api/google/tempContacts`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      const { contactos } = await response.json();
+      let contactosGoogle = contactos;
+
+      if (!contactosGoogle || contactosGoogle.length === 0) {
+        const clientId = `${GOOGLE_CLIENT_ID}`;
+        const redirectUri = `${FRONT_URL}/pages/googleCallback.html`;
+        const scope = "https://www.googleapis.com/auth/contacts.readonly";
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(
+          scope
+        )}&access_type=online&prompt=consent`;
+        localStorage.setItem("abrirGoogleContactsAlVolver", "true");
+        window.location.href = authUrl;
+        return; // Evita continuar si se va a redirigir
+      }
+
+      // Trae los contactos del usuario
+      const res = await fetch(`${ROOT_URL}/api/contacts`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      const { contactos: contactosGuardados } = await res.json();
       const nombresGuardados = new Set(
         contactosGuardados.map((c) => c.nombre.trim().toLowerCase())
       );
 
-      const contactosFiltrados = contacts.filter(
+      const contactosFiltrados = contactosGoogle.filter(
         (c) => !nombresGuardados.has(c.nombre.trim().toLowerCase())
       );
 
       contactosGoogleCargadosCompleta = contactosFiltrados;
       googleContactPage = 1;
       inicializarGoogleContactList();
-    } catch (e) {
-      console.warn("No se pudieron cargar los contactos de Google:", e.message);
-    }
-  }
-
-  // 🟦 Toggle "Importar contactos desde Google"
-  toggleGoogleContactos?.addEventListener("click", async () => {
-    const isVisible = googleContactsList.style.display === "block";
-    googleContactsList.style.display = isVisible ? "none" : "block";
-
-    if (!isVisible) {
-      // Trae los contactos del usuario
-      if (contactosGoogleCargados) {
-        try {
-          const { contactos: contactosGuardados } = await fetch(
-            `${ROOT_URL}/api/contacts`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            }
-          ).then((res) => res.json());
-
-          const nombresGuardados = new Set(
-            contactosGuardados.map((c) => c.nombre.trim().toLowerCase())
-          );
-          const contactosFiltrados = contactosGoogleCargados.filter(
-            (c) => !nombresGuardados.has(c.nombre.trim().toLowerCase())
-          );
-
-          contactosGoogleCargadosCompleta = contactosFiltrados;
-          googleContactPage = 1;
-          inicializarGoogleContactList();
-
-          return;
-        } catch (err) {
-          console.warn("Error al volver a filtrar contactos:", err.message);
-          return;
-        }
-      }
-
-      const abrirGoogle =
-        localStorage.getItem("abrirGoogleContactsAlVolver") === "true";
-      const contactsRaw = localStorage.getItem("googleContacts");
-      if (contactsRaw) {
-        try {
-          const contacts = JSON.parse(contactsRaw);
-          // 👇 Filtrar los contactos que ya existen
-          const { contactos: contactosGuardados } = await fetch(
-            `${ROOT_URL}/api/contacts`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            }
-          ).then((res) => res.json());
-
-          // Filtrar contactos de Google que no estén ya guardados
-          const nombresGuardados = new Set(
-            contactosGuardados.map((c) => c.nombre.trim().toLowerCase())
-          );
-          const contactosFiltrados = contacts.filter(
-            (c) => !nombresGuardados.has(c.nombre.trim().toLowerCase())
-          );
-
-          contactosGoogleCargadosCompleta = contactosFiltrados;
-          googleContactPage = 1;
-          inicializarGoogleContactList();
-
-          // Solo mostrar si el usuario venía de importar
-          if (abrirGoogle) {
-            googleContactsList.style.display = "block";
-          }
-
-          localStorage.removeItem("abrirGoogleContactsAlVolver");
-        } catch (e) {
-          console.warn("Error al parsear contactos de Google:", e.message);
-        }
-      }
-
-      // 🔁 Redirigir a Google para autorización
-      const clientId = `${GOOGLE_CLIENT_ID}`;
-      const redirectUri = `${FRONT_URL}/pages/googleCallback.html`;
-      const scope = "https://www.googleapis.com/auth/contacts.readonly";
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(
-        scope
-      )}&access_type=online&prompt=consent`;
-      localStorage.setItem("abrirGoogleContactsAlVolver", "true");
-      window.location.href = authUrl;
+    } catch (err) {
+      console.error("Error al procesar contactos de Google:", err);
+      alert("No se pudieron cargar los contactos desde Google.");
     }
   });
 });
 // Pone la función refrescarContactosGoogle disponible globalmente
 window.refrescarContactosGoogle = refrescarContactosGoogle;
-

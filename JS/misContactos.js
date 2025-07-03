@@ -63,16 +63,17 @@ async function renderizarCabeceraMisContactos(contactos) {
 
   containerMC.appendChild(header);
 
-  if (!containerMC.querySelector("#mis-contactos-body")) {           // *** 
-  const body = document.createElement("div");
-  body.id = "mis-contactos-body";
-  containerMC.appendChild(body);
-}
+  if (!containerMC.querySelector("#mis-contactos-body")) {
+    // ***
+    const body = document.createElement("div");
+    body.id = "mis-contactos-body";
+    containerMC.appendChild(body);
+  }
 
   searchInput.addEventListener("input", () => {
     // Guarda el valor del cuadro de texto
     terminoBusquedaMisContactos = searchInput.value.trim().toLowerCase();
-    
+
     const termino = searchInput.value.trim().toLowerCase();
     const filtrados = termino
       ? contactos.filter((c) => c.nombre.toLowerCase().includes(termino))
@@ -120,21 +121,21 @@ function renderizarFilasMisContactos(contactos) {
     vermeColMC.style.textAlign = "center";
 
     // Actualiza los valores de mensajes en la base
-      checkboxMensajesMC.addEventListener("change", () => {
-        actualizarContacto(
-          c.nombre,
-          checkboxMensajesMC.checked,
-          checkboxVisibilidadMC.checked
-        );
-      });
+    checkboxMensajesMC.addEventListener("change", () => {
+      actualizarContacto(
+        c.nombre,
+        checkboxMensajesMC.checked,
+        checkboxVisibilidadMC.checked
+      );
+    });
 
-      checkboxVisibilidadMC.addEventListener("change", () => {
-        actualizarContacto(
-          c.nombre,
-          checkboxMensajesMC.checked,
-          checkboxVisibilidadMC.checked
-        );
-      });
+    checkboxVisibilidadMC.addEventListener("change", () => {
+      actualizarContacto(
+        c.nombre,
+        checkboxMensajesMC.checked,
+        checkboxVisibilidadMC.checked
+      );
+    });
 
     row.appendChild(nombreColMC);
     row.appendChild(mensajesColMC);
@@ -142,78 +143,80 @@ function renderizarFilasMisContactos(contactos) {
 
     // Actualiza los valores de visibilidad en la base
 
-      checkboxMensajesMC.addEventListener("change", () => {
-        actualizarContacto(
-          c.nombre,
-          checkboxMensajesMC.checked,
-          checkboxVisibilidadMC.checked
-        );
-      });
+    checkboxMensajesMC.addEventListener("change", () => {
+      actualizarContacto(
+        c.nombre,
+        checkboxMensajesMC.checked,
+        checkboxVisibilidadMC.checked
+      );
+    });
 
-      checkboxVisibilidadMC.addEventListener("change", () => {
-        actualizarContacto(
-          c.nombre,
-          checkboxMensajesMC.checked,
-          checkboxVisibilidadMC.checked
-        );
-      });
+    checkboxVisibilidadMC.addEventListener("change", () => {
+      actualizarContacto(
+        c.nombre,
+        checkboxMensajesMC.checked,
+        checkboxVisibilidadMC.checked
+      );
+    });
 
-      // 🗑️ Botón para eliminar contacto
-      const btnEliminar = document.createElement("button");
-      btnEliminar.innerHTML = `<i class="fas fa-trash-alt"></i>`;
-      btnEliminar.title = "Eliminar contacto";
-      btnEliminar.style.background = "none";
-      btnEliminar.style.border = "none";
-      btnEliminar.style.color = "white";
-      btnEliminar.style.cursor = "pointer";
-      btnEliminar.style.fontSize = "1.2em";
+    // 🗑️ Botón para eliminar contacto
+    const btnEliminar = document.createElement("button");
+    btnEliminar.innerHTML = `<i class="fas fa-trash-alt"></i>`;
+    btnEliminar.title = "Eliminar contacto";
+    btnEliminar.style.background = "none";
+    btnEliminar.style.border = "none";
+    btnEliminar.style.color = "white";
+    btnEliminar.style.cursor = "pointer";
+    btnEliminar.style.fontSize = "1.2em";
 
-      const eliminarCol = document.createElement("div");
-      eliminarCol.style.flex = "1";
-      eliminarCol.style.textAlign = "center";
-      eliminarCol.appendChild(btnEliminar);
+    const eliminarCol = document.createElement("div");
+    eliminarCol.style.flex = "1";
+    eliminarCol.style.textAlign = "center";
+    eliminarCol.appendChild(btnEliminar);
 
-      btnEliminar.addEventListener("click", async () => {
-        const confirmar = confirm(`¿Eliminar a ${c.nombre}?`); // Alert
-        if (!confirmar) return;
+    btnEliminar.addEventListener("click", async () => {
+      const confirmar = confirm(`¿Eliminar a ${c.nombre}?`); // Alert
+      if (!confirmar) return;
 
-        try {
-          const response = await fetch(
-            `${ROOT_URL}/api/contacts?nombre=${encodeURIComponent(c.nombre)}`,
-            {
-              method: "DELETE",
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            }
-          );
-
-          if (!response.ok) {
-            const err = await response.json();
-            alert("Error: " + err.error);
-            return;
-          }
-
-          // Recargar la lista "Mis Contactos"
-          const res = await fetch(`${ROOT_URL}/api/contacts`, {
+      try {
+        const response = await fetch(
+          `${ROOT_URL}/api/contacts?nombre=${encodeURIComponent(c.nombre)}`,
+          {
+            method: "DELETE",
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
             },
-          });
-          const { contactos } = await res.json();
+          }
+        );
 
-          // 🔁 Restaurar en contactosGoogleCargados
-          renderizarMisContactos(contactos, "mis-contactos-list");
-        } catch (err) {
-          console.error("Error al eliminar contacto:", err);
-          alert("No se pudo eliminar el contacto");
+        if (!response.ok) {
+          const err = await response.json();
+          alert("Error: " + err.error);
+          return;
         }
-      });
 
-      row.appendChild(eliminarCol);
+        // Recargar la lista "Mis Contactos"
+        const res = await fetch(`${ROOT_URL}/api/contacts`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        const { contactos } = await res.json();
 
-      refrescarContactosGoogle();
-    
+        // 🔁 Refrescar lista de contactos de Google
+        if (typeof refrescarContactosGoogle === "function") {
+          await refrescarContactosGoogle(); // <- importante usar await para que se actualice a tiempo
+        }
+        // 🔁 Restaurar en contactosGoogleCargados
+        renderizarMisContactos(contactos, "mis-contactos-list");
+      } catch (err) {
+        console.error("Error al eliminar contacto:", err);
+        alert("No se pudo eliminar el contacto");
+      }
+    });
+
+    row.appendChild(eliminarCol);
+
     const body = document.getElementById("mis-contacts-body");
     (body || containerMC).appendChild(row);
   });
@@ -287,4 +290,3 @@ window.addEventListener("DOMContentLoaded", async () => {
 });
 // Pone la función renderizarMisContactos disponible globalmente
 window.renderizarMisContactos = renderizarMisContactos;
-

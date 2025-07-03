@@ -1642,3 +1642,8 @@ color: white;
   white-space: nowrap; /* 👉 evita que se divida en 2 líneas */
 }
 
+.google-callback-container{
+  color: var(--color-principal);
+  font-size: 48px;
+  margin-top: 400px;
+}

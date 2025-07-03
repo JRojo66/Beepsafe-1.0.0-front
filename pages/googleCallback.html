@@ -3,43 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <title>Procesando Google...</title>
+    <link rel="stylesheet" href="../styles/styles.css">
   </head>
   <body>
-    <p>Procesando autorización...</p>
-    <script src="../JS/config.js"></script>
-    <script>
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get("code");
+    <div class="google-callback-container">
+      <h3>Importando contactos...</h3>
+      <h3>Puede tardar unos minutos</h3>
+    </div>
+    <!-- Spinner -->
+    <div id="google-spinner" class="spinner"></div>
 
-      if (code) {
-        const redirect_uri = `${FRONT_URL}/pages/googleCallback.html`;
-        // Envía el port al backend, para que no haya que definirlo cada vez en las variables de entorno en desarrollo
-        // Enviá el código al backend
-        fetch(`${ROOT_URL}/api/google/contacts`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code, redirect_uri }),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.contacts && Array.isArray(data.contacts)) {
-              localStorage.setItem(
-                "googleContacts",
-                JSON.stringify(data.contacts)
-              );
-              window.location.href = `${FRONT_URL}/pages/misContactos.html`;
-            } else {
-              console.warn("Respuesta inválida del backend:", data);
-              alert("No se encontraron contactos.");
-            }
-          })
-          .catch((err) => {
-            console.error("Error al obtener contactos:", err);
-            alert("Error al obtener contactos");
-          });
-      } else {
-        alert("Autorización cancelada o fallida");
-      }
-    </script>
+    <script src="../JS/config.js"></script>
+    <script src="../JS/googleCallback.js"></script>
+
   </body>
 </html>
