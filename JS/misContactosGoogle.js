@@ -129,6 +129,77 @@ function renderizarContactos(contactos) {
   renderizarFilas(contactos);
 }
 
+function sanitizarTelefonoE164(input) {
+  const limpio = input.trim().replace(/[^\d+]/g, ""); // 🔧 Elimina todo excepto dígitos y "+"
+  const soloNumeros = limpio.replace(/\D/g, ""); // solo números
+
+  // 🌍 Si empieza con 00 → internacional
+  if (soloNumeros.startsWith("00")) {
+    return "+" + soloNumeros.slice(2);
+  }
+
+  // ✅ Si empieza con +54 (Argentina), forzamos +549...
+  if (limpio.startsWith("+54")) {
+    const sinMas = soloNumeros; // Ej: "541134560947" o "5491151227864"
+    if (sinMas.startsWith("54") && !sinMas.startsWith("549")) {
+      return "+549" + sinMas.slice(2); // fuerza el 9 después de 54
+    }
+    return "+" + sinMas;
+  }
+
+  // 📱 Si empieza con 15 y tiene 11 dígitos → +549...
+  if (soloNumeros.startsWith("15") && soloNumeros.length === 11) {
+    return "+549" + soloNumeros.slice(2);
+  }
+
+  // 📲 Si empieza con 9 y tiene 11 dígitos → ya está bien
+  if (soloNumeros.startsWith("9") && soloNumeros.length === 11) {
+    return "+54" + soloNumeros;
+  }
+
+  // 🏠 Si empieza con 0 y tiene 11 dígitos → forzamos +549...
+  if (soloNumeros.startsWith("0") && soloNumeros.length === 11) {
+    return "+549" + soloNumeros.slice(1);
+  }
+
+  // 🧼 Si tiene 10 dígitos → asumimos móvil sin 0 ni 9 → le agregamos ambos
+  if (soloNumeros.length === 10) {
+    return "+549" + soloNumeros;
+  }
+
+  // Fallback genérico (último recurso)
+  return "+" + soloNumeros;
+}
+
+function esTelefonoValido(numero) {
+  // Debe empezar con + y tener entre 10 y 15 dígitos (ej: +541112345678)
+  return /^\+\d{10,15}$/.test(numero);
+}
+
+// ⚠️ Evitar mostrar si el usuario ya tildó "No volver a mostrar"
+async function esperarOk(mensaje) {
+  if (window.__noMostrarMensajeDePrefijo9) return;
+
+  return new Promise((resolve) => {
+    const modal = document.getElementById("info-modal");
+    const mensajeEl = document.getElementById("info-message");
+    const okBtn = document.getElementById("info-ok");
+    const checkbox = document.getElementById("info-dont-show-again");
+
+    mensajeEl.textContent = mensaje;
+    checkbox.checked = false;
+    modal.classList.remove("hidden");
+
+    okBtn.onclick = () => {
+      if (checkbox.checked) {
+        window.__noMostrarMensajeDePrefijo9 = true;
+      }
+      modal.classList.add("hidden");
+      resolve();
+    };
+  });
+}
+
 function renderizarFilas(contactos) {
   const container =
     document.getElementById("google-contacts-body") ||
@@ -146,8 +217,22 @@ function renderizarFilas(contactos) {
     row.style.color = "white";
 
     const nombreCol = document.createElement("div");
-    nombreCol.textContent = c.nombre;
     nombreCol.style.flex = "2";
+
+    // Línea del nombre
+    const nombreSpan = document.createElement("div");
+    nombreSpan.textContent = c.nombre;
+    nombreSpan.style.fontWeight = "bold";
+
+    // Línea del teléfono
+    const telefonoSpan = document.createElement("div");
+    telefonoSpan.textContent = c.telefono || "(sin teléfono)";
+    telefonoSpan.style.fontSize = "0.9em";
+    telefonoSpan.style.opacity = "0.8";
+
+    // Insertar ambas líneas en la columna
+    nombreCol.appendChild(nombreSpan);
+    nombreCol.appendChild(telefonoSpan);
 
     const checkboxMensajes = document.createElement("input");
     checkboxMensajes.type = "checkbox";
@@ -184,9 +269,41 @@ function renderizarFilas(contactos) {
 
     btnAccion.addEventListener("click", async () => {
       const endpoint = `${ROOT_URL}/api/contacts`;
+      // Sanitizar y validar el número de teléfono
+      const telefonoOriginal = c.telefono || "";
+      const telefonoSanitizado = sanitizarTelefonoE164(telefonoOriginal);
+
+      // Mostrar advertencia si se agregó el "9" automáticamente
+      if (
+        telefonoSanitizado.startsWith("+549") &&
+        !telefonoOriginal.replace(/\D/g, "").startsWith("9") &&
+        !telefonoOriginal.replace(/\D/g, "").startsWith("15") &&
+        !telefonoOriginal.trim().startsWith("+549")
+      ) {
+        // ⚠️ Mostrar modal si se agregó el 9
+        if (
+          telefonoSanitizado.startsWith("+549") &&
+          !telefonoOriginal.replace(/\D/g, "").startsWith("9") &&
+          !telefonoOriginal.replace(/\D/g, "").startsWith("15") &&
+          !telefonoOriginal.trim().startsWith("+549")
+        ) {
+          await esperarOk(
+            "El número agregado no tenía prefijo 9. Beepsafe lo ha agregado automáticamente. Por favor, verificá que sea un número de celular con WhatsApp válido. De no serlo, el destinatario no recibirá los mensajes."
+          );
+        }
+      }
+
+      if (!esTelefonoValido(telefonoSanitizado)) {
+        showToast(
+          `El número de teléfono "${telefonoOriginal}" de este contacto no es válido`,
+          "error"
+        );
+        return;
+      }
+
       const payload = {
         nombre: c.nombre,
-        telefono: c.telefono || "",
+        telefono: telefonoSanitizado || "",
         mensajes: checkboxMensajes.checked,
         visibilidad: checkboxVisibilidad.checked,
       };

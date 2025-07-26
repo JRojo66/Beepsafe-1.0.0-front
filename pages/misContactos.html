@@ -23,15 +23,23 @@
 
         <!-- Mis Contactos -->
         <div id="toggleMisContactos" class="accordion-header-activity">
-        <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
-        <span>Mis contactos</span>
+            <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
+            <span>Mis contactos</span>
         </div>
         <div id="mis-contactos-list" class="contactos-lista" style="display: none;"></div>
 
+        <!-- Agregar contactos manualmente -->
+        <div id="toggleContactosManual" class="accordion-header-activity">
+            <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
+            <span>Agregar contactos manualmente</span>
+        </div>
+        <div id="mis-contactos-manuales-list" class="contactos-lista" style="display: none;"></div>
+
+
         <!-- Contactos de Google -->
         <div  id="toggleGoogleContactos" class="accordion-header-activity">
-        <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
-        <span>Importar contactos desde Google</span>
+            <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
+            <span>Importar contactos desde Google</span>
         </div>
         <div id="google-contacts-list" class="contactos-lista" style="display: none;"></div>
     </div>
@@ -47,10 +55,27 @@
     </div>
     </div>
 </div>
+<!-- Info Modal -->
+<div id="info-modal" class="modal hidden">
+  <div class="modal-content">
+    <p id="info-message">...</p>
+    <!-- 🆕 Casilla de "No volver a mostrar" -->
+    <label style="display: flex; align-items: center; gap: 0.5em; margin-top: 10px; font-size: 0.95em;">
+      <input type="checkbox" id="info-dont-show-again" />
+      No volver a mostrar este mensaje
+    </label>
+    <div class="modal-buttons">
+      <button id="info-ok" class="btn-confirm">OK</button>
+    </div>
+  </div>
+</div>
+
+
 
 <script src="../JS/config.js"></script>
 <script src="../JS/utils.js"></script>
 <script src="../JS/misContactosGoogle.js" defer></script>
+<script src="../JS/misContactosManual.js" defer></script>
 <script src="../JS/misContactos.js" defer></script>
 
 </body>

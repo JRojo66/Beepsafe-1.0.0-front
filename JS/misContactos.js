@@ -109,8 +109,22 @@ function renderizarFilasMisContactos() {
     row.style.color = "white";
 
     const nombreColMC = document.createElement("div");
-    nombreColMC.textContent = c.nombre;
     nombreColMC.style.flex = "2";
+
+    // Línea del nombre
+    const nombreSpan = document.createElement("div");
+    nombreSpan.textContent = c.nombre;
+    nombreSpan.style.fontWeight = "bold";
+
+    // Línea del teléfono
+    const telefonoSpan = document.createElement("div");
+    telefonoSpan.textContent = c.telefono || "(sin teléfono)";
+    telefonoSpan.style.fontSize = "0.9em";
+    telefonoSpan.style.opacity = "0.8";
+
+    // Insertar ambas líneas en la columna
+    nombreColMC.appendChild(nombreSpan);
+    nombreColMC.appendChild(telefonoSpan);
 
     const checkboxMensajesMC = document.createElement("input");
     checkboxMensajesMC.type = "checkbox";
@@ -367,7 +381,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   toggleMisContactos?.addEventListener("click", async () => {
     const isVisible = misContactosList.style.display === "block";
     misContactosList.style.display = isVisible ? "none" : "block"; // Togglea el estado de is Visible
-    
+
     // Rota el icono de chevron
     const icon = toggleMisContactos.querySelector("i");
     if (icon) {
