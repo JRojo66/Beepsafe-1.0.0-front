@@ -237,6 +237,7 @@ function renderizarFilas(contactos) {
     const checkboxMensajes = document.createElement("input");
     checkboxMensajes.type = "checkbox";
     checkboxMensajes.name = "recibirMensajes";
+    checkboxMensajes.className = "checkbox-input";
     checkboxMensajes.checked = c.mensajes !== false; // **
 
     const mensajesCol = document.createElement("div");
@@ -247,6 +248,7 @@ function renderizarFilas(contactos) {
     const checkboxVisibilidad = document.createElement("input");
     checkboxVisibilidad.type = "checkbox";
     checkboxVisibilidad.name = "verme";
+    checkboxVisibilidad.className = "checkbox-input";
     checkboxVisibilidad.checked = c.visibilidad !== false; // **
 
     const vermeCol = document.createElement("div");
@@ -397,10 +399,47 @@ async function refrescarContactosGoogle() {
   }
 }
 
-function renderizarCabecera() {
+async function renderizarCabecera() {
   const container = document.getElementById("google-contacts-list");
   if (container.querySelector(".contactos-header")) return;
 
+  // 🔄 Botón Refresh
+  const refreshBtn = document.createElement("button");
+  refreshBtn.innerHTML = `<i class="fas fa-sync-alt"></i> Refrescar`;
+  refreshBtn.title = "Volver a importar contactos desde Google";
+  refreshBtn.style.padding = "0.4em 0.6em";
+  refreshBtn.style.border = "none";
+  refreshBtn.style.borderRadius = "0.3em";
+  refreshBtn.style.backgroundColor = getComputedStyle(document.documentElement)
+    .getPropertyValue("--color-fondo")
+    .trim();
+  refreshBtn.style.color = "white";
+  refreshBtn.style.cursor = "pointer";
+  refreshBtn.style.marginBottom = "0.5em";
+  refreshBtn.style.display = "flex";
+  refreshBtn.style.alignItems = "center";
+  refreshBtn.style.gap = "0.4em";
+
+  refreshBtn.addEventListener("click", () => {
+    try {
+      const clientId = `${GOOGLE_CLIENT_ID}`;
+      const redirectUri = `${FRONT_URL}/pages/googleCallback.html`;
+      const scope = "https://www.googleapis.com/auth/contacts.readonly";
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(
+        scope
+      )}&access_type=online&prompt=consent`;
+
+      localStorage.setItem("abrirGoogleContactsAlVolver", "true");
+      window.location.href = authUrl;
+    } catch (err) {
+      console.error("Error al redirigir a Google OAuth:", err);
+      showToast("Error al conectar con Google. Intenta nuevamente.", "error");
+    }
+  });
+
+  container.appendChild(refreshBtn);
+
+  // 🔍 Search + input
   const searchWrapper = document.createElement("div");
   searchWrapper.style.margin = "0 auto 0.5em auto";
   searchWrapper.style.display = "flex";
@@ -426,6 +465,7 @@ function renderizarCabecera() {
   searchWrapper.appendChild(searchInput);
   container.appendChild(searchWrapper);
 
+  // 📋 Cabecera de columnas
   const header = document.createElement("div");
   header.classList.add("contactos-header");
   header.style.display = "flex";
@@ -529,16 +569,25 @@ window.addEventListener("DOMContentLoaded", async () => {
       let contactosGoogle = contactos;
 
       if (!contactosGoogle || contactosGoogle.length === 0) {
-        const clientId = `${GOOGLE_CLIENT_ID}`;
-        const redirectUri = `${FRONT_URL}/pages/googleCallback.html`;
-        const scope = "https://www.googleapis.com/auth/contacts.readonly";
-        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(
-          scope
-        )}&access_type=online&prompt=consent`;
-        localStorage.setItem("abrirGoogleContactsAlVolver", "true");
-        window.location.href = authUrl;
-        console.log("isVisible: ", isVisible);
-        return; // Evita continuar si se va a redirigir
+        try {
+          const clientId = `${GOOGLE_CLIENT_ID}`;
+          const redirectUri = `${FRONT_URL}/pages/googleCallback.html`;
+          const scope = "https://www.googleapis.com/auth/contacts.readonly";
+          const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(
+            scope
+          )}&access_type=online&prompt=consent`;
+
+          localStorage.setItem("abrirGoogleContactsAlVolver", "true");
+          window.location.href = authUrl;
+          return;
+        } catch (authErr) {
+          console.error("Error al iniciar autenticación con Google:", authErr);
+          showToast(
+            "Error al conectar con Google. Verifica la configuración.",
+            "error"
+          );
+          return;
+        }
       }
 
       // Trae los contactos del usuario

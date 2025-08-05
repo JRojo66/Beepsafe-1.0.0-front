@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Contactos</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-
     <link rel="stylesheet" href="../styles/styles.css">
 </head>
 <body>
@@ -33,8 +32,50 @@
             <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
             <span>Agregar contactos manualmente</span>
         </div>
-        <div id="mis-contactos-manuales-list" class="contactos-lista" style="display: none;"></div>
+        <div id="mis-contactos-manuales-list" class="contactos-lista" style="display: none;">
+            <form id="form-agregar-contacto" class="add-activity-form">
+                <!-- Nombre -->
+                <input 
+                    type="text" 
+                    id="nombre-contacto" 
+                    class="input-activity"
+                    required 
+                    placeholder="Nombre del contacto"
+                >
 
+                <!-- Teléfono -->
+                <div class="phone-input-container">
+                    <span class="phone-prefix">+549</span>
+                    <input 
+                        type="tel" 
+                        id="telefono-contacto" 
+                        class="input-activity"
+                        required 
+                        placeholder="11 1234 5678"
+                    >
+                </div>
+
+                <!-- Checkboxes -->
+                <div class="checkboxes-container">
+                    <label class="checkbox-label">
+                        <input class="checkbox-input" type="checkbox" id="recibir-mensajes" checked style="transform: scale(1.2);">
+                        <span>Quiero que reciba mis mensajes</span>
+                    </label>
+                    
+                    <label class="checkbox-label">
+                        <input class="checkbox-input" type="checkbox" id="que-me-vea" checked style="transform: scale(1.2);">
+                        <span>Quiero que me vea</span>
+                    </label>
+                </div>
+
+                <!-- Botones -->
+                <div class="buttons-container">
+                    <button type="submit" id="cancelar-agregar-contacto" class="btn-cancelar-contacto">Cancelar</button>
+                    <button type="submit" id="guardar-contacto" class="btn-guardar-contacto">Agregar</button>
+
+                </div>
+            </form>
+        </div>
 
         <!-- Contactos de Google -->
         <div  id="toggleGoogleContactos" class="accordion-header-activity">
@@ -44,6 +85,8 @@
         <div id="google-contacts-list" class="contactos-lista" style="display: none;"></div>
     </div>
 </div>
+
+<!-- Toast Container -->
 <div id="toast-container"></div>
 <!-- Confirm Modal -->
 <div id="confirm-modal" class="modal hidden">
@@ -69,7 +112,6 @@
     </div>
   </div>
 </div>
-
 
 
 <script src="../JS/config.js"></script>

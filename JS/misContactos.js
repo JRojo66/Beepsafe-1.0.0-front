@@ -129,6 +129,7 @@ function renderizarFilasMisContactos() {
     const checkboxMensajesMC = document.createElement("input");
     checkboxMensajesMC.type = "checkbox";
     checkboxMensajesMC.name = "recibirMensajes";
+    checkboxMensajesMC.className = "checkbox-input"; 
     checkboxMensajesMC.checked = c.mensajes !== false; // **
 
     const mensajesColMC = document.createElement("div");
@@ -139,6 +140,7 @@ function renderizarFilasMisContactos() {
     const checkboxVisibilidadMC = document.createElement("input");
     checkboxVisibilidadMC.type = "checkbox";
     checkboxVisibilidadMC.name = "verme";
+    checkboxVisibilidadMC.className = "checkbox-input";
     checkboxVisibilidadMC.checked = c.visibilidad !== false;
 
     const vermeColMC = document.createElement("div");

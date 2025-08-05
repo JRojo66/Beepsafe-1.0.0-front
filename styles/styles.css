@@ -1,6 +1,8 @@
 :root {
   --color-principal: #90ffef;
+  --color-principal-hover: #49d1b7;
   --color-fondo: #0c243c;
+  --color-fondo-hover: #1a1a1a;
   --color-fondo2: #300965;
 }
 /* toasts */
@@ -287,7 +289,7 @@ a {
   }
 
   .iniciarSesion2 {
-    display: block; 
+    display: block;
     width: 200px;
     background-color: var(--color-principal);
     border-radius: 20px;
@@ -429,7 +431,7 @@ a {
   }
 
     .iniciarSesion2 {
-    display: block; 
+    display: block;
     width: 400px;
     background-color: var(--color-principal);
     border-radius: 20px;
@@ -509,13 +511,13 @@ select.menu {
   background-color: var(--color-fondo);
   color: white;
   padding: 5px;
-  border-radius: 20px; 
+  border-radius: 20px;
 }
 
 .logoActividad {
   margin-bottom: 5%;
-  width: 45%; 
-  height: 45%; 
+  width: 45%;
+  height: 45%;
   padding-top: 5x;
   object-fit: contain; /* Ajusta la imagen para que quepa dentro del contenedor manteniendo sus proporciones */
   max-height: 100px;
@@ -976,7 +978,7 @@ select.menu {
     border-width: 1 px;
   }
 
-  
+
 
   form button.botonActividad:hover {
     background-color: var(--color-fondo);
@@ -1156,7 +1158,7 @@ select.menu {
 
 #actividadFormContainer {
   margin-top: 20px;
-  display: none;  
+  display: none;
 }
 
 .hijoDeActividadFormContainer{
@@ -1332,7 +1334,7 @@ select.menu {
   height: 24px;
   cursor: pointer;
   display: inline-block;
-  text-align: left; 
+  text-align: left;
 }
 
 .file-upload-text {
@@ -1657,4 +1659,193 @@ color: white;
   color: var(--color-principal);
   font-size: 48px;
   margin-top: 400px;
+}
+
+/* Estilos adicionales para formulario de contactos manuales */
+#form-agregar-contacto .input-activity {
+  background-color: var(--color-fondo);
+  border-color: white;
+  border-radius: 5px;
+  font-size: 13.33px;
+  margin: 4px;
+  padding: 0 20px;
+  width: 70%;
+  height: 24px;
+  color: white;
+  border: 1px solid white;
+}
+
+#form-agregar-contacto .input-activity::placeholder {
+  font-family: Roboto;
+  color: #dcdcdc;
+  font-size: 14px;
+  font-weight: normal;
+  opacity: 1;
+}
+
+/* Botones con estilos específicos */
+.boton-cancelar-contacto:hover {
+  background-color: var(--color-principal) !important;
+  color: black;
+}
+
+.boton-guardar-contacto:hover {
+  background-color: #49d1b7 !important;
+  color: black;
+}
+
+.btn-guardar-contacto {
+  font-style: Roboto !important;
+  background-color: var(--color-principal);
+  color: black;
+  padding: 8px 10px;
+  border-color: white;
+  border-radius: 20px;
+  font-size: 13.33px !important;
+  margin: 5px !important;
+  width: 50%;
+  border-style: solid;
+  height: 32px !important;
+  border-width: 1px;
+  cursor: pointer;
+}
+
+.btn-guardar-contacto:hover {
+  background-color: var(--color-principal-hover) !important;
+  color: black;
+}
+
+.btn-cancelar-contacto {
+  font-style: Roboto !important;
+  background-color: var(--color-fondo) !important;
+  color: white !important;
+  padding: 8px 10px;
+  border-color: white;
+  border-radius: 20px;
+  font-size: 13.33px !important;
+  margin: 5px !important;
+  width: 50%;
+  border-style: solid;
+  height: 32px !important;
+  border-width: 1px;
+  cursor: pointer;
+}
+
+.btn-cancelar-contacto:hover {
+  background-color: var(--color-fondo-hover) !important;
+  color: white !important;
+}
+
+.checkboxes-container{
+display: flex;
+flex-direction: column;
+gap: 10px;
+margin: 10px 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: white;
+  cursor: pointer;
+}
+
+.buttons-container{
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.checkbox-input {
+  /* Ocultar el checkbox nativo */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  
+  /* Tamaño y forma */
+  width: 15px;
+  height: 15px;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  
+  /* Posición relativa para el checkmark */
+  position: relative;
+  cursor: pointer;
+  
+  /* Fondo por defecto */
+  background-color: transparent;
+  
+  /* Transición suave */
+  transition: all 0.3s ease;
+}
+
+/* Checkbox cuando está checked */
+.checkbox-input:checked {
+  background-color: var(--color-principal);
+  border-color: var(--color-principal);
+}
+
+/* Checkmark (✓) cuando está checked */
+.checkbox-input:checked::after {
+  content: '✓';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: black;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Hover effect */
+.checkbox-input:hover {
+  border-color: var(--color-principal);
+}
+
+/* Focus effect */
+.checkbox-input:focus {
+  outline: 2px solid var(--color-principal);
+  outline-offset: 2px;
+}
+
+.phone-input-container {
+    display: flex;
+    align-items: center;
+    background-color: var(--color-fondo);
+    border-radius: 5px;
+    margin: 4px;
+    margin-left: 8px;
+    width: 85%;
+    height: 24px;
+}
+
+.phone-prefix {
+    background-color: var(--color-fondo);
+    border: 1px solid white;
+    border-radius: 5px;
+    color: white;
+    padding: 0 10px;
+    font-size: 13.33px;
+    font-family: Roboto;
+    border-right: 1px solid #ccc;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.phone-input {
+    border: none !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 5px 5px 0 !important;
+    padding: 0 10px !important;
+}
+
+.phone-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-principal);
 }
