@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Contactos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="../styles/styles.css">
+</head>
+<body>
+
+    <div class="configuracion">
+        <a href="../pages/perfil.html" class="perfil">
+            <div class="containerPerfil">
+                <img src="../imagenes/volver.PNG" alt="Volver">
+                <img src="../imagenes/amigosSinFondoBlanco.png" alt="mensajes" class="encabezado">
+                <div class="opciones">Mis Grupos</div>
+            </div>
+        </a>
+        <p class="encabezadoBajada">Estos son los grupos a quienes enviaras tus mensajes y que podrán ver que estás realizando una actividad. Los grupos son agrupaciones de contactos. Los permisos de los grupos mandan por encima de los permisos de los contactos</p>
+        <div class="break"></div>
+
+        <!-- Mis Grupos -->
+        <div id="toggleMisGrupos" class="accordion-header-activity">
+            <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
+            <span>Mis Grupos</span>
+        </div>
+        <div id="mis-contactos-list" class="contactos-lista" style="display: none;"></div>      <!-- Volver y revisar -->
+
+        <!-- Agregar contactos manualmente -->
+        <div id="toggleContactosManual" class="accordion-header-activity">
+            <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
+            <span>Crear Grupo</span>
+        </div>
+        <div id="mis-contactos-manuales-list" class="contactos-lista" style="display: none;">
+            <form id="form-agregar-contacto" class="add-activity-form">
+                <!-- Nombre -->
+                <input 
+                    type="text" 
+                    id="nombre-grupo" 
+                    class="input-activity"
+                    required 
+                    placeholder="Nombre del grupo"
+                >
+
+                <!-- Teléfono -->
+                <div class="phone-input-container">
+                    <span class="phone-prefix">+549</span>
+                    <input 
+                        type="tel" 
+                        id="telefono-contacto" 
+                        class="input-activity"
+                        required 
+                        placeholder="11 1234 5678"
+                    >
+                </div>
+
+                <!-- Checkboxes -->
+                <div class="checkboxes-container">
+                    <label class="checkbox-label">
+                        <input class="checkbox-input" type="checkbox" id="recibir-mensajes" checked style="transform: scale(1.2);">
+                        <span>Quiero que reciba mis mensajes</span>
+                    </label>
+                    
+                    <label class="checkbox-label">
+                        <input class="checkbox-input" type="checkbox" id="que-me-vea" checked style="transform: scale(1.2);">
+                        <span>Quiero que me vea</span>
+                    </label>
+                </div>
+
+                <!-- Botones -->
+                <div class="buttons-container">
+                    <button type="submit" id="cancelar-agregar-contacto" class="btn-cancelar-contacto">Cancelar</button>
+                    <button type="submit" id="guardar-contacto" class="btn-guardar-contacto">Agregar</button>
+
+                </div>
+            </form>
+        </div>
+
+       
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+<!-- Confirm Modal -->
+<div id="confirm-modal" class="modal hidden">
+    <div class="modal-content">
+    <p id="confirm-message">¿Estás seguro?</p>
+    <div class="modal-buttons">
+        <button id="confirm-yes">Sí</button>
+        <button id="confirm-no">No</button>
+    </div>
+    </div>
+</div>
+<!-- Info Modal -->
+<div id="info-modal" class="modal hidden">
+  <div class="modal-content">
+    <p id="info-message">...</p>
+    <!-- 🆕 Casilla de "No volver a mostrar" -->
+    <label style="display: flex; align-items: center; gap: 0.5em; margin-top: 10px; font-size: 0.95em;">
+      <input type="checkbox" id="info-dont-show-again" />
+      No volver a mostrar este mensaje
+    </label>
+    <div class="modal-buttons">
+      <button id="info-ok" class="btn-confirm">OK</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="../JS/config.js"></script>
+<script src="../JS/utils.js"></script>
+<script src="../JS/misGrupos.js" defer></script>
+<!-- <script src="../JS/misContactosGoogle.js" defer></script>
+<script src="../JS/misContactosManual.js" defer></script>
+<script src="../JS/misContactos.js" defer></script> -->
+
+</body>
+</html>

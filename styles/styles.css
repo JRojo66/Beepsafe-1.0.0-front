@@ -707,7 +707,7 @@ select.menu {
 /*Perfil*/
 
 .contenedor-padre3 {
-  margin: 200px 0;
+  margin: 170px 0;
   border-radius: 20px;
   display: flex;
   justify-content: center;
@@ -1676,7 +1676,7 @@ color: white;
 }
 
 #form-agregar-contacto .input-activity::placeholder {
-  font-family: Roboto;
+  font-family: -apple-system, BlinkMacSystemFont, Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   color: #dcdcdc;
   font-size: 14px;
   font-weight: normal;
@@ -1695,7 +1695,7 @@ color: white;
 }
 
 .btn-guardar-contacto {
-  font-style: Roboto !important;
+  font-style: -apple-system, BlinkMacSystemFont, Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   background-color: var(--color-principal);
   color: black;
   padding: 8px 10px;
@@ -1716,7 +1716,7 @@ color: white;
 }
 
 .btn-cancelar-contacto {
-  font-style: Roboto !important;
+  font-style: -apple-system, BlinkMacSystemFont, Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   background-color: var(--color-fondo) !important;
   color: white !important;
   padding: 8px 10px;
@@ -1829,7 +1829,7 @@ margin: 10px 0;
     color: white;
     padding: 0 10px;
     font-size: 13.33px;
-    font-family: Roboto;
+    font-family: -apple-system, BlinkMacSystemFont, Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     border-right: 1px solid #ccc;
     height: 100%;
     display: flex;
