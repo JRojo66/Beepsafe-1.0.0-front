@@ -1,3 +1,15 @@
+import {
+  showToast,
+  showConfirm,
+  showConfirmOkOnly,
+  renderizarCabeceraContactos,
+  renderizarFilasContactos
+} from './utils.js';
+
+
+let contactosGoogleCargados = [];
+let contactosGoogleCargadosCompleta = [];
+
 // Estado global
 let googleContactsMemory = null;
 let terminoBusqueda = "";

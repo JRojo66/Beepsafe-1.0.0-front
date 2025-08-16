@@ -1,3 +1,11 @@
+import {
+  showToast,
+  showConfirm,
+  showConfirmOkOnly,
+  renderizarCabeceraContactos,
+  renderizarFilasContactos,
+} from "./utils.js";
+
 window.addEventListener("DOMContentLoaded", async () => {
   // Verificar login
   try {
@@ -14,7 +22,9 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 
   const toggleCrearGrupo = document.getElementById("toggleContactosManual");
-  const crearGrupoContainer = document.getElementById("mis-contactos-manuales-list");
+  const crearGrupoContainer = document.getElementById(
+    "mis-contactos-manuales-list"
+  );
 
   toggleCrearGrupo?.addEventListener("click", async () => {
     const isVisible = crearGrupoContainer.style.display === "block";
@@ -54,39 +64,51 @@ async function cargarFormularioGrupo() {
   const { contactos } = await res.json();
 
   // 📌 Renderizar cabecera y filas usando utils.js
-  renderizarCabeceraContactos(subContainerId, ["Nombre", "Mensajes", "Verme", "Agregar"]);
+  renderizarCabeceraContactos(subContainerId, [
+    "Nombre",
+    "Quiero que reciba mis mensajes",
+    "Quiero que me vea",
+    "Acción",
+  ]);
 
-  renderizarFilasContactos(subContainerId, contactos, async (contacto, mensajes, visibilidad) => {
-    if (!nombreGrupoInput.value.trim()) {
-      showToast("Debe ingresar un nombre de grupo", "error");
-      return;
-    }
-
-    try {
-      const response = await fetch(`${ROOT_URL}/api/grupos`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          grupo: nombreGrupoInput.value.trim(),
-          contacto: contacto.nombre,
-          mensajes,
-          visibilidad,
-        }),
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        showToast("Error al agregar contacto al grupo: " + err.error, "error");
+  renderizarFilasContactos(
+    subContainerId,
+    contactos,
+    async (contacto, mensajes, visibilidad) => {
+      if (!nombreGrupoInput.value.trim()) {
+        showToast("Debe ingresar un nombre de grupo", "error");
         return;
       }
 
-      showToast(`Contacto ${contacto.nombre} agregado al grupo`, "success");
-    } catch (err) {
-      console.error("Error al agregar al grupo:", err);
-      showToast("No se pudo conectar con el servidor", "error");
+      try {
+        const response = await fetch(`${ROOT_URL}/api/grupos`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            grupo: nombreGrupoInput.value.trim(),
+            contacto: contacto.nombre,
+            mensajes,
+            visibilidad,
+          }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          showToast(
+            "Error al agregar contacto al grupo: " + err.error,
+            "error"
+          );
+          return;
+        }
+
+        showToast(`Contacto ${contacto.nombre} agregado al grupo`, "success");
+      } catch (err) {
+        console.error("Error al agregar al grupo:", err);
+        showToast("No se pudo conectar con el servidor", "error");
+      }
     }
-  });
+  );
 }

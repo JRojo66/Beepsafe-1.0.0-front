@@ -1,3 +1,11 @@
+import {
+  showToast,
+  showConfirm,
+  showConfirmOkOnly,
+  renderizarCabeceraContactos,
+  renderizarFilasContactos
+} from './utils.js';
+
 let contactosMisContactosCompleta = []; // todos los contactos filtrados
 let paginaActualMisContactos = 1;
 const PAGE_SIZE_MIS_CONTACTOS = 10;

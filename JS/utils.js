@@ -1,5 +1,5 @@
 // toasts
-function showToast(message, type = "info") {
+export function showToast(message, type = "info") {
   const container = document.getElementById("toast-container");
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
@@ -12,7 +12,7 @@ function showToast(message, type = "info") {
 }
 
 // Confirm
-function showConfirm(message = "¿Estás seguro?") {
+export function showConfirm(message = "¿Estás seguro?") {
   return new Promise((resolve) => {
     const modal = document.getElementById("confirm-modal");
     const messageElement = document.getElementById("confirm-message");
@@ -44,7 +44,7 @@ function showConfirm(message = "¿Estás seguro?") {
 }
 
 // Confirm OK only
-function showConfirmOkOnly(message = "Confirmá") {
+export function showConfirmOkOnly(message = "Confirmá") {
   return new Promise((resolve) => {
     const modal = document.getElementById("confirm-modal");
     const messageElement = document.getElementById("confirm-message");
@@ -78,14 +78,7 @@ function showConfirmOkOnly(message = "Confirmá") {
   });
 }
 
-window.showToast = showToast;
-window.showConfirm = showConfirm;
-window.showConfirmOkOnly = showConfirmOkOnly;
-
-// Renderizado para Importar contactos desde Google y Mis Grupos
-// utils.js (global, sin modules)
-(function (global) {
-function renderizarCabeceraContactos(containerId, columnas) {
+export function renderizarCabeceraContactos(containerId, columnas) {
   const container = document.getElementById(containerId);
   if (!container) return;
   if (container.querySelector(".contactos-header")) return;
@@ -120,7 +113,7 @@ function renderizarCabeceraContactos(containerId, columnas) {
   }
 }
 
-function renderizarFilasContactos(containerId, contactos, onAccionClick) {
+export function renderizarFilasContactos(containerId, contactos, onAccionClick) {
   const body = document.getElementById(`${containerId}-body`);
   if (!body) return;
   body.querySelectorAll(".contacto-row").forEach((n) => n.remove());
@@ -193,7 +186,6 @@ function renderizarFilasContactos(containerId, contactos, onAccionClick) {
     body.appendChild(row);
   });
 }
-  global.renderizarCabeceraContactos = renderizarCabeceraContactos;
-  global.renderizarFilasContactos = renderizarFilasContactos;
-})(window);
+
+
 
