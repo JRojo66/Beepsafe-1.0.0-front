@@ -17,19 +17,97 @@ function inicializarGoogleContactList() {
   const visibles = filtrados.slice(desde, hasta);
   contactosGoogleCargados = filtrados;
 
+
+
   const container = document.getElementById("google-contacts-list");
-  let body = document.getElementById("google-contacts-body");
+let body = document.getElementById("google-contacts-list-body");
 
-  // Crear cabecera + body si no existen
-  if (!container.querySelector(".contactos-header")) {
-    renderizarCabecera();
-    body = document.getElementById("google-contacts-body");
-  }
+// (1) Si es la primera vez, agregamos botón Refrescar y el buscador:
+if (!container.querySelector("#google-refresh-btn")) {
+  // Botón Refrescar
+  const refreshBtn = document.createElement("button");
+  refreshBtn.id = "google-refresh-btn";
+  refreshBtn.innerHTML = `<i class="fas fa-sync-alt"></i> Refrescar`;
+  refreshBtn.title = "Volver a importar contactos desde Google";
+  refreshBtn.style.padding = "0.4em 0.6em";
+  refreshBtn.style.border = "none";
+  refreshBtn.style.borderRadius = "0.3em";
+  refreshBtn.style.backgroundColor = getComputedStyle(document.documentElement)
+    .getPropertyValue("--color-fondo")
+    .trim();
+  refreshBtn.style.color = "white";
+  refreshBtn.style.cursor = "pointer";
+  refreshBtn.style.marginBottom = "0.5em";
+  refreshBtn.style.display = "flex";
+  refreshBtn.style.alignItems = "center";
+  refreshBtn.style.gap = "0.4em";
+  refreshBtn.addEventListener("click", () => {
+    try {
+      const clientId = `${GOOGLE_CLIENT_ID}`;
+      const redirectUri = `${FRONT_URL}/pages/googleCallback.html`;
+      const scope = "https://www.googleapis.com/auth/contacts.readonly";
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(
+        scope
+      )}&access_type=online&prompt=consent`;
+      localStorage.setItem("abrirGoogleContactsAlVolver", "true");
+      window.location.href = authUrl;
+    } catch (err) {
+      console.error("Error al redirigir a Google OAuth:", err);
+      showToast("Error al conectar con Google. Intenta nuevamente.", "error");
+    }
+  });
+  container.appendChild(refreshBtn);
 
-  // Limpia solo el contenido del body
-  if (body) body.innerHTML = "";
+  // Search
+  const searchWrapper = document.createElement("div");
+  searchWrapper.id = "google-search-wrapper";
+  searchWrapper.style.margin = "0 auto 0.5em auto";
+  searchWrapper.style.display = "flex";
+  searchWrapper.style.alignItems = "center";
+  searchWrapper.style.gap = "0.5em";
+  searchWrapper.style.maxWidth = "440px";
+  const searchIcon = document.createElement("i");
+  searchIcon.className = "fas fa-search";
+  searchIcon.style.color = "white";
+  const searchInput = document.createElement("input");
+  searchInput.id = "google-search-input";
+  searchInput.type = "text";
+  searchInput.placeholder = "Buscar contacto...";
+  searchInput.style.flex = "1";
+  searchInput.style.padding = "0.3em 0.5em";
+  searchInput.style.borderRadius = "0.3em";
+  searchInput.style.border = "1px solid #ccc";
+  searchInput.style.width = "100%";
+  searchInput.style.boxSizing = "border-box";
+  searchInput.addEventListener("input", () => {
+    terminoBusqueda = searchInput.value.trim().toLowerCase();
+    googleContactPage = 1;
+    inicializarGoogleContactList();
+  });
+  searchWrapper.appendChild(searchIcon);
+  searchWrapper.appendChild(searchInput);
+  container.appendChild(searchWrapper);
+}
 
-  renderizarFilas(visibles);
+// (2) Cabecera de columnas (utils) + body
+renderizarCabeceraContactos("google-contacts-list", [
+  "Nombre",
+  "Quiero que reciba mis mensajes",
+  "Quiero que me vea",
+  "Acción",
+]);
+body = document.getElementById("google-contacts-list-body");
+
+// (3) Limpiar body
+if (body) body.innerHTML = "";
+
+// (4) Filas (utils)
+renderizarFilasContactos(
+  "google-contacts-list",
+  visibles,
+  (c, mensajes, visibilidad) => agregarContactoDesdeGoogle(c, mensajes, visibilidad)
+);
+
 
   const totalPaginas = Math.ceil(filtrados.length / GOOGLE_PAGE_SIZE);
 
@@ -118,15 +196,9 @@ function inicializarGoogleContactList() {
   });
   paginacion.appendChild(btnUltima);
 
-  // Agregar al body
-  if (body) {
-    body.appendChild(paginacion);
-  }
-}
+  const body1 = document.getElementById("google-contacts-list-body");
+if (body1) body1.appendChild(paginacion);
 
-function renderizarContactos(contactos) {
-  renderizarCabecera();
-  renderizarFilas(contactos);
 }
 
 function sanitizarTelefonoE164(input) {
@@ -200,171 +272,82 @@ async function esperarOk(mensaje) {
   });
 }
 
-function renderizarFilas(contactos) {
-  const container =
-    document.getElementById("google-contacts-body") ||
-    document.getElementById("google-contacts-list");
-  const rows = container.querySelectorAll(".contacto-row");
-  rows.forEach((row) => row.remove()); // Borra solo filas anteriores
+// Función reutilizable para el click de "Agregar" en cada fila
+async function agregarContactoDesdeGoogle(c, mensajes, visibilidad) {
+  const endpoint = `${ROOT_URL}/api/contacts`;
 
-  contactos.forEach((c) => {
-    const row = document.createElement("div");
-    row.classList.add("contacto-row");
-    row.style.display = "flex";
-    row.style.alignItems = "center";
-    row.style.marginBottom = "0.5em";
-    row.style.gap = "1em";
-    row.style.color = "white";
+  const telefonoOriginal = c.telefono || "";
+  const telefonoSanitizado = sanitizarTelefonoE164(telefonoOriginal);
 
-    const nombreCol = document.createElement("div");
-    nombreCol.style.flex = "2";
+  // Advertencia por prefijo 9
+  if (
+    telefonoSanitizado.startsWith("+549") &&
+    !telefonoOriginal.replace(/\D/g, "").startsWith("9") &&
+    !telefonoOriginal.replace(/\D/g, "").startsWith("15") &&
+    !telefonoOriginal.trim().startsWith("+549")
+  ) {
+    await esperarOk(
+      "El número agregado no tenía prefijo 9. Beepsafe lo ha agregado automáticamente. Por favor, verificá que sea un número de celular con WhatsApp válido. De no serlo, el destinatario no recibirá los mensajes."
+    );
+  }
 
-    // Línea del nombre
-    const nombreSpan = document.createElement("div");
-    nombreSpan.textContent = c.nombre;
-    nombreSpan.style.fontWeight = "bold";
+  if (!esTelefonoValido(telefonoSanitizado)) {
+    showToast(
+      `El número de teléfono "${telefonoOriginal}" de este contacto no es válido`,
+      "error"
+    );
+    return;
+  }
 
-    // Línea del teléfono
-    const telefonoSpan = document.createElement("div");
-    telefonoSpan.textContent = c.telefono || "(sin teléfono)";
-    telefonoSpan.style.fontSize = "0.9em";
-    telefonoSpan.style.opacity = "0.8";
+  const payload = {
+    nombre: c.nombre,
+    telefono: telefonoSanitizado || "",
+    mensajes,
+    visibilidad,
+  };
 
-    // Insertar ambas líneas en la columna
-    nombreCol.appendChild(nombreSpan);
-    nombreCol.appendChild(telefonoSpan);
-
-    const checkboxMensajes = document.createElement("input");
-    checkboxMensajes.type = "checkbox";
-    checkboxMensajes.name = "recibirMensajes";
-    checkboxMensajes.className = "checkbox-input";
-    checkboxMensajes.checked = c.mensajes !== false; // **
-
-    const mensajesCol = document.createElement("div");
-    mensajesCol.appendChild(checkboxMensajes);
-    mensajesCol.style.flex = "1";
-    mensajesCol.style.textAlign = "center";
-
-    const checkboxVisibilidad = document.createElement("input");
-    checkboxVisibilidad.type = "checkbox";
-    checkboxVisibilidad.name = "verme";
-    checkboxVisibilidad.className = "checkbox-input";
-    checkboxVisibilidad.checked = c.visibilidad !== false; // **
-
-    const vermeCol = document.createElement("div");
-    vermeCol.appendChild(checkboxVisibilidad);
-    vermeCol.style.flex = "1";
-    vermeCol.style.textAlign = "center";
-
-    row.appendChild(nombreCol);
-    row.appendChild(mensajesCol);
-    row.appendChild(vermeCol);
-
-    const btnAccion = document.createElement("button");
-    btnAccion.textContent = "Agregar";
-    btnAccion.classList.add("btn-agregar");
-    btnAccion.style.flex = "unset";
-    btnAccion.style.minWidth = "90px";
-    btnAccion.style.padding = "0.4em 1em";
-    btnAccion.style.textAlign = "center";
-    btnAccion.style.display = "inline-block";
-
-    btnAccion.addEventListener("click", async () => {
-      const endpoint = `${ROOT_URL}/api/contacts`;
-      // Sanitizar y validar el número de teléfono
-      const telefonoOriginal = c.telefono || "";
-      const telefonoSanitizado = sanitizarTelefonoE164(telefonoOriginal);
-
-      // Mostrar advertencia si se agregó el "9" automáticamente
-      if (
-        telefonoSanitizado.startsWith("+549") &&
-        !telefonoOriginal.replace(/\D/g, "").startsWith("9") &&
-        !telefonoOriginal.replace(/\D/g, "").startsWith("15") &&
-        !telefonoOriginal.trim().startsWith("+549")
-      ) {
-        // ⚠️ Mostrar modal si se agregó el 9
-        if (
-          telefonoSanitizado.startsWith("+549") &&
-          !telefonoOriginal.replace(/\D/g, "").startsWith("9") &&
-          !telefonoOriginal.replace(/\D/g, "").startsWith("15") &&
-          !telefonoOriginal.trim().startsWith("+549")
-        ) {
-          await esperarOk(
-            "El número agregado no tenía prefijo 9. Beepsafe lo ha agregado automáticamente. Por favor, verificá que sea un número de celular con WhatsApp válido. De no serlo, el destinatario no recibirá los mensajes."
-          );
-        }
-      }
-
-      if (!esTelefonoValido(telefonoSanitizado)) {
-        showToast(
-          `El número de teléfono "${telefonoOriginal}" de este contacto no es válido`,
-          "error"
-        );
-        return;
-      }
-
-      const payload = {
-        nombre: c.nombre,
-        telefono: telefonoSanitizado || "",
-        mensajes: checkboxMensajes.checked,
-        visibilidad: checkboxVisibilidad.checked,
-      };
-
-      try {
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          const err = await response.json();
-          showToast("Error: " + err.error, "error");
-          return;
-        }
-
-        // ✅ Eliminar de la lista de contactosGoogleCargados
-        contactosGoogleCargados = contactosGoogleCargados.filter(
-          (contacto) =>
-            contacto.nombre.trim().toLowerCase() !==
-            c.nombre.trim().toLowerCase()
-        );
-
-        // ✅ Volver a renderizar los contactos filtrados correctamente
-        contactosGoogleCargadosCompleta = contactosGoogleCargados.slice();
-
-        googleContactPage = 1;
-        inicializarGoogleContactList();
-
-        // 🆕 ✅ Refrescar "Mis Contactos"                                       *** Refresca?
-        const res = await fetch(`${ROOT_URL}/api/contacts`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        const { contactos: nuevosContactos } = await res.json();
-
-        if (typeof renderizarMisContactos === "function") {
-          renderizarMisContactos(nuevosContactos);
-        }
-      } catch (err) {
-        showToast("Error al conectar con el servidor", "error");
-        console.error(err);
-      }
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify(payload),
     });
 
-    const btnCol = document.createElement("div");
-    btnCol.style.flex = "1";
-    btnCol.style.textAlign = "center";
-    btnCol.appendChild(btnAccion);
-    row.appendChild(btnCol);
+    if (!response.ok) {
+      const err = await response.json();
+      showToast("Error: " + err.error, "error");
+      return;
+    }
 
-    const body = document.getElementById("google-contacts-body");
-    (body || container).appendChild(row);
-  });
+    // Sacarlo de la lista local
+    contactosGoogleCargados = contactosGoogleCargados.filter(
+      (contacto) =>
+        contacto.nombre.trim().toLowerCase() !==
+        c.nombre.trim().toLowerCase()
+    );
+    contactosGoogleCargadosCompleta = contactosGoogleCargados.slice();
+
+    // Reiniciar a página 1 y re-render
+    googleContactPage = 1;
+    inicializarGoogleContactList();
+
+    // Refrescar "Mis Contactos"
+    const res = await fetch(`${ROOT_URL}/api/contacts`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    const { contactos: nuevosContactos } = await res.json();
+    if (typeof renderizarMisContactos === "function") {
+      renderizarMisContactos(nuevosContactos);
+    }
+  } catch (err) {
+    showToast("Error al conectar con el servidor", "error");
+    console.error(err);
+  }
 }
 
 async function refrescarContactosGoogle() {
@@ -396,114 +379,6 @@ async function refrescarContactosGoogle() {
     inicializarGoogleContactList();
   } catch (err) {
     console.warn("Error al refrescar contactos de Google:", err.message);
-  }
-}
-
-async function renderizarCabecera() {
-  const container = document.getElementById("google-contacts-list");
-  if (container.querySelector(".contactos-header")) return;
-
-  // 🔄 Botón Refresh
-  const refreshBtn = document.createElement("button");
-  refreshBtn.innerHTML = `<i class="fas fa-sync-alt"></i> Refrescar`;
-  refreshBtn.title = "Volver a importar contactos desde Google";
-  refreshBtn.style.padding = "0.4em 0.6em";
-  refreshBtn.style.border = "none";
-  refreshBtn.style.borderRadius = "0.3em";
-  refreshBtn.style.backgroundColor = getComputedStyle(document.documentElement)
-    .getPropertyValue("--color-fondo")
-    .trim();
-  refreshBtn.style.color = "white";
-  refreshBtn.style.cursor = "pointer";
-  refreshBtn.style.marginBottom = "0.5em";
-  refreshBtn.style.display = "flex";
-  refreshBtn.style.alignItems = "center";
-  refreshBtn.style.gap = "0.4em";
-
-  refreshBtn.addEventListener("click", () => {
-    try {
-      const clientId = `${GOOGLE_CLIENT_ID}`;
-      const redirectUri = `${FRONT_URL}/pages/googleCallback.html`;
-      const scope = "https://www.googleapis.com/auth/contacts.readonly";
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(
-        scope
-      )}&access_type=online&prompt=consent`;
-
-      localStorage.setItem("abrirGoogleContactsAlVolver", "true");
-      window.location.href = authUrl;
-    } catch (err) {
-      console.error("Error al redirigir a Google OAuth:", err);
-      showToast("Error al conectar con Google. Intenta nuevamente.", "error");
-    }
-  });
-
-  container.appendChild(refreshBtn);
-
-  // 🔍 Search + input
-  const searchWrapper = document.createElement("div");
-  searchWrapper.style.margin = "0 auto 0.5em auto";
-  searchWrapper.style.display = "flex";
-  searchWrapper.style.alignItems = "center";
-  searchWrapper.style.gap = "0.5em";
-  searchWrapper.style.maxWidth = "440px";
-
-  const searchIcon = document.createElement("i");
-  searchIcon.className = "fas fa-search";
-  searchIcon.style.color = "white";
-
-  const searchInput = document.createElement("input");
-  searchInput.type = "text";
-  searchInput.placeholder = "Buscar contacto...";
-  searchInput.style.flex = "1";
-  searchInput.style.padding = "0.3em 0.5em";
-  searchInput.style.borderRadius = "0.3em";
-  searchInput.style.border = "1px solid #ccc";
-  searchInput.style.width = "100%";
-  searchInput.style.boxSizing = "border-box";
-
-  searchWrapper.appendChild(searchIcon);
-  searchWrapper.appendChild(searchInput);
-  container.appendChild(searchWrapper);
-
-  // 📋 Cabecera de columnas
-  const header = document.createElement("div");
-  header.classList.add("contactos-header");
-  header.style.display = "flex";
-  header.style.fontWeight = "bold";
-  header.style.color = "white";
-  header.style.gap = "1em";
-  header.style.marginBottom = "0.5em";
-  header.style.flexWrap = "wrap";
-
-  const columnas = [
-    "Nombre",
-    "Quiero que reciba mis mensajes",
-    "Quiero que me vea",
-    "Acción",
-  ];
-
-  columnas.forEach((title, i) => {
-    const col = document.createElement("div");
-    col.textContent = title;
-    col.style.flex = i === 0 ? "2" : "1";
-    col.style.textAlign = "center";
-    col.style.minWidth = "0";
-    col.style.overflow = "hidden";
-    col.style.textOverflow = "ellipsis";
-    header.appendChild(col);
-  });
-
-  container.appendChild(header);
-
-  searchInput.addEventListener("input", () => {
-    terminoBusqueda = searchInput.value.trim().toLowerCase();
-    inicializarGoogleContactList();
-  });
-
-  if (!container.querySelector("#google-contacts-body")) {
-    const body = document.createElement("div");
-    body.id = "google-contacts-body";
-    container.appendChild(body);
   }
 }
 
