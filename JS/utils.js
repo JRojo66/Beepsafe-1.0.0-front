@@ -187,5 +187,201 @@ export function renderizarFilasContactos(containerId, contactos, onAccionClick) 
   });
 }
 
+export function renderizarBuscadorYBotonRefrescar({ container, onBuscar }) {
+  if (!container.querySelector("#google-refresh-btn")) {
+    // Botón Refrescar
+    const refreshBtn = document.createElement("button");
+    refreshBtn.id = "google-refresh-btn";
+    refreshBtn.innerHTML = `<i class="fas fa-sync-alt"></i> Refrescar`;
+    refreshBtn.title = "Volver a importar contactos desde Google";
+    Object.assign(refreshBtn.style, {
+      padding: "0.4em 0.6em",
+      border: "none",
+      borderRadius: "0.3em",
+      backgroundColor: getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-fondo")
+        .trim(),
+      color: "white",
+      cursor: "pointer",
+      marginBottom: "0.5em",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.4em",
+    });
+    refreshBtn.addEventListener("click", () => {
+      try {
+        const clientId = `${GOOGLE_CLIENT_ID}`;
+        const redirectUri = `${FRONT_URL}/pages/googleCallback.html`;
+        const scope = "https://www.googleapis.com/auth/contacts.readonly";
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(
+          scope
+        )}&access_type=online&prompt=consent`;
+        localStorage.setItem("abrirGoogleContactsAlVolver", "true");
+        window.location.href = authUrl;
+      } catch (err) {
+        console.error("Error al redirigir a Google OAuth:", err);
+        showToast("Error al conectar con Google. Intenta nuevamente.", "error");
+      }
+    });
+    container.appendChild(refreshBtn);
+
+    // Buscador
+    const searchWrapper = document.createElement("div");
+    searchWrapper.id = "google-search-wrapper";
+    Object.assign(searchWrapper.style, {
+      margin: "0 auto 0.5em auto",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5em",
+      maxWidth: "440px",
+    });
+
+    const searchIcon = document.createElement("i");
+    searchIcon.className = "fas fa-search";
+    searchIcon.style.color = "white";
+
+    const searchInput = document.createElement("input");
+    searchInput.id = "google-search-input";
+    searchInput.type = "text";
+    searchInput.placeholder = "Buscar contacto...";
+    Object.assign(searchInput.style, {
+      flex: "1",
+      padding: "0.3em 0.5em",
+      borderRadius: "0.3em",
+      border: "1px solid #ccc",
+      width: "100%",
+      boxSizing: "border-box",
+    });
+
+    searchInput.addEventListener("input", () => {
+      const termino = searchInput.value.trim().toLowerCase();
+      onBuscar(termino);
+    });
+
+    searchWrapper.appendChild(searchIcon);
+    searchWrapper.appendChild(searchInput);
+    container.appendChild(searchWrapper);
+  }
+}
+
+
+
+export function renderizarContactosConPaginado({
+  containerId,
+  contactos,
+  paginaActual,
+  pageSize,
+  columnas,
+  onAccionClick,
+  onPaginaChange
+}) {
+  const totalPaginas = Math.ceil(contactos.length / pageSize);
+  const desde = (paginaActual - 1) * pageSize;
+  const hasta = paginaActual * pageSize;
+  const visibles = contactos.slice(desde, hasta);
+
+  renderizarCabeceraContactos(containerId, columnas);
+  renderizarFilasContactos(containerId, visibles, onAccionClick);
+
+  const body = document.getElementById(`${containerId}-body`);
+  if (!body) return;
+
+  let paginador = document.getElementById(`paginador-${containerId}`);
+  if (paginador) paginador.remove();
+
+  paginador = document.createElement("div");
+  paginador.id = `paginador-${containerId}`;
+  paginador.style.textAlign = "center";
+  paginador.style.marginTop = "1em";
+  paginador.style.color = "white";
+
+  const crearBoton = (texto, habilitado, accion) => {
+    const btn = document.createElement("button");
+    btn.textContent = texto;
+    btn.disabled = !habilitado;
+    btn.style.margin = "0 0.3em";
+    btn.style.padding = "0.3em 0.7em";
+    btn.style.borderRadius = "0.3em";
+    btn.style.border = "none";
+    btn.style.cursor = habilitado ? "pointer" : "default";
+    btn.style.backgroundColor = habilitado ? "#007bff" : "#ccc";
+    btn.style.color = "white";
+    if (habilitado) btn.addEventListener("click", accion);
+    return btn;
+  };
+
+  paginador.appendChild(crearBoton("⏮", paginaActual > 1, () => onPaginaChange(1)));
+  paginador.appendChild(crearBoton("◀", paginaActual > 1, () => onPaginaChange(paginaActual - 1)));
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.min = 1;
+  input.max = totalPaginas;
+  input.value = paginaActual;
+  input.style.width = "40px";
+  input.style.textAlign = "center";
+  input.addEventListener("change", () => {
+    const nueva = parseInt(input.value);
+    if (!isNaN(nueva) && nueva >= 1 && nueva <= totalPaginas) {
+      onPaginaChange(nueva);
+    } else {
+      input.value = paginaActual;
+    }
+  });
+
+  const span = document.createElement("span");
+  span.textContent = ` / ${totalPaginas}`;
+  span.style.margin = "0 0.3em";
+
+  paginador.appendChild(input);
+  paginador.appendChild(span);
+  paginador.appendChild(crearBoton("▶", paginaActual < totalPaginas, () => onPaginaChange(paginaActual + 1)));
+  paginador.appendChild(crearBoton("⏭", paginaActual < totalPaginas, () => onPaginaChange(totalPaginas)));
+
+  body.appendChild(paginador);
+}
+
+
+export function sanitizarTelefonoE164(input) {
+  const limpio = input.trim().replace(/[^\d+]/g, ""); // 🔧 Elimina todo excepto dígitos y "+"
+  const soloNumeros = limpio.replace(/\D/g, ""); // solo números
+
+  // 🌍 Si empieza con 00 → internacional
+  if (soloNumeros.startsWith("00")) {
+    return "+" + soloNumeros.slice(2);
+  }
+
+  // ✅ Si empieza con +54 (Argentina), forzamos +549...
+  if (limpio.startsWith("+54")) {
+    const sinMas = soloNumeros; // Ej: "541134560947" o "5491151227864"
+    if (sinMas.startsWith("54") && !sinMas.startsWith("549")) {
+      return "+549" + sinMas.slice(2); // fuerza el 9 después de 54
+    }
+    return "+" + sinMas;
+  }
+
+  // 📱 Si empieza con 15 y tiene 11 dígitos → +549...
+  if (soloNumeros.startsWith("15") && soloNumeros.length === 11) {
+    return "+549" + soloNumeros.slice(2);
+  }
+
+  // 📲 Si empieza con 9 y tiene 11 dígitos → ya está bien
+  if (soloNumeros.startsWith("9") && soloNumeros.length === 11) {
+    return "+54" + soloNumeros;
+  }
+
+  // 🏠 Si empieza con 0 y tiene 11 dígitos → forzamos +549...
+  if (soloNumeros.startsWith("0") && soloNumeros.length === 11) {
+    return "+549" + soloNumeros.slice(1);
+  }
+
+  // 🧼 Si tiene 10 dígitos → asumimos móvil sin 0 ni 9 → le agregamos ambos
+  if (soloNumeros.length === 10) {
+    return "+549" + soloNumeros;
+  }
+
+  // Fallback genérico (último recurso)
+  return "+" + soloNumeros;
+}
 
 

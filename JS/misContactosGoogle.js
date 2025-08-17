@@ -3,256 +3,77 @@ import {
   showConfirm,
   showConfirmOkOnly,
   renderizarCabeceraContactos,
-  renderizarFilasContactos
-} from './utils.js';
-
+  renderizarFilasContactos,
+  renderizarContactosConPaginado,
+  renderizarBuscadorYBotonRefrescar,
+  sanitizarTelefonoE164
+} from "./utils.js";
 
 let contactosGoogleCargados = [];
 let contactosGoogleCargadosCompleta = [];
 
 // Estado global
-let googleContactsMemory = null;
-let terminoBusqueda = "";
-let googleContactPage = 1;
-const GOOGLE_PAGE_SIZE = 10;
-let abrirGoogleContactsAlVolver = false;
+let googleContacts = [];
+let paginaGoogle = 1;
+const PAGE_SIZE_GOOGLE = 10;
+let terminoGoogle = "";
 
-function inicializarGoogleContactList() {
-  const desde = (googleContactPage - 1) * GOOGLE_PAGE_SIZE;
-  const hasta = googleContactPage * GOOGLE_PAGE_SIZE;
+async function actualizarGoogleContacts() {
+  try {
+    // 2.1) Traer lista de Google
+    const res = await fetch(`${ROOT_URL}/api/google/tempContacts`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+    });
+    if (!res.ok) throw new Error("No se pudieron cargar contactos de Google");
+    const { contactos } = await res.json();
+    googleContacts = contactos;
 
-  const base = contactosGoogleCargadosCompleta || [];
-  const filtrados = terminoBusqueda
-    ? base.filter((c) => c.nombre.toLowerCase().includes(terminoBusqueda))
-    : base;
+    // 2.2) Renderizar buscador + refrescar
+    const container = document.getElementById("google-contacts-list");
+    renderizarBuscadorYBotonRefrescar({
+      container,
+      onBuscar: termino => {
+        terminoGoogle = termino;
+        paginaGoogle = 1;
+        renderGoogle();
+      },
+      onRefrescar: actualizarGoogleContacts
+    });
 
-  const visibles = filtrados.slice(desde, hasta);
-  contactosGoogleCargados = filtrados;
+    // 2.3) Filtrar por término
+    const filtrados = terminoGoogle
+      ? googleContacts.filter(c =>
+          c.nombre.toLowerCase().includes(terminoGoogle)
+        )
+      : googleContacts;
 
-
-
-  const container = document.getElementById("google-contacts-list");
-let body = document.getElementById("google-contacts-list-body");
-
-// (1) Si es la primera vez, agregamos botón Refrescar y el buscador:
-if (!container.querySelector("#google-refresh-btn")) {
-  // Botón Refrescar
-  const refreshBtn = document.createElement("button");
-  refreshBtn.id = "google-refresh-btn";
-  refreshBtn.innerHTML = `<i class="fas fa-sync-alt"></i> Refrescar`;
-  refreshBtn.title = "Volver a importar contactos desde Google";
-  refreshBtn.style.padding = "0.4em 0.6em";
-  refreshBtn.style.border = "none";
-  refreshBtn.style.borderRadius = "0.3em";
-  refreshBtn.style.backgroundColor = getComputedStyle(document.documentElement)
-    .getPropertyValue("--color-fondo")
-    .trim();
-  refreshBtn.style.color = "white";
-  refreshBtn.style.cursor = "pointer";
-  refreshBtn.style.marginBottom = "0.5em";
-  refreshBtn.style.display = "flex";
-  refreshBtn.style.alignItems = "center";
-  refreshBtn.style.gap = "0.4em";
-  refreshBtn.addEventListener("click", () => {
-    try {
-      const clientId = `${GOOGLE_CLIENT_ID}`;
-      const redirectUri = `${FRONT_URL}/pages/googleCallback.html`;
-      const scope = "https://www.googleapis.com/auth/contacts.readonly";
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(
-        scope
-      )}&access_type=online&prompt=consent`;
-      localStorage.setItem("abrirGoogleContactsAlVolver", "true");
-      window.location.href = authUrl;
-    } catch (err) {
-      console.error("Error al redirigir a Google OAuth:", err);
-      showToast("Error al conectar con Google. Intenta nuevamente.", "error");
-    }
-  });
-  container.appendChild(refreshBtn);
-
-  // Search
-  const searchWrapper = document.createElement("div");
-  searchWrapper.id = "google-search-wrapper";
-  searchWrapper.style.margin = "0 auto 0.5em auto";
-  searchWrapper.style.display = "flex";
-  searchWrapper.style.alignItems = "center";
-  searchWrapper.style.gap = "0.5em";
-  searchWrapper.style.maxWidth = "440px";
-  const searchIcon = document.createElement("i");
-  searchIcon.className = "fas fa-search";
-  searchIcon.style.color = "white";
-  const searchInput = document.createElement("input");
-  searchInput.id = "google-search-input";
-  searchInput.type = "text";
-  searchInput.placeholder = "Buscar contacto...";
-  searchInput.style.flex = "1";
-  searchInput.style.padding = "0.3em 0.5em";
-  searchInput.style.borderRadius = "0.3em";
-  searchInput.style.border = "1px solid #ccc";
-  searchInput.style.width = "100%";
-  searchInput.style.boxSizing = "border-box";
-  searchInput.addEventListener("input", () => {
-    terminoBusqueda = searchInput.value.trim().toLowerCase();
-    googleContactPage = 1;
-    inicializarGoogleContactList();
-  });
-  searchWrapper.appendChild(searchIcon);
-  searchWrapper.appendChild(searchInput);
-  container.appendChild(searchWrapper);
+    // 2.4) Renderizar tabla con paginado y callback de “Agregar”
+    renderizarContactosConPaginado({
+      containerId: "google-contacts-list",
+      contactos: filtrados,
+      paginaActual: paginaGoogle,
+      pageSize: PAGE_SIZE_GOOGLE,
+      columnas: [
+        "Nombre",
+        "Quiero que reciba mis mensajes",
+        "Quiero que me vea",
+        "Acción"
+      ],
+      onAccionClick: (contacto, mensajes, visibilidad) =>
+        agregarContactoDesdeGoogle(contacto, mensajes, visibilidad),
+      onPaginaChange: nueva => {
+        paginaGoogle = nueva;
+        renderGoogle();
+      }
+    });
+  } catch (err) {
+    showToast(err.message, "error");
+  }
 }
 
-// (2) Cabecera de columnas (utils) + body
-renderizarCabeceraContactos("google-contacts-list", [
-  "Nombre",
-  "Quiero que reciba mis mensajes",
-  "Quiero que me vea",
-  "Acción",
-]);
-body = document.getElementById("google-contacts-list-body");
-
-// (3) Limpiar body
-if (body) body.innerHTML = "";
-
-// (4) Filas (utils)
-renderizarFilasContactos(
-  "google-contacts-list",
-  visibles,
-  (c, mensajes, visibilidad) => agregarContactoDesdeGoogle(c, mensajes, visibilidad)
-);
-
-
-  const totalPaginas = Math.ceil(filtrados.length / GOOGLE_PAGE_SIZE);
-
-  // Contenedor de paginación
-  const paginacion = document.createElement("div");
-  paginacion.id = "paginacion-contactos";
-  paginacion.style.display = "flex";
-  paginacion.style.justifyContent = "center";
-  paginacion.style.alignItems = "center";
-  paginacion.style.gap = "0.5em";
-  paginacion.style.marginTop = "1em";
-  paginacion.style.color = "white";
-
-  // Botón ⏮ (Primera página)
-  const btnPrimera = document.createElement("button");
-  btnPrimera.innerHTML = "⏮";
-  btnPrimera.disabled = googleContactPage === 1;
-  btnPrimera.style.opacity = btnPrimera.disabled ? "0.5" : "1";
-  btnPrimera.addEventListener("click", () => {
-    googleContactPage = 1;
-    inicializarGoogleContactList();
-  });
-  paginacion.appendChild(btnPrimera);
-
-  // Botón ◀ (Anterior)
-  const btnAnterior = document.createElement("button");
-  btnAnterior.innerHTML = "◀";
-  btnAnterior.disabled = googleContactPage === 1;
-  btnAnterior.style.opacity = btnAnterior.disabled ? "0.5" : "1";
-  btnAnterior.addEventListener("click", () => {
-    if (googleContactPage > 1) {
-      googleContactPage--;
-      inicializarGoogleContactList();
-    }
-  });
-  paginacion.appendChild(btnAnterior);
-
-  // Cuadro editable de número de página
-  const inputPagina = document.createElement("input");
-  inputPagina.type = "number";
-  inputPagina.value = googleContactPage;
-  inputPagina.min = 1;
-  inputPagina.max = totalPaginas;
-  inputPagina.style.width = "3em";
-  inputPagina.style.textAlign = "center";
-  inputPagina.style.padding = "0.3em";
-  inputPagina.style.borderRadius = "0.3em";
-  inputPagina.style.border = "1px solid #ccc";
-  inputPagina.style.backgroundColor = "#f8f9fa";
-
-  inputPagina.addEventListener("change", () => {
-    let nuevaPagina = parseInt(inputPagina.value);
-    if (isNaN(nuevaPagina) || nuevaPagina < 1) nuevaPagina = 1;
-    if (nuevaPagina > totalPaginas) nuevaPagina = totalPaginas;
-    googleContactPage = nuevaPagina;
-    inicializarGoogleContactList();
-  });
-  paginacion.appendChild(inputPagina);
-
-  // Total de páginas
-  const totalSpan = document.createElement("span");
-  totalSpan.textContent = ` / ${totalPaginas}`;
-  paginacion.appendChild(totalSpan);
-
-  // Botón ▶ (Siguiente)
-  const btnSiguiente = document.createElement("button");
-  btnSiguiente.innerHTML = "▶";
-  btnSiguiente.disabled = googleContactPage >= totalPaginas;
-  btnSiguiente.style.opacity = btnSiguiente.disabled ? "0.5" : "1";
-  btnSiguiente.addEventListener("click", () => {
-    if (googleContactPage < totalPaginas) {
-      googleContactPage++;
-      inicializarGoogleContactList();
-    }
-  });
-  paginacion.appendChild(btnSiguiente);
-
-  // Botón ⏭ (Última página)
-  const btnUltima = document.createElement("button");
-  btnUltima.innerHTML = "⏭";
-  btnUltima.disabled = googleContactPage >= totalPaginas;
-  btnUltima.style.opacity = btnUltima.disabled ? "0.5" : "1";
-  btnUltima.addEventListener("click", () => {
-    googleContactPage = totalPaginas;
-    inicializarGoogleContactList();
-  });
-  paginacion.appendChild(btnUltima);
-
-  const body1 = document.getElementById("google-contacts-list-body");
-if (body1) body1.appendChild(paginacion);
-
-}
-
-function sanitizarTelefonoE164(input) {
-  const limpio = input.trim().replace(/[^\d+]/g, ""); // 🔧 Elimina todo excepto dígitos y "+"
-  const soloNumeros = limpio.replace(/\D/g, ""); // solo números
-
-  // 🌍 Si empieza con 00 → internacional
-  if (soloNumeros.startsWith("00")) {
-    return "+" + soloNumeros.slice(2);
-  }
-
-  // ✅ Si empieza con +54 (Argentina), forzamos +549...
-  if (limpio.startsWith("+54")) {
-    const sinMas = soloNumeros; // Ej: "541134560947" o "5491151227864"
-    if (sinMas.startsWith("54") && !sinMas.startsWith("549")) {
-      return "+549" + sinMas.slice(2); // fuerza el 9 después de 54
-    }
-    return "+" + sinMas;
-  }
-
-  // 📱 Si empieza con 15 y tiene 11 dígitos → +549...
-  if (soloNumeros.startsWith("15") && soloNumeros.length === 11) {
-    return "+549" + soloNumeros.slice(2);
-  }
-
-  // 📲 Si empieza con 9 y tiene 11 dígitos → ya está bien
-  if (soloNumeros.startsWith("9") && soloNumeros.length === 11) {
-    return "+54" + soloNumeros;
-  }
-
-  // 🏠 Si empieza con 0 y tiene 11 dígitos → forzamos +549...
-  if (soloNumeros.startsWith("0") && soloNumeros.length === 11) {
-    return "+549" + soloNumeros.slice(1);
-  }
-
-  // 🧼 Si tiene 10 dígitos → asumimos móvil sin 0 ni 9 → le agregamos ambos
-  if (soloNumeros.length === 10) {
-    return "+549" + soloNumeros;
-  }
-
-  // Fallback genérico (último recurso)
-  return "+" + soloNumeros;
+// 3) Separar render para reusarlo en paginado
+function renderGoogle() {
+  actualizarGoogleContacts();
 }
 
 function esTelefonoValido(numero) {
@@ -337,14 +158,13 @@ async function agregarContactoDesdeGoogle(c, mensajes, visibilidad) {
     // Sacarlo de la lista local
     contactosGoogleCargados = contactosGoogleCargados.filter(
       (contacto) =>
-        contacto.nombre.trim().toLowerCase() !==
-        c.nombre.trim().toLowerCase()
+        contacto.nombre.trim().toLowerCase() !== c.nombre.trim().toLowerCase()
     );
     contactosGoogleCargadosCompleta = contactosGoogleCargados.slice();
 
     // Reiniciar a página 1 y re-render
-    googleContactPage = 1;
-    inicializarGoogleContactList();
+    paginaGoogle = 1;
+    renderGoogle();
 
     // Refrescar "Mis Contactos"
     const res = await fetch(`${ROOT_URL}/api/contacts`, {
@@ -387,27 +207,27 @@ async function refrescarContactosGoogle() {
     );
 
     contactosGoogleCargadosCompleta = contactosFiltrados;
-    googleContactPage = 1;
-    inicializarGoogleContactList();
+    paginaGoogle = 1;
+    renderGoogle();
   } catch (err) {
     console.warn("Error al refrescar contactos de Google:", err.message);
   }
 }
 
-async function cargarContactosGoogleDesdeBackend() {
-  try {
-    const res = await fetch(`${ROOT_URL}/api/google/tempContacts`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    });
-    const { contactos } = await res.json();
-    return contactos;
-  } catch (err) {
-    console.warn("No se pudieron recuperar contactos desde el backend:", err);
-    return [];
-  }
-}
+// async function cargarContactosGoogleDesdeBackend() {
+//   try {
+//     const res = await fetch(`${ROOT_URL}/api/google/tempContacts`, {
+//       headers: {
+//         Authorization: `Bearer ${localStorage.getItem("token")}`,
+//       },
+//     });
+//     const { contactos } = await res.json();
+//     return contactos;
+//   } catch (err) {
+//     console.warn("No se pudieron recuperar contactos desde el backend:", err);
+//     return [];
+//   }
+// }
 
 window.addEventListener("DOMContentLoaded", async () => {
   // 🔒 Verifica que esté logueado
@@ -494,8 +314,8 @@ window.addEventListener("DOMContentLoaded", async () => {
       );
 
       contactosGoogleCargadosCompleta = contactosFiltrados;
-      googleContactPage = 1;
-      inicializarGoogleContactList();
+      paginaGoogle = 1;
+      renderGoogle();
     } catch (err) {
       console.error("Error al procesar contactos de Google:", err);
       showToast("No se pudieron cargar los contactos desde Google.", "error");
