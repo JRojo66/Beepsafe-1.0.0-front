@@ -1,3 +1,8 @@
+// import { ROOT_URL } from "./config.js";
+import {
+  showConfirmOkOnly
+} from "./utils.js";
+
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".ojo").forEach((icon) => {
     icon.addEventListener("click", () => {
@@ -158,7 +163,7 @@ document
       .catch((error) => {
         console.error("Error en reset de contraseña:", error);
         showConfirmOkOnly(
-          "❌ No se pudo enviar el email. Por favor, intentá más tarde."
+          `❌ ${error.message}`
         );
       })
       .finally(() => {

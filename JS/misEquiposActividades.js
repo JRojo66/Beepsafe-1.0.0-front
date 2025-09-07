@@ -10,6 +10,10 @@
 //   .catch((error) => {
 //     console.error("Error al obtener actividades del usuario:", error);
 //   });
+import {
+  showToast,
+  showConfirm
+} from "./utils.js";
 
 // Verifica que esté logueado
 window.addEventListener("DOMContentLoaded", async () => {

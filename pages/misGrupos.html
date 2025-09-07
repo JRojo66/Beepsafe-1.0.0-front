@@ -17,7 +17,7 @@
                 <div class="opciones">Mis Grupos</div>
             </div>
         </a>
-        <p class="encabezadoBajada">Estos son los grupos a quienes enviaras tus mensajes y que podrán ver que estás realizando una actividad. Los grupos son agrupaciones de contactos. Los permisos de los grupos mandan por encima de los permisos de los contactos</p>
+        <p class="encabezadoBajada">Estos son los grupos a quienes enviaras tus mensajes y que podrán ver que estás realizando una actividad. Los grupos son agrupaciones de contactos.</p>
         <div class="break"></div>
 
         <!-- Mis Grupos -->
@@ -34,17 +34,20 @@
         </div>
         <div id="mis-contactos-manuales-list" class="contactos-lista" style="display: none;">
             <form id="form-agregar-contacto" class="add-activity-form">
-                <!-- Nombre -->
-                <input 
-                    type="text" 
-                    id="nombre-grupo" 
-                    class="input-activity"
-                    required 
-                    placeholder="Nombre del grupo"
-                >
+                <div class="group-name-input-container">
+                    <!-- Nombre -->
+                    <input 
+                        type="text" 
+                        id="nombre-grupo" 
+                        class="input-activity"
+                        required 
+                        placeholder="Nombre del grupo"
+                    >
+                    <button type="button" id="crear-grupo-btn" class="btn-crear-grupo">Crear</button>
+                </div>
 
                 <!-- Teléfono -->
-                <div class="phone-input-container">
+                <!-- <div class="phone-input-container">
                     <span class="phone-prefix">+549</span>
                     <input 
                         type="tel" 
@@ -53,10 +56,10 @@
                         required 
                         placeholder="11 1234 5678"
                     >
-                </div>
+                </div> -->
 
                 <!-- Checkboxes -->
-                <div class="checkboxes-container">
+                <!-- <div class="checkboxes-container">
                     <label class="checkbox-label">
                         <input class="checkbox-input" type="checkbox" id="recibir-mensajes" checked style="transform: scale(1.2);">
                         <span>Quiero que reciba mis mensajes</span>
@@ -66,14 +69,14 @@
                         <input class="checkbox-input" type="checkbox" id="que-me-vea" checked style="transform: scale(1.2);">
                         <span>Quiero que me vea</span>
                     </label>
-                </div>
+                </div> -->
 
                 <!-- Botones -->
-                <div class="buttons-container">
+                <!-- <div class="buttons-container">
                     <button type="submit" id="cancelar-agregar-contacto" class="btn-cancelar-contacto">Cancelar</button>
                     <button type="submit" id="guardar-contacto" class="btn-guardar-contacto">Agregar</button>
 
-                </div>
+                </div> -->
             </form>
         </div>
 
