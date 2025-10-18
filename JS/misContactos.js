@@ -1,9 +1,9 @@
 import {
   showToast,
   showConfirm,
-  showConfirmOkOnly,
-  renderizarCabeceraContactos,
-  renderizarFilasContactos
+  //showConfirmOkOnly,
+  //renderizarCabeceraContactos,
+  //renderizarFilasContactos
 } from './utils.js';
 
 
@@ -101,7 +101,7 @@ async function renderizarCabeceraMisContactos(contactos) {
 
 function renderizarFilasMisContactos() {
   const containerMC = document.getElementById("mis-contactos-list");
-  const body = document.getElementById("mis-contacts-body");
+  //const body = document.getElementById("mis-contacts-body");
   const rows = containerMC.querySelectorAll(".contacto-row");
   rows.forEach((row) => row.remove()); // Borra filas renderizadas
 
@@ -181,21 +181,21 @@ function renderizarFilasMisContactos() {
 
     // Actualiza los valores de visibilidad en la base
 
-    checkboxMensajesMC.addEventListener("change", () => {
-      actualizarContacto(
-        c.nombre,
-        checkboxMensajesMC.checked,
-        checkboxVisibilidadMC.checked
-      );
-    });
+    // checkboxMensajesMC.addEventListener("change", () => {
+    //   actualizarContacto(
+    //     c.nombre,
+    //     checkboxMensajesMC.checked,
+    //     checkboxVisibilidadMC.checked
+    //   );
+    // });
 
-    checkboxVisibilidadMC.addEventListener("change", () => {
-      actualizarContacto(
-        c.nombre,
-        checkboxMensajesMC.checked,
-        checkboxVisibilidadMC.checked
-      );
-    });
+    // checkboxVisibilidadMC.addEventListener("change", () => {
+    //   actualizarContacto(
+    //     c.nombre,
+    //     checkboxMensajesMC.checked,
+    //     checkboxVisibilidadMC.checked
+    //   );
+    // });
 
     // 🗑️ Botón para eliminar contacto
     const btnEliminar = document.createElement("button");
@@ -254,8 +254,7 @@ function renderizarFilasMisContactos() {
 
     row.appendChild(eliminarCol);
 
-    const body = document.getElementById("mis-contacts-body");
-    (body || containerMC).appendChild(row);
+    containerMC.appendChild(row);
 
     renderizarControlesPaginadoMisContactos();
   });

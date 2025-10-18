@@ -27,58 +27,50 @@
         </div>
         <div id="mis-contactos-list" class="contactos-lista" style="display: none;"></div>      <!-- Volver y revisar -->
 
-        <!-- Agregar contactos manualmente -->
-        <div id="toggleContactosManual" class="accordion-header-activity">
+        <!-- Agregar grupos -->
+        <div id="toggleGrupos" class="accordion-header-activity">
             <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
             <span>Crear Grupo</span>
         </div>
-        <div id="mis-contactos-manuales-list" class="contactos-lista" style="display: none;">
-            <form id="form-agregar-contacto" class="add-activity-form">
-                <div class="group-name-input-container">
-                    <!-- Nombre -->
-                    <input 
-                        type="text" 
-                        id="nombre-grupo" 
-                        class="input-activity"
-                        required 
-                        placeholder="Nombre del grupo"
-                    >
-                    <button type="button" id="crear-grupo-btn" class="btn-crear-grupo">Crear</button>
-                </div>
-
-                <!-- Teléfono -->
-                <!-- <div class="phone-input-container">
-                    <span class="phone-prefix">+549</span>
-                    <input 
-                        type="tel" 
-                        id="telefono-contacto" 
-                        class="input-activity"
-                        required 
-                        placeholder="11 1234 5678"
-                    >
-                </div> -->
-
-                <!-- Checkboxes -->
-                <!-- <div class="checkboxes-container">
-                    <label class="checkbox-label">
-                        <input class="checkbox-input" type="checkbox" id="recibir-mensajes" checked style="transform: scale(1.2);">
-                        <span>Quiero que reciba mis mensajes</span>
-                    </label>
-                    
-                    <label class="checkbox-label">
-                        <input class="checkbox-input" type="checkbox" id="que-me-vea" checked style="transform: scale(1.2);">
-                        <span>Quiero que me vea</span>
-                    </label>
-                </div> -->
-
-                <!-- Botones -->
-                <!-- <div class="buttons-container">
-                    <button type="submit" id="cancelar-agregar-contacto" class="btn-cancelar-contacto">Cancelar</button>
-                    <button type="submit" id="guardar-contacto" class="btn-guardar-contacto">Agregar</button>
-
-                </div> -->
-            </form>
-        </div>
+            <div id="mis-grupos-list" class="contactos-lista" style="display: none;">
+                <form id="form-agregar-contacto" class="add-activity-form">
+                    <div class="group-name-section"> 
+                        <div class="group-name-input-container" id="group-name-input-container">
+                            <div class="stacked-inputs-container">
+                                <input 
+                                    type="text" 
+                                    id="nombre-grupo" 
+                                    class="input-activity"
+                                    required 
+                                    placeholder="Nombre del grupo"
+                                >
+                                <input 
+                                    type="text" 
+                                    id="actividad" 
+                                    class="input-activity"
+                                    required 
+                                    placeholder="Actividad"
+                                >
+                            </div>
+                            <button type="button" id="crear-grupo-btn" class="btn-crear-grupo">Crear</button>
+                        </div>
+                        <div id="add-contacts-to-group-section" class="contact-selection-section">
+                            <p class="section-title">Selecciona contactos para el grupo:</p>
+                            <div id="group-list-to-add">
+                                <!-- <div id="contact-list-to-add"> -->
+                                <div id="mis-contactos-list" class="contactos-lista" style="display: none;">
+                                    
+                                </div>
+                            </div>
+                        </div>
+                        <div class="buttons-container" style="margin-top: 20px;">
+                            <button type="button" id="finalizar-creacion-grupo" class="btn-guardar-contacto">Finalizar Creación</button>
+                            <button type="button" id="cancelar-creacion-grupo" class="btn-cancelar-contacto">Cancelar</button>
+                        </div>                    
+                    </div>
+                </form>
+            </div>
+    </div>
 
        
 

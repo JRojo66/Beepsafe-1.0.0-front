@@ -2,8 +2,8 @@ import {
   showToast,
   showConfirm,
   showConfirmOkOnly,
-  renderizarCabeceraContactos,
-  renderizarFilasContactos
+  //renderizarCabeceraContactos,
+  //renderizarFilasContactos
 } from './utils.js';
 
 const misContactosList = document.getElementById("mis-contactos-manuales-list");

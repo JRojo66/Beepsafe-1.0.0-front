@@ -1859,12 +1859,23 @@ margin: 10px 0;
   gap: 10px;
 }
 
+.stacked-inputs-container {
+    display: flex;
+    flex-direction: column; /* Apila los inputs verticalmente */
+    flex-grow: 1; /* Permite que este contenedor ocupe el espacio disponible */
+    /*gap: 10px;  Espacio entre los dos inputs apilados */
+}
+
+.input-activity{
+  width: 100%;
+}
+
 /* Estilos para el nuevo botón "Crear" */
 .btn-crear-grupo {
-  background-color: var(--color-fondo); /* mismo fondo que el input */
-  color: white;
+  background-color: #49d1b7  ; /* mismo fondo que el input */
+  color: var(--color-fondo);
   box-sizing: border-box;  /* height incluye padding + border */
-  height: 24px;            /* mismo alto */
+  height: auto;            /* mismo alto */
   line-height: 24px;       /* centra el texto verticalmente */
   margin: 4px 0;           /* mismos márgenes verticales */
   border: 1px solid white; /* ambos con borde de 1px para paridad */
