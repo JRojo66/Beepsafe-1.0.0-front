@@ -6,7 +6,7 @@ import {
   renderizarFilasContactos,
   renderizarContactosConPaginado,
   renderizarBuscadorYBotonRefrescar,
-  sanitizarTelefonoE164
+  sanitizarTelefonoE164,
 } from "./utils.js";
 
 let contactosGoogleCargados = [];
@@ -22,27 +22,41 @@ async function actualizarGoogleContacts() {
   try {
     // 2.1) Traer lista de Google
     const res = await fetch(`${ROOT_URL}/api/google/tempContacts`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     });
     if (!res.ok) throw new Error("No se pudieron cargar contactos de Google");
     const { contactos } = await res.json();
     googleContacts = contactos;
 
+    // 🆕 Filtrar los que ya existen en Mis Contactos
+    const resMis = await fetch(`${ROOT_URL}/api/contacts`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
+    const { contactos: contactosGuardados } = await resMis.json();
+    const nombresGuardados = new Set(
+      contactosGuardados.map((c) => c.nombre.trim().toLowerCase())
+    );
+
+    // Filtrar contactos de Google que no estén ya guardados
+    googleContacts = googleContacts.filter(
+      (c) => !nombresGuardados.has(c.nombre.trim().toLowerCase())
+    );
+
     // 2.2) Renderizar buscador + refrescar
     const container = document.getElementById("google-contacts-list");
     renderizarBuscadorYBotonRefrescar({
       container,
-      onBuscar: termino => {
+      onBuscar: (termino) => {
         terminoGoogle = termino;
         paginaGoogle = 1;
         renderGoogle();
       },
-      onRefrescar: actualizarGoogleContacts
+      onRefrescar: actualizarGoogleContacts,
     });
 
     // 2.3) Filtrar por término
     const filtrados = terminoGoogle
-      ? googleContacts.filter(c =>
+      ? googleContacts.filter((c) =>
           c.nombre.toLowerCase().includes(terminoGoogle)
         )
       : googleContacts;
@@ -57,14 +71,14 @@ async function actualizarGoogleContacts() {
         "Nombre",
         "Quiero que reciba mis mensajes",
         "Quiero que me vea",
-        "Acción"
+        "Acción",
       ],
       onAccionClick: (contacto, mensajes, visibilidad) =>
         agregarContactoDesdeGoogle(contacto, mensajes, visibilidad),
-      onPaginaChange: nueva => {
+      onPaginaChange: (nueva) => {
         paginaGoogle = nueva;
         renderGoogle();
-      }
+      },
     });
   } catch (err) {
     showToast(err.message, "error");
@@ -175,6 +189,11 @@ async function agregarContactoDesdeGoogle(c, mensajes, visibilidad) {
     const { contactos: nuevosContactos } = await res.json();
     if (typeof renderizarMisContactos === "function") {
       renderizarMisContactos(nuevosContactos);
+      showToast(`Contacto ${c.nombre} agregado con éxito.`, "success");
+      //Refrescar la lista de Google, lo que la forzará a no mostrar el contacto que acabamos de guardar.
+      if (typeof refrescarContactosGoogle === "function") {
+        await refrescarContactosGoogle();
+      }
     }
   } catch (err) {
     showToast("Error al conectar con el servidor", "error");
@@ -309,11 +328,8 @@ window.addEventListener("DOMContentLoaded", async () => {
         contactosGuardados.map((c) => c.nombre.trim().toLowerCase())
       );
 
-      const contactosFiltrados = contactosGoogle.filter(
-        (c) => !nombresGuardados.has(c.nombre.trim().toLowerCase())
-      );
-
-      contactosGoogleCargadosCompleta = contactosFiltrados;
+      contactosGoogleCargadosCompleta = contactosGoogle;
+      
       paginaGoogle = 1;
       renderGoogle();
     } catch (err) {

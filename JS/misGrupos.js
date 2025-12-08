@@ -1,28 +1,86 @@
-import {
-  showToast,
-  showConfirm,
-  //showConfirmOkOnly,
-  //renderizarCabeceraContactos,
-  //renderizarFilasContactos,
-} from "./utils.js";
+// misGrupos.js (CORREGIDO)
+import { showToast, showConfirm } from "./utils.js";
 
-// Dedine los parámetros para las funciones de renderizado y paginado
-let contactosGrupoCompleta = []; // todos los contactos filtrados
+// --- Variables globales para PAGINACIÓN Y BÚSQUEDA de "Crear Grupo" ---
+let contactosGrupoCompleta = [];
 let paginaActualGrupo = 1;
 const PAGE_SIZE_GRUPO = 10;
 let terminoBusquedaGrupo = "";
 
-// define las mismas funciones renderizarContactosParaGrupo, renderizarCabeceraParaGrupo, renderizarFilasParaGrupo, renderizarControlesPaginadoParaGrupo y actualizarContactoParaGrupo que en misContactos.js
+
+// Referencias a los contenedores DOM específicos para la selección de contactos para un grupo
+let listaContactosParaGrupoContainer = null;
+let listaContactosParaGrupoBody = null;
+
+window.loadContactsForGroupSelection = async function () {
+  try {
+    const res = await fetch(`${ROOT_URL}/api/contacts`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    if (!res.ok) throw new Error("Error al cargar contactos del usuario.");
+    const { contactos } = await res.json();
+
+    // Aplica la búsqueda actual si hay un término
+    const filtradosPorBusqueda = terminoBusquedaGrupo
+      ? contactos.filter(
+          (c) =>
+            c.nombre.toLowerCase().includes(terminoBusquedaGrupo) ||
+            (c.telefono && c.telefono.includes(terminoBusquedaGrupo))
+        )
+      : contactos;
+
+    renderizarContactosParaGrupo(filtradosPorBusqueda);
+  } catch (err) {
+    console.error("Error al cargar contactos para selección:", err.message);
+    showToast("Error al cargar tus contactos para selección.", "error");
+  }
+};
+
 function renderizarContactosParaGrupo(contactos) {
-  contactosGrupoCompleta = contactosGrupoCompleta;
+  contactosGrupoCompleta = contactos;
   paginaActualGrupo = 1;
-  renderizarCabeceraParaGrupo(contactos);
-  renderizarFilasParaGrupo(); // sin parámetro
+  renderizarCabeceraParaGrupo();
+  renderizarFilasParaGrupo();
 }
 
-async function renderizarCabeceraParaGrupo(contactos) {
-  const containerMC = document.getElementById("mis-contactos-list");
-  if (containerMC.querySelector(".contactos-header")) return; // Si la cabecera está renderizada, terminar. contactos-header es la clase con la que están creadas las columnas de la cabecera
+async function renderizarCabeceraParaGrupo() {
+  listaContactosParaGrupoContainer = document.getElementById(
+    "lista-contactos-para-grupo"
+  );
+  if (!listaContactosParaGrupoContainer) {
+    console.error("Contenedor #lista-contactos-para-grupo no encontrado.");
+    return;
+  }
+
+  // Si la cabecera ya está renderizada, terminar.
+  let existingHeaderWrapper = listaContactosParaGrupoContainer.querySelector(
+    ".contactos-header-wrapper-grupo"
+  );
+  if (existingHeaderWrapper) {
+    const searchInput =
+      existingHeaderWrapper.querySelector("input[type='text']");
+    if (searchInput) {
+      searchInput.value = terminoBusquedaGrupo;
+    }
+    return;
+  }
+
+  // Limpia cualquier paginador anterior
+  let existingPaginador = listaContactosParaGrupoContainer.querySelector(
+    "#paginador-para-grupo"
+  );
+  if (existingPaginador) {
+    existingPaginador.remove();
+  }
+
+  const headerWrapper = document.createElement("div");
+  headerWrapper.classList.add(
+    "contactos-header-wrapper",
+    "contactos-header-wrapper-grupo"
+  );
+  headerWrapper.style.backgroundColor = "rgba(0,0,0,0.2)"; // Estilo para diferenciar
 
   const searchWrapper = document.createElement("div");
   searchWrapper.style.margin = "0 auto 0.5em auto";
@@ -44,10 +102,11 @@ async function renderizarCabeceraParaGrupo(contactos) {
   searchInput.style.border = "1px solid #ccc";
   searchInput.style.width = "100%";
   searchInput.style.boxSizing = "border-box";
+  searchInput.value = terminoBusquedaGrupo;
 
   searchWrapper.appendChild(searchIcon);
   searchWrapper.appendChild(searchInput);
-  containerMC.appendChild(searchWrapper);
+  headerWrapper.appendChild(searchWrapper);
 
   const header = document.createElement("div");
   header.classList.add("contactos-header");
@@ -60,15 +119,16 @@ async function renderizarCabeceraParaGrupo(contactos) {
 
   const columnas = [
     "Nombre",
-    "Quiero que reciba mis mensajes",
-    "Quiero que me vea",
-    "Eliminar",
+    "Seleccionar",
+    "Administrador",
+    // "Mensajes",
+    // "Visibilidad",
   ];
 
   columnas.forEach((title, i) => {
     const col = document.createElement("div");
     col.textContent = title;
-    col.style.flex = i === 0 ? "2" : "1";
+    col.style.flex = i === 0 ? "2" : "1"; // Nombre es más ancho
     col.style.textAlign = "center";
     col.style.minWidth = "0";
     col.style.overflow = "hidden";
@@ -76,34 +136,39 @@ async function renderizarCabeceraParaGrupo(contactos) {
     header.appendChild(col);
   });
 
-  containerMC.appendChild(header);
+  headerWrapper.appendChild(header);
+  listaContactosParaGrupoContainer.appendChild(headerWrapper);
 
-  if (!containerMC.querySelector("#mis-contactos-body")) {
-    // ***
-    const body = document.createElement("div");
-    body.id = "mis-contactos-body";
-    containerMC.appendChild(body);
+  listaContactosParaGrupoBody = listaContactosParaGrupoContainer.querySelector(
+    "#lista-contactos-para-grupo-body"
+  );
+  if (!listaContactosParaGrupoBody) {
+    listaContactosParaGrupoBody = document.createElement("div");
+    listaContactosParaGrupoBody.id = "lista-contactos-para-grupo-body";
+    listaContactosParaGrupoContainer.appendChild(listaContactosParaGrupoBody);
   }
 
-  searchInput.addEventListener("input", () => {
-    // Guarda el valor del cuadro de texto
+  searchInput.addEventListener("input", async () => {
     terminoBusquedaGrupo = searchInput.value.trim().toLowerCase();
-
-    const termino = searchInput.value.trim().toLowerCase();
-    const filtrados = termino
-      ? contactos.filter((c) => c.nombre.toLowerCase().includes(termino))
-      : contactos;
-    contactosGrupoCompleta = filtrados;
-    paginaActualGrupo = 1;
-    renderizarFilasParaGrupo();
+    await window.loadContactsForGroupSelection();
   });
 }
 
 function renderizarFilasParaGrupo() {
-  const containerMC = document.getElementById("mis-contactos-list");
-  const body = document.getElementById("mis-contacts-body");
-  const rows = containerMC.querySelectorAll(".contacto-row");
-  rows.forEach((row) => row.remove()); // Borra filas renderizadas
+  if (!listaContactosParaGrupoBody) {
+    console.error(
+      "Contenedor #lista-contactos-para-grupo-body no encontrado para renderizar filas."
+    );
+    return;
+  }
+
+  listaContactosParaGrupoBody.innerHTML = ""; // Borra filas renderizadas
+
+  if (contactosGrupoCompleta.length === 0) {
+    listaContactosParaGrupoBody.innerHTML = `<p style="color:white; text-align:center; padding:1em;">No se encontraron contactos para seleccionar.</p>`;
+    renderizarControlesPaginadoParaGrupo();
+    return;
+  }
 
   const desde = (paginaActualGrupo - 1) * PAGE_SIZE_GRUPO;
   const hasta = paginaActualGrupo * PAGE_SIZE_GRUPO;
@@ -111,204 +176,148 @@ function renderizarFilasParaGrupo() {
 
   visibles.forEach((c) => {
     const row = document.createElement("div");
-    row.classList.add("contacto-row");
+    row.classList.add("contacto-row-grupo");
     row.style.display = "flex";
     row.style.alignItems = "center";
     row.style.marginBottom = "0.5em";
     row.style.gap = "1em";
     row.style.color = "white";
+    row.style.flexWrap = "wrap";
+
+    // Checkbox de selección para añadir al grupo
+    const checkboxSeleccionGrupo = document.createElement("input");
+    checkboxSeleccionGrupo.type = "checkbox";
+    checkboxSeleccionGrupo.name = `select-contact-${c._id}`;
+    checkboxSeleccionGrupo.className = "checkbox-input-grupo";
+    // Aquí podrías comprobar si el contacto ya está seleccionado en la lista temporal del formulario de grupo
+    // checkboxSeleccionGrupo.checked = selectedContactIds.includes(c._id);
+
+    const seleccionCol = document.createElement("div");
+    seleccionCol.appendChild(checkboxSeleccionGrupo);
+    seleccionCol.style.flex = "1";
+    seleccionCol.style.textAlign = "center";
+
+    // // 🆕 Checkbox de Administrador
+    // const checkboxAdmin = document.createElement("input");
+    // checkboxAdmin.type = "checkbox";
+    // checkboxAdmin.name = `admin-contact-${c._id}`;
+    // checkboxAdmin.className = "checkbox-input-grupo-admin";
+    // checkboxAdmin.disabled = true; // ⚠️ Deshabilitado por defecto
+
+    // const adminCol = document.createElement("div");
+    // adminCol.appendChild(checkboxAdmin);
+    // adminCol.style.flex = "1";
+    // adminCol.style.textAlign = "center";
+
+    // // Lógica de habilitación/deshabilitación
+    // checkboxSeleccionGrupo.addEventListener("change", () => {
+    //   const isChecked = checkboxSeleccionGrupo.checked;
+    //   checkboxAdmin.disabled = !isChecked; // Habilita si está seleccionado
+    //   if (!isChecked) {
+    //     checkboxAdmin.checked = false; // Desmarca si se deselecciona el contacto
+    //   }
+    // });
+    // // Fin de la lógica de habilitación/deshabilitación
 
     const nombreColMC = document.createElement("div");
     nombreColMC.style.flex = "2";
+    nombreColMC.style.minWidth = "120px";
+    nombreColMC.style.textAlign = "left";
 
-    // Línea del nombre
     const nombreSpan = document.createElement("div");
     nombreSpan.textContent = c.nombre;
     nombreSpan.style.fontWeight = "bold";
 
-    // Línea del teléfono
     const telefonoSpan = document.createElement("div");
     telefonoSpan.textContent = c.telefono || "(sin teléfono)";
     telefonoSpan.style.fontSize = "0.9em";
     telefonoSpan.style.opacity = "0.8";
 
-    // Insertar ambas líneas en la columna
     nombreColMC.appendChild(nombreSpan);
     nombreColMC.appendChild(telefonoSpan);
 
-    const checkboxMensajesMC = document.createElement("input");
-    checkboxMensajesMC.type = "checkbox";
-    checkboxMensajesMC.name = "recibirMensajes";
-    checkboxMensajesMC.className = "checkbox-input"; 
-    checkboxMensajesMC.checked = c.mensajes !== false; // **
+    // Mostrar el estado de mensajes y visibilidad (solo visualmente, sin interacción aquí)
+    // const mensajesStatus = document.createElement("div");
+    // mensajesStatus.textContent = c.messages ? "Sí" : "No"; // Asumo 'messages' del backend
+    // mensajesStatus.style.flex = "1";
+    // mensajesStatus.style.textAlign = "center";
 
-    const mensajesColMC = document.createElement("div");
-    mensajesColMC.appendChild(checkboxMensajesMC);
-    mensajesColMC.style.flex = "1";
-    mensajesColMC.style.textAlign = "center";
-
-    const checkboxVisibilidadMC = document.createElement("input");
-    checkboxVisibilidadMC.type = "checkbox";
-    checkboxVisibilidadMC.name = "verme";
-    checkboxVisibilidadMC.className = "checkbox-input";
-    checkboxVisibilidadMC.checked = c.visibilidad !== false;
-
-    const vermeColMC = document.createElement("div");
-    vermeColMC.appendChild(checkboxVisibilidadMC);
-    vermeColMC.style.flex = "1";
-    vermeColMC.style.textAlign = "center";
-
-    // Actualiza los valores de mensajes en la base
-    checkboxMensajesMC.addEventListener("change", () => {
-      actualizarContactoParaGrupo(
-        c.nombre,
-        checkboxMensajesMC.checked,
-        checkboxVisibilidadMC.checked
-      );
-    });
-
-    checkboxVisibilidadMC.addEventListener("change", () => {
-      actualizarContactoParaGrupo(
-        c.nombre,
-        checkboxMensajesMC.checked,
-        checkboxVisibilidadMC.checked
-      );
-    });
+    // const visibilidadStatus = document.createElement("div");
+    // visibilidadStatus.textContent = c.visibility ? "Sí" : "No"; // Asumo 'visibility' del backend
+    // visibilidadStatus.style.flex = "1";
+    // visibilidadStatus.style.textAlign = "center";
 
     row.appendChild(nombreColMC);
-    row.appendChild(mensajesColMC);
-    row.appendChild(vermeColMC);
+    row.appendChild(seleccionCol);
+    // row.appendChild(mensajesStatus);
+    // row.appendChild(visibilidadStatus);
 
-    // Actualiza los valores de visibilidad en la base
-
-    checkboxMensajesMC.addEventListener("change", () => {
-      actualizarContactoParaGrupo(
-        c.nombre,
-        checkboxMensajesMC.checked,
-        checkboxVisibilidadMC.checked
-      );
-    });
-
-    checkboxVisibilidadMC.addEventListener("change", () => {
-      actualizarContactoParaGrupo(
-        c.nombre,
-        checkboxMensajesMC.checked,
-        checkboxVisibilidadMC.checked
-      );
-    });
-
-    // 🗑️ Botón para eliminar contacto
-    const btnEliminar = document.createElement("button");
-    btnEliminar.innerHTML = `<i class="fas fa-trash-alt"></i>`;
-    btnEliminar.title = "Eliminar contacto";
-    btnEliminar.style.background = "none";
-    btnEliminar.style.border = "none";
-    btnEliminar.style.color = "white";
-    btnEliminar.style.cursor = "pointer";
-    btnEliminar.style.fontSize = "1.2em";
-
-    const eliminarCol = document.createElement("div");
-    eliminarCol.style.flex = "1";
-    eliminarCol.style.textAlign = "center";
-    eliminarCol.appendChild(btnEliminar);
-
-    btnEliminar.addEventListener("click", async () => {
-      const confirmar = await showConfirm(`¿Eliminar a ${c.nombre}?`);
-      if (!confirmar) return;
-
-      try {
-        const response = await fetch(
-          `${ROOT_URL}/api/contacts?nombre=${encodeURIComponent(c.nombre)}`,
-          {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          const err = await response.json();
-          showToast("Error: " + err.error, "error");
-          return;
-        }
-
-        // Recargar la lista "Mis Contactos"
-        const res = await fetch(`${ROOT_URL}/api/contacts`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        const { contactos } = await res.json();
-        // 🔁 Refrescar lista de contactos de Google
-        if (typeof refrescarContactosGoogle === "function") {
-          await refrescarContactosGoogle(); // <- importante usar await para que se actualice a tiempo
-        }
-        // 🔁 Restaurar en contactosGoogleCargados
-        renderizarContactosParaGrupo(contactos, "mis-contactos-list");
-      } catch (err) {
-        console.error("Error al eliminar contacto:", err);
-        showToast("No se pudo eliminar el contacto", "error");
-      }
-    });
-
-    row.appendChild(eliminarCol);
-
-    const body = document.getElementById("mis-contacts-body");
-    (body || containerMC).appendChild(row);
-
-    renderizarControlesPaginadoParaGrupo();
+    listaContactosParaGrupoBody.appendChild(row);
   });
+
+  renderizarControlesPaginadoParaGrupo();
 }
 
-async function actualizarContactoParaGrupo(nombre, mensajes, visibilidad) {
+// En el contexto de MIS GRUPOS, esta función debería actualizar la información de un GRUPO,
+// o si es para contactos seleccionados para un grupo, debería ir en el código de selección
+// de contactos, y no tener el mismo nombre que la de mis contactos.
+// Por ahora, la dejaré como está, pero la renombro para evitar confusión y uso `_id`.
+async function actualizarContactoParaGrupo(contactId, messages, visibility) {
   try {
-    const response = await fetch(`${ROOT_URL}/api/contacts`, {
+    const response = await fetch(`${ROOT_URL}/api/contacts/${contactId}`, {
+      // Asumo PUT /api/contacts/:id
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-      body: JSON.stringify({ nombre, mensajes, visibilidad }),
+      body: JSON.stringify({ messages, visibility }),
     });
 
     if (!response.ok) {
       const err = await response.json();
       showToast("Error al actualizar contacto: " + err.error, "error");
+    } else {
+      showToast(
+        "Preferencias del contacto actualizadas (en grupo).",
+        "success"
+      );
     }
   } catch (err) {
-    console.error("Error al actualizar contacto:", err);
+    console.error("Error al actualizar contacto para grupo:", err);
     showToast("No se pudo conectar con el servidor", "error");
   }
 }
 
 function renderizarControlesPaginadoParaGrupo() {
-  const container =
-    document.getElementById("mis-contacts-body") ||
-    document.getElementById("mis-contactos-list");
-  let paginador = document.getElementById("paginador-mis-contactos");
-  if (paginador) paginador.remove(); // borra si ya existe
+  if (!listaContactosParaGrupoContainer) return;
+
+  let paginador = listaContactosParaGrupoContainer.querySelector(
+    "#paginador-para-grupo"
+  );
+  if (paginador) paginador.remove();
 
   const totalPaginas = Math.ceil(
-    contactosMisContactosCompleta.length / PAGE_SIZE_GRUPO
+    contactosGrupoCompleta.length / PAGE_SIZE_GRUPO
   );
   if (totalPaginas <= 1) return;
 
   paginador = document.createElement("div");
-  paginador.id = "paginador-mis-contactos";
+  paginador.id = "paginador-para-grupo";
   paginador.style.textAlign = "center";
   paginador.style.marginTop = "1em";
+  paginador.style.color = "white";
 
   const crearBoton = (texto, habilitado, accion) => {
     const btn = document.createElement("button");
     btn.textContent = texto;
     btn.disabled = !habilitado;
     btn.style.margin = "0 0.3em";
-    btn.style.padding = "0.3em 0.7em";
+    btn.style.padding = "0.3em 0.3em";
     btn.style.borderRadius = "0.3em";
     btn.style.border = "none";
     btn.style.cursor = habilitado ? "pointer" : "default";
-    btn.style.backgroundColor = habilitado ? "#007bff" : "#ccc";
+    btn.style.backgroundColor = habilitado ? "#007bff" : "#6c757d";
     btn.style.color = "white";
     if (habilitado) btn.addEventListener("click", accion);
     return btn;
@@ -335,6 +344,10 @@ function renderizarControlesPaginadoParaGrupo() {
   input.value = paginaActualGrupo;
   input.style.width = "40px";
   input.style.textAlign = "center";
+  input.style.margin = "0 0.3em";
+  input.style.padding = "0.3em 0.5em";
+  input.style.borderRadius = "0.3em";
+  input.style.border = "1px solid #ccc";
   input.addEventListener("change", () => {
     const nueva = parseInt(input.value);
     if (!isNaN(nueva) && nueva >= 1 && nueva <= totalPaginas) {
@@ -348,7 +361,6 @@ function renderizarControlesPaginadoParaGrupo() {
   const span = document.createElement("span");
   span.textContent = ` / ${totalPaginas}`;
   span.style.margin = "0 0.3em";
-  span.style.color = "white";
 
   paginador.appendChild(input);
   paginador.appendChild(span);
@@ -363,15 +375,16 @@ function renderizarControlesPaginadoParaGrupo() {
   paginador.appendChild(
     crearBoton("⏭", paginaActualGrupo < totalPaginas, () => {
       paginaActualGrupo = totalPaginas;
+      paginaActualGrupo;
       renderizarFilasParaGrupo();
     })
   );
 
-  container.appendChild(paginador);
+  listaContactosParaGrupoContainer.appendChild(paginador);
 }
 
 // *************************
-// Código para misGrupos.js
+// Código principal de misGrupos
 // *************************
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -389,20 +402,66 @@ window.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  const toggleCrearGrupo = document.getElementById("toggleGrupos");
-  const crearGrupoContainer = document.getElementById(
-    "mis-grupos-list"
+  // Toggle "Mis Grupos"
+  const toggleMisGrupos = document.getElementById("toggleMisGrupos");
+  const listaMisGruposExistentes = document.getElementById(
+    "lista-mis-grupos-existentes"
   );
 
-  toggleCrearGrupo?.addEventListener("click", async () => {
-    const isVisible = crearGrupoContainer.style.display === "block";
-    crearGrupoContainer.style.display = isVisible ? "none" : "block";
+  if (toggleMisGrupos && listaMisGruposExistentes) {
+    const icon = toggleMisGrupos.querySelector("i");
+    toggleMisGrupos.addEventListener("click", async () => {
+      const isVisible = listaMisGruposExistentes.style.display === "block";
+      listaMisGruposExistentes.style.display = isVisible ? "none" : "block";
+      if (icon) icon.classList.toggle("rotate", !isVisible);
 
-    const icon = toggleCrearGrupo.querySelector("i");
-    if (icon) icon.classList.toggle("rotate", !isVisible);
-    
+      if (!isVisible) {
+        // Cargar y renderizar TUS GRUPOS EXISTENTES
+        showToast("Cargando tus grupos...", "info");
+        // await loadMyExistingGroups(); // Una función que cargaría tus grupos y los mostraría
+        listaMisGruposExistentes.innerHTML = `<p style="color:white; text-align:center; padding:1em;">Funcionalidad para listar grupos pendientes.</p>`;
+      }
+    });
+  } else {
+    console.warn(
+      "Elemento #toggleMisGrupos o #lista-mis-grupos-existentes no encontrado."
+    );
+  }
 
+  // Toggle "Crear Grupo"
+  const toggleCrearGrupoForm = document.getElementById("toggleCrearGrupoForm");
+  const contenedorFormularioCrearGrupo = document.getElementById(
+    "contenedor-formulario-crear-grupo"
+  );
+  const listaContactosParaGrupo = document.getElementById(
+    "lista-contactos-para-grupo"
+  );
 
+  if (
+    toggleCrearGrupoForm &&
+    contenedorFormularioCrearGrupo &&
+    listaContactosParaGrupo
+  ) {
+    const icon = toggleCrearGrupoForm.querySelector("i");
+    toggleCrearGrupoForm.addEventListener("click", async () => {
+      const isVisible =
+        contenedorFormularioCrearGrupo.style.display === "block";
+      contenedorFormularioCrearGrupo.style.display = isVisible
+        ? "none"
+        : "block";
+      if (icon) icon.classList.toggle("rotate", !isVisible);
 
-  });
+      if (!isVisible) {
+        listaContactosParaGrupo.style.display = "block";
+        await window.loadContactsForGroupSelection();
+        //showToast('Tus contactos se han cargado para seleccionar.', 'success');
+      } else {
+        listaContactosParaGrupo.style.display = "none";
+      }
+    });
+  } else {
+    console.warn(
+      "Uno o más elementos para 'Crear Grupo' (toggleCrearGrupoForm, contenedorFormularioCrearGrupo, listaContactosParaGrupo) no fueron encontrados."
+    );
+  }
 });
