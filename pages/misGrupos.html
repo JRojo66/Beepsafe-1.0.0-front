@@ -1,96 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mis Grupos</title> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-    <link rel="stylesheet" href="../styles/styles.css">
-</head>
-<body>
-
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mis Grupos</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="../styles/styles.css" />
+  </head>
+  <body>
     <div class="configuracion">
-        <a href="../pages/perfil.html" class="perfil">
-            <div class="containerPerfil">
-                <img src="../imagenes/volver.PNG" alt="Volver">
-                <img src="../imagenes/amigosSinFondoBlanco.png" alt="mensajes" class="encabezado">
-                <div class="opciones">Mis Grupos</div>
+      <a href="../pages/perfil.html" class="perfil">
+        <div class="containerPerfil">
+          <img src="../imagenes/volver.PNG" alt="Volver" />
+          <img
+            src="../imagenes/amigosSinFondoBlanco.png"
+            alt="mensajes"
+            class="encabezado"
+          />
+          <div class="opciones">Mis Grupos</div>
+        </div>
+      </a>
+      <p class="encabezadoBajada">
+        Estos son los grupos a quienes enviaras tus mensajes y que podrán ver
+        que estás realizando una actividad. Los grupos son agrupaciones de
+        contactos.
+      </p>
+      <div class="break"></div>
+
+      <div id="toggleMisGrupos" class="accordion-header-activity">
+        <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
+        <span>Mis Grupos</span>
+      </div>
+      <div
+        id="lista-mis-grupos-existentes"
+        class="grupos-lista"
+        style="display: none"
+      >
+        <p style="color: white; text-align: center; padding: 1em">
+          Cargando grupos...
+        </p>
+      </div>
+
+      <div id="toggleCrearGrupoForm" class="accordion-header-activity">
+        <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
+        <span>Crear Grupo</span>
+      </div>
+      <div
+        id="contenedor-formulario-crear-grupo"
+        class="contactos-lista"
+        style="display: none"
+      >
+        <form id="form-agregar-contacto" class="add-activity-form">
+          <div class="group-name-section">
+            <div
+              class="group-name-input-container"
+              id="group-name-input-container"
+            >
+              <div class="stacked-inputs-container">
+                <input
+                  type="text"
+                  id="nombre-grupo"
+                  class="input-activity"
+                  required
+                  placeholder="Nombre del grupo"
+                />
+                <input
+                  type="text"
+                  id="actividad"
+                  class="input-activity"
+                  required
+                  placeholder="Actividad"
+                />
+              </div>
+              <button
+                type="button"
+                id="crear-grupo-btn"
+                class="btn-crear-grupo"
+              >
+                Crear
+              </button>
             </div>
-        </a>
-        <p class="encabezadoBajada">Estos son los grupos a quienes enviaras tus mensajes y que podrán ver que estás realizando una actividad. Los grupos son agrupaciones de contactos.</p>
-        <div class="break"></div>
-
-        <div id="toggleMisGrupos" class="accordion-header-activity">
-            <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
-            <span>Mis Grupos</span>
-        </div>
-        <div id="lista-mis-grupos-existentes" class="grupos-lista" style="display: none;">
-            <p style="color:white; text-align:center; padding:1em;">Cargando grupos...</p>
-        </div>
-
-        <div id="toggleCrearGrupoForm" class="accordion-header-activity"> <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
-            <span>Crear Grupo</span>
-        </div>
-        <div id="contenedor-formulario-crear-grupo" class="contactos-lista" style="display: none;"> <form id="form-agregar-contacto" class="add-activity-form">
-                <div class="group-name-section"> 
-                    <div class="group-name-input-container" id="group-name-input-container">
-                        <div class="stacked-inputs-container">
-                            <input 
-                                type="text" 
-                                id="nombre-grupo" 
-                                class="input-activity"
-                                required 
-                                placeholder="Nombre del grupo"
-                            >
-                            <input 
-                                type="text" 
-                                id="actividad" 
-                                class="input-activity"
-                                required 
-                                placeholder="Actividad"
-                            >
-                        </div>
-                        <button type="button" id="crear-grupo-btn" class="btn-crear-grupo">Crear</button>
-                    </div>
-                    <div id="add-contacts-to-group-section" class="contact-selection-section">
-                        <p class="section-title">Selecciona contactos para el grupo</p>
-                        <div id="group-list-to-add">
-                            <div id="lista-contactos-para-grupo" class="contactos-lista" style="display: none;"> 
-                                </div>
-                        </div>
-                    </div>
-                    <!-- <div class="buttons-container" style="margin-top: 20px;">
+            <div
+              id="add-contacts-to-group-section"
+              class="contact-selection-section"
+            >
+              <p class="section-title">Selecciona contactos para el grupo</p>
+              <div id="group-list-to-add">
+                <div
+                  id="lista-contactos-para-grupo"
+                  class="contactos-lista"
+                  style="display: none"
+                ></div>
+              </div>
+            </div>
+            <!-- <div class="buttons-container" style="margin-top: 20px;">
                         <button type="button" id="finalizar-creacion-grupo" class="btn-guardar-contacto">Finalizar Creación</button>
                         <button type="button" id="cancelar-creacion-grupo" class="btn-cancelar-contacto">Cancelar</button>
                     </div> -->
-                </div>
-            </form>
-        </div>
+          </div>
+        </form>
+      </div>
+      <!-- INVITACIONES PENDIENTES -->
+      <div id="toggleInvitacionesPendientes" class="accordion-header-activity">
+        <span class="toggle-icon">
+          <i class="fas fa-chevron-down"></i>
+        </span>
+        <span>Invitaciones pendientes</span>
+      </div>
+
+      <div
+        id="lista-invitaciones-pendientes"
+        class="grupos-lista"
+        style="display: none"
+      >
+        <p style="color: white; text-align: center; padding: 1em">
+          Cargando invitaciones...
+        </p>
+      </div>
     </div>
 
     <div id="toast-container"></div>
     <div id="confirm-modal" class="modal hidden">
-        <div class="modal-content">
-            <p id="confirm-message">¿Estás seguro?</p>
-            <div class="modal-buttons">
-                <button id="confirm-yes">Sí</button>
-                <button id="confirm-no">No</button>
-            </div>
+      <div class="modal-content">
+        <p id="confirm-message">¿Estás seguro?</p>
+        <div class="modal-buttons">
+          <button id="confirm-yes">Sí</button>
+          <button id="confirm-no">No</button>
         </div>
+      </div>
     </div>
     <div id="info-modal" class="modal hidden">
-        <div class="modal-content">
-            <p id="info-message">...</p>
-            <label style="display: flex; align-items: center; gap: 0.5em; margin-top: 10px; font-size: 0.95em;">
-                <input type="checkbox" id="info-dont-show-again" />
-                No volver a mostrar este mensaje
-            </label>
-            <div class="modal-buttons">
-                <button id="info-ok" class="btn-confirm">OK</button>
-            </div>
+      <div class="modal-content">
+        <p id="info-message">...</p>
+        <label
+          style="
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            margin-top: 10px;
+            font-size: 0.95em;
+          "
+        >
+          <input type="checkbox" id="info-dont-show-again" />
+          No volver a mostrar este mensaje
+        </label>
+        <div class="modal-buttons">
+          <button id="info-ok" class="btn-confirm">OK</button>
         </div>
+      </div>
     </div>
 
     <script src="../JS/config.js"></script>
     <script type="module" src="../JS/misGrupos.js"></script>
-    </body>
+  </body>
 </html>

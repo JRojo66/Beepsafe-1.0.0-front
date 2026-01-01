@@ -6,7 +6,7 @@ let contactosGrupoCompleta = [];
 let paginaActualGrupo = 1;
 const PAGE_SIZE_GRUPO = 10;
 let terminoBusquedaGrupo = "";
-
+let contactosSeleccionadosParaGrupo = new Set();
 
 // Referencias a los contenedores DOM específicos para la selección de contactos para un grupo
 let listaContactosParaGrupoContainer = null;
@@ -119,8 +119,8 @@ async function renderizarCabeceraParaGrupo() {
 
   const columnas = [
     "Nombre",
-    "Seleccionar",
-    "Administrador",
+    //"Seleccionar",
+    "Integrantes",
     // "Mensajes",
     // "Visibilidad",
   ];
@@ -189,6 +189,19 @@ function renderizarFilasParaGrupo() {
     checkboxSeleccionGrupo.type = "checkbox";
     checkboxSeleccionGrupo.name = `select-contact-${c._id}`;
     checkboxSeleccionGrupo.className = "checkbox-input-grupo";
+
+    // 🆕 Mantener seleccionados aunque se re-renderice
+    checkboxSeleccionGrupo.checked = contactosSeleccionadosParaGrupo.has(c._id);
+
+    // 🆕 Evento para actualizar el estado global
+    checkboxSeleccionGrupo.addEventListener("change", () => {
+      if (checkboxSeleccionGrupo.checked) {
+        contactosSeleccionadosParaGrupo.add(c._id);
+      } else {
+        contactosSeleccionadosParaGrupo.delete(c._id);
+        contactosAdminParaGrupo.delete(c._id); // seguridad si admin existe
+      }
+    });
     // Aquí podrías comprobar si el contacto ya está seleccionado en la lista temporal del formulario de grupo
     // checkboxSeleccionGrupo.checked = selectedContactIds.includes(c._id);
 
@@ -456,7 +469,10 @@ window.addEventListener("DOMContentLoaded", async () => {
         await window.loadContactsForGroupSelection();
         //showToast('Tus contactos se han cargado para seleccionar.', 'success');
       } else {
+        // Cierra Crear Grupo
         listaContactosParaGrupo.style.display = "none";
+        // RESETEAR selección de checkboxes
+        contactosSeleccionadosParaGrupo.clear();
       }
     });
   } else {
@@ -464,4 +480,190 @@ window.addEventListener("DOMContentLoaded", async () => {
       "Uno o más elementos para 'Crear Grupo' (toggleCrearGrupoForm, contenedorFormularioCrearGrupo, listaContactosParaGrupo) no fueron encontrados."
     );
   }
+
+
+  // Toggle "Invitaciones Pendientes"
+const toggleInvitaciones = document.getElementById(
+  "toggleInvitacionesPendientes"
+);
+const listaInvitaciones = document.getElementById(
+  "lista-invitaciones-pendientes"
+);
+
+if (toggleInvitaciones && listaInvitaciones) {
+  const icon = toggleInvitaciones.querySelector("i");
+
+  toggleInvitaciones.addEventListener("click", async () => {
+    const visible = listaInvitaciones.style.display === "block";
+    listaInvitaciones.style.display = visible ? "none" : "block";
+    icon.classList.toggle("rotate", !visible);
+
+    if (!visible) {
+      await cargarInvitacionesPendientes();
+    }
+  });
+}
+
 });
+
+const btnCrearGrupo = document.getElementById("crear-grupo-btn");
+
+if (btnCrearGrupo) {
+  btnCrearGrupo.addEventListener("click", async () => {
+    const nombreGrupo = document.getElementById("nombre-grupo").value.trim();
+    const actividadGrupo = document.getElementById("actividad").value.trim();
+    const contactosIds = Array.from(contactosSeleccionadosParaGrupo);
+
+    if (!nombreGrupo || !actividadGrupo) {
+      showToast("Completá el nombre y la actividad.", "error");
+      return;
+    }
+
+    if (contactosIds.length === 0) {
+      showToast("Seleccioná al menos un contacto.", "error");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${ROOT_URL}/api/groups`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          nombre: nombreGrupo,
+          actividad: actividadGrupo,
+          contactos: contactosIds,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        showToast(err.error || "No se pudo crear el grupo", "error");
+        return;
+      }
+
+      showToast("Grupo creado con éxito 🎉", "success");
+
+      // 📌 Vaciar selección
+      contactosSeleccionadosParaGrupo.clear();
+
+      // Volver a renderizar la lista (para desmarcar checkboxes visualmente)
+      await window.loadContactsForGroupSelection();
+
+      // 📌 Vaciar inputs
+      document.getElementById("nombre-grupo").value = "";
+      document.getElementById("actividad").value = "";
+
+      // 📌 Cerrar formulario
+      document.getElementById(
+        "contenedor-formulario-crear-grupo"
+      ).style.display = "none";
+      document.getElementById("lista-contactos-para-grupo").style.display =
+        "none";
+    } catch (err) {
+      console.error(err);
+      showToast("Error de conexión", "error");
+    }
+  });
+}
+
+// función para aceptar o rechazar invitación
+async function cargarInvitacionesPendientes() {
+  try {
+    const res = await fetch(`${ROOT_URL}/api/groups/pending`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (!res.ok) throw new Error();
+
+    const { groups } = await res.json();
+    renderizarInvitacionesPendientes(groups);
+  } catch (err) {
+    console.error(err);
+    showToast("Error al cargar invitaciones", "error");
+  }
+}
+
+async function responderInvitacion(groupId, accepted) {
+  try {
+    const res = await fetch(
+      `${ROOT_URL}/api/groups/${groupId}/respond`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ accepted }),
+      }
+    );
+
+    if (!res.ok) throw new Error();
+
+    showToast(
+      accepted ? "Invitación aceptada" : "Invitación rechazada",
+      "success"
+    );
+
+    cargarInvitacionesPendientes();
+  } catch (err) {
+    console.error(err);
+    showToast("Error al responder invitación", "error");
+  }
+}
+
+
+function renderizarInvitacionesPendientes(groups) {
+  const container = document.getElementById("lista-invitaciones-pendientes");
+  container.innerHTML = "";
+
+  if (!groups.length) {
+    container.innerHTML = `
+      <p style="color:white; text-align:center; padding:1em;">
+        No tenés invitaciones pendientes
+      </p>`;
+    return;
+  }
+
+  groups.forEach((group) => {
+    const row = document.createElement("div");
+    row.className = "grupo-row";
+    row.style.display = "flex";
+    row.style.justifyContent = "space-between";
+    row.style.alignItems = "center";
+    row.style.marginBottom = "0.5em";
+    row.style.color = "white";
+
+    row.innerHTML = `
+      <div>
+        <strong>${group.name}</strong><br/>
+        <small>${group.actividad}</small>
+      </div>
+    `;
+
+    const actions = document.createElement("div");
+
+    const btnAceptar = document.createElement("button");
+    btnAceptar.textContent = "Aceptar";
+    btnAceptar.onclick = () =>
+      responderInvitacion(group._id, true);
+
+    const btnRechazar = document.createElement("button");
+    btnRechazar.textContent = "Rechazar";
+    btnRechazar.onclick = () =>
+      responderInvitacion(group._id, false);
+
+    actions.appendChild(btnAceptar);
+    actions.appendChild(btnRechazar);
+    row.appendChild(actions);
+
+    container.appendChild(row);
+  });
+}
+
+
+
