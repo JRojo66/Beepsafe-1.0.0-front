@@ -1897,3 +1897,49 @@ margin: 10px 0;
 .btn-crear-grupo:hover {
     background-color: #45a049; /* Un verde más oscuro al pasar el ratón */
 }
+
+/* Invitaciones pendientes */
+
+.invitacion-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--color-fondo);
+  border-radius: 20px;
+  padding: 10px 15px;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+
+.invitacion-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  color: white;
+  flex: 1;
+}
+
+.invitacion-actividad {
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.invitacion-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* .btn-cancelar-contacto {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-cancelar-contacto:hover {
+  background-color: #b02a37;
+} */
+

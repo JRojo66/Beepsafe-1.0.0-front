@@ -7,6 +7,7 @@ let paginaActualGrupo = 1;
 const PAGE_SIZE_GRUPO = 10;
 let terminoBusquedaGrupo = "";
 let contactosSeleccionadosParaGrupo = new Set();
+let adminsSeleccionadosParaGrupo = new Set();
 
 // Referencias a los contenedores DOM específicos para la selección de contactos para un grupo
 let listaContactosParaGrupoContainer = null;
@@ -37,6 +38,13 @@ window.loadContactsForGroupSelection = async function () {
     showToast("Error al cargar tus contactos para selección.", "error");
   }
 };
+
+function normalizarContacto(c) {
+  return {
+    name: c.name || c.nombre || "",
+    phone: c.phone || c.telefono || "",
+  };
+}
 
 function renderizarContactosParaGrupo(contactos) {
   contactosGrupoCompleta = contactos;
@@ -117,13 +125,7 @@ async function renderizarCabeceraParaGrupo() {
   header.style.marginBottom = "0.5em";
   header.style.flexWrap = "wrap";
 
-  const columnas = [
-    "Nombre",
-    //"Seleccionar",
-    "Integrantes",
-    // "Mensajes",
-    // "Visibilidad",
-  ];
+  const columnas = ["Nombre", "Integrantes", "Co-Admins"];
 
   columnas.forEach((title, i) => {
     const col = document.createElement("div");
@@ -187,50 +189,53 @@ function renderizarFilasParaGrupo() {
     // Checkbox de selección para añadir al grupo
     const checkboxSeleccionGrupo = document.createElement("input");
     checkboxSeleccionGrupo.type = "checkbox";
-    checkboxSeleccionGrupo.name = `select-contact-${c._id}`;
     checkboxSeleccionGrupo.className = "checkbox-input-grupo";
 
-    // 🆕 Mantener seleccionados aunque se re-renderice
-    checkboxSeleccionGrupo.checked = contactosSeleccionadosParaGrupo.has(c._id);
+    // Checkbox de Co-Administrador
+    const checkboxAdmin = document.createElement("input");
+    checkboxAdmin.type = "checkbox";
+    checkboxAdmin.className = "checkbox-input-grupo-admin";
 
-    // 🆕 Evento para actualizar el estado global
+    // Normalizar contacto
+    const contactoNormalizado = normalizarContacto(c);
+
+    // Restaurar estados
+    checkboxSeleccionGrupo.checked = contactosSeleccionadosParaGrupo.has(
+      contactoNormalizado.phone
+    );
+
+    checkboxAdmin.checked = adminsSeleccionadosParaGrupo.has(
+      contactoNormalizado.phone
+    );
+
+    // Admin solo si es integrante
+    checkboxAdmin.disabled = !checkboxSeleccionGrupo.checked;
+
+    // 🔗 Evento integrante
     checkboxSeleccionGrupo.addEventListener("change", () => {
+      if (!contactoNormalizado.phone) return;
+
       if (checkboxSeleccionGrupo.checked) {
-        contactosSeleccionadosParaGrupo.add(c._id);
+        contactosSeleccionadosParaGrupo.add(contactoNormalizado.phone);
+        checkboxAdmin.disabled = false;
       } else {
-        contactosSeleccionadosParaGrupo.delete(c._id);
-        contactosAdminParaGrupo.delete(c._id); // seguridad si admin existe
+        contactosSeleccionadosParaGrupo.delete(contactoNormalizado.phone);
+        checkboxAdmin.checked = false;
+        checkboxAdmin.disabled = true;
+        adminsSeleccionadosParaGrupo.delete(contactoNormalizado.phone);
       }
     });
-    // Aquí podrías comprobar si el contacto ya está seleccionado en la lista temporal del formulario de grupo
-    // checkboxSeleccionGrupo.checked = selectedContactIds.includes(c._id);
 
-    const seleccionCol = document.createElement("div");
-    seleccionCol.appendChild(checkboxSeleccionGrupo);
-    seleccionCol.style.flex = "1";
-    seleccionCol.style.textAlign = "center";
+    // 👑 Evento admin
+    checkboxAdmin.addEventListener("change", () => {
+      if (!contactoNormalizado.phone) return;
 
-    // // 🆕 Checkbox de Administrador
-    // const checkboxAdmin = document.createElement("input");
-    // checkboxAdmin.type = "checkbox";
-    // checkboxAdmin.name = `admin-contact-${c._id}`;
-    // checkboxAdmin.className = "checkbox-input-grupo-admin";
-    // checkboxAdmin.disabled = true; // ⚠️ Deshabilitado por defecto
-
-    // const adminCol = document.createElement("div");
-    // adminCol.appendChild(checkboxAdmin);
-    // adminCol.style.flex = "1";
-    // adminCol.style.textAlign = "center";
-
-    // // Lógica de habilitación/deshabilitación
-    // checkboxSeleccionGrupo.addEventListener("change", () => {
-    //   const isChecked = checkboxSeleccionGrupo.checked;
-    //   checkboxAdmin.disabled = !isChecked; // Habilita si está seleccionado
-    //   if (!isChecked) {
-    //     checkboxAdmin.checked = false; // Desmarca si se deselecciona el contacto
-    //   }
-    // });
-    // // Fin de la lógica de habilitación/deshabilitación
+      if (checkboxAdmin.checked) {
+        adminsSeleccionadosParaGrupo.add(contactoNormalizado.phone);
+      } else {
+        adminsSeleccionadosParaGrupo.delete(contactoNormalizado.phone);
+      }
+    });
 
     const nombreColMC = document.createElement("div");
     nombreColMC.style.flex = "2";
@@ -245,6 +250,16 @@ function renderizarFilasParaGrupo() {
     telefonoSpan.textContent = c.telefono || "(sin teléfono)";
     telefonoSpan.style.fontSize = "0.9em";
     telefonoSpan.style.opacity = "0.8";
+
+    const seleccionCol = document.createElement("div");
+    seleccionCol.style.flex = "1";
+    seleccionCol.style.textAlign = "center";
+    seleccionCol.appendChild(checkboxSeleccionGrupo);
+
+    const adminCol = document.createElement("div");
+    adminCol.style.flex = "1";
+    adminCol.style.textAlign = "center";
+    adminCol.appendChild(checkboxAdmin);
 
     nombreColMC.appendChild(nombreSpan);
     nombreColMC.appendChild(telefonoSpan);
@@ -262,6 +277,7 @@ function renderizarFilasParaGrupo() {
 
     row.appendChild(nombreColMC);
     row.appendChild(seleccionCol);
+    row.appendChild(adminCol);
     // row.appendChild(mensajesStatus);
     // row.appendChild(visibilidadStatus);
 
@@ -473,6 +489,7 @@ window.addEventListener("DOMContentLoaded", async () => {
         listaContactosParaGrupo.style.display = "none";
         // RESETEAR selección de checkboxes
         contactosSeleccionadosParaGrupo.clear();
+        adminsSeleccionadosParaGrupo.clear();
       }
     });
   } else {
@@ -481,29 +498,27 @@ window.addEventListener("DOMContentLoaded", async () => {
     );
   }
 
-
   // Toggle "Invitaciones Pendientes"
-const toggleInvitaciones = document.getElementById(
-  "toggleInvitacionesPendientes"
-);
-const listaInvitaciones = document.getElementById(
-  "lista-invitaciones-pendientes"
-);
+  const toggleInvitaciones = document.getElementById(
+    "toggleInvitacionesPendientes"
+  );
+  const listaInvitaciones = document.getElementById(
+    "lista-invitaciones-pendientes"
+  );
 
-if (toggleInvitaciones && listaInvitaciones) {
-  const icon = toggleInvitaciones.querySelector("i");
+  if (toggleInvitaciones && listaInvitaciones) {
+    const icon = toggleInvitaciones.querySelector("i");
 
-  toggleInvitaciones.addEventListener("click", async () => {
-    const visible = listaInvitaciones.style.display === "block";
-    listaInvitaciones.style.display = visible ? "none" : "block";
-    icon.classList.toggle("rotate", !visible);
+    toggleInvitaciones.addEventListener("click", async () => {
+      const visible = listaInvitaciones.style.display === "block";
+      listaInvitaciones.style.display = visible ? "none" : "block";
+      icon.classList.toggle("rotate", !visible);
 
-    if (!visible) {
-      await cargarInvitacionesPendientes();
-    }
-  });
-}
-
+      if (!visible) {
+        await cargarInvitacionesPendientes();
+      }
+    });
+  }
 });
 
 const btnCrearGrupo = document.getElementById("crear-grupo-btn");
@@ -512,14 +527,15 @@ if (btnCrearGrupo) {
   btnCrearGrupo.addEventListener("click", async () => {
     const nombreGrupo = document.getElementById("nombre-grupo").value.trim();
     const actividadGrupo = document.getElementById("actividad").value.trim();
-    const contactosIds = Array.from(contactosSeleccionadosParaGrupo);
+    const members = Array.from(contactosSeleccionadosParaGrupo);
+    const admins = Array.from(adminsSeleccionadosParaGrupo);
 
     if (!nombreGrupo || !actividadGrupo) {
       showToast("Completá el nombre y la actividad.", "error");
       return;
     }
 
-    if (contactosIds.length === 0) {
+    if (members.length === 0) {
       showToast("Seleccioná al menos un contacto.", "error");
       return;
     }
@@ -532,9 +548,10 @@ if (btnCrearGrupo) {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({
-          nombre: nombreGrupo,
-          actividad: actividadGrupo,
-          contactos: contactosIds,
+          name: nombreGrupo,
+          activity: actividadGrupo,
+          members, // 👈 phones
+          admins,
         }),
       });
 
@@ -548,6 +565,7 @@ if (btnCrearGrupo) {
 
       // 📌 Vaciar selección
       contactosSeleccionadosParaGrupo.clear();
+      adminsSeleccionadosParaGrupo.clear();
 
       // Volver a renderizar la lista (para desmarcar checkboxes visualmente)
       await window.loadContactsForGroupSelection();
@@ -590,17 +608,14 @@ async function cargarInvitacionesPendientes() {
 
 async function responderInvitacion(groupId, accepted) {
   try {
-    const res = await fetch(
-      `${ROOT_URL}/api/groups/${groupId}/respond`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ accepted }),
-      }
-    );
+    const res = await fetch(`${ROOT_URL}/api/groups/${groupId}/respond`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({ accepted }),
+    });
 
     if (!res.ok) throw new Error();
 
@@ -616,12 +631,11 @@ async function responderInvitacion(groupId, accepted) {
   }
 }
 
-
 function renderizarInvitacionesPendientes(groups) {
   const container = document.getElementById("lista-invitaciones-pendientes");
   container.innerHTML = "";
 
-  if (!groups.length) {
+  if (!groups || !groups.length) {
     container.innerHTML = `
       <p style="color:white; text-align:center; padding:1em;">
         No tenés invitaciones pendientes
@@ -631,39 +645,35 @@ function renderizarInvitacionesPendientes(groups) {
 
   groups.forEach((group) => {
     const row = document.createElement("div");
-    row.className = "grupo-row";
-    row.style.display = "flex";
-    row.style.justifyContent = "space-between";
-    row.style.alignItems = "center";
-    row.style.marginBottom = "0.5em";
-    row.style.color = "white";
+    row.className = "invitacion-row";
 
-    row.innerHTML = `
-      <div>
-        <strong>${group.name}</strong><br/>
-        <small>${group.actividad}</small>
-      </div>
+    const info = document.createElement("div");
+    info.className = "invitacion-info";
+    info.innerHTML = `
+      <strong>${group.name}</strong>
+      <div class="invitacion-actividad">${group.activity}</div>
     `;
 
     const actions = document.createElement("div");
+    actions.className = "invitacion-actions";
 
     const btnAceptar = document.createElement("button");
     btnAceptar.textContent = "Aceptar";
-    btnAceptar.onclick = () =>
-      responderInvitacion(group._id, true);
+    btnAceptar.className = "btn-guardar-contacto";
+    btnAceptar.onclick = () => responderInvitacion(group._id, true);
 
     const btnRechazar = document.createElement("button");
     btnRechazar.textContent = "Rechazar";
-    btnRechazar.onclick = () =>
-      responderInvitacion(group._id, false);
+    btnRechazar.className = "btn-cancelar-contacto";
+    btnRechazar.onclick = () => responderInvitacion(group._id, false);
 
     actions.appendChild(btnAceptar);
     actions.appendChild(btnRechazar);
+
+    row.appendChild(info);
     row.appendChild(actions);
 
     container.appendChild(row);
   });
 }
-
-
 

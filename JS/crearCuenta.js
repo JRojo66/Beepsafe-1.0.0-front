@@ -19,14 +19,14 @@ function isValidEmail(email) {
   return emailRegex.test(email);
 }
 
-function isValidArgentinePhoneStrictNoSeparators(phone) {
-  // Expresión regular estricta para validar un número de teléfono argentino
-  // sin el cero inicial del código de área ni el prefijo "15" de celular,
-  // y SIN permitir espacios ni guiones.
-  // Requiere un código de área de 2 a 4 dígitos (comenzando generalmente con 2, 3, 4, 5, 6, 7, 8 o 9)
-  // seguido directamente por un número local de 6 a 8 dígitos.
-  const phoneRegexStrictNoSeparators = /^([1-9]\d{1,3})\d{6,8}$/;
-  return phoneRegexStrictNoSeparators.test(phone);
+function isValidLocalPhone(phone) {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 10 && digits.length <= 11;
+}
+
+function normalizarTelefonoE164(input) {
+  const digits = input.replace(/\D/g, "");
+  return `+54${digits}`;
 }
 
 const form = document.getElementById("registroForm");
@@ -73,9 +73,9 @@ form.addEventListener("submit", function (event) {
     document.getElementById("phoneError").textContent =
       "Por favor, ingresa tu número de teléfono.";
     isValid = false;
-  } else if (!isValidArgentinePhoneStrictNoSeparators(phone)) {
+  } else if (!isValidLocalPhone(phone)) {
     document.getElementById("phoneError").textContent =
-      "Por favor, ingresa un número de teléfono válido (sin 0, sin 15, sin espacios ni guiones).";
+      "Ingresá tu número con código de área, sin +54, sin 0, sin 15 y ni espacios";
     isValid = false;
   }
 
@@ -96,7 +96,7 @@ form.addEventListener("submit", function (event) {
       "Las contraseñas no coinciden.";
     isValid = false;
   }
-  
+
   if (isValid) {
     fetch(`${ROOT_URL}/api/sessions/register`, {
       method: "POST",
@@ -108,7 +108,6 @@ form.addEventListener("submit", function (event) {
         email: email,
         phone: phone,
         password: password,
-        password2: password2,
       }),
     })
       .then((response) => {
