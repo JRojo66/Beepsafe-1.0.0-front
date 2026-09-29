@@ -1,12 +1,11 @@
 import {
   showToast,
-  showConfirm,
-  showConfirmOkOnly,
   renderizarCabeceraContactos,
   renderizarFilasContactos,
   renderizarContactosConPaginado,
   renderizarBuscadorYBotonRefrescar,
   sanitizarTelefonoE164,
+  esTelefonoValido,
 } from "./utils.js";
 
 let contactosGoogleCargados = [];
@@ -90,11 +89,6 @@ function renderGoogle() {
   actualizarGoogleContacts();
 }
 
-function esTelefonoValido(numero) {
-  // Debe empezar con + y tener entre 10 y 15 dígitos (ej: +541112345678)
-  return /^\+\d{10,15}$/.test(numero);
-}
-
 // ⚠️ Evitar mostrar si el usuario ya tildó "No volver a mostrar"
 async function esperarOk(mensaje) {
   if (window.__noMostrarMensajeDePrefijo9) return;
@@ -124,6 +118,8 @@ async function agregarContactoDesdeGoogle(c, mensajes, visibilidad) {
   const endpoint = `${ROOT_URL}/api/contacts`;
 
   const telefonoOriginal = c.telefono || "";
+  // Sólo se usa para COMPARAR y decidir si avisamos lo del prefijo 9.
+  // No se manda en el payload: el backend normaliza el valor canónico.
   const telefonoSanitizado = sanitizarTelefonoE164(telefonoOriginal);
 
   // Advertencia por prefijo 9
@@ -138,7 +134,9 @@ async function agregarContactoDesdeGoogle(c, mensajes, visibilidad) {
     );
   }
 
-  if (!esTelefonoValido(telefonoSanitizado)) {
+  // Chequeo previo sólo para feedback instantáneo. No sanitizamos acá: el
+  // backend es el dueño de la forma canónica del teléfono.
+  if (!esTelefonoValido(telefonoOriginal)) {
     showToast(
       `El número de teléfono "${telefonoOriginal}" de este contacto no es válido`,
       "error"
@@ -146,9 +144,10 @@ async function agregarContactoDesdeGoogle(c, mensajes, visibilidad) {
     return;
   }
 
+  // Mandamos lo que tenemos del contacto de Google, sin inventar el E.164
   const payload = {
     nombre: c.nombre,
-    telefono: telefonoSanitizado || "",
+    telefono: telefonoOriginal,
     mensajes,
     visibilidad,
   };
@@ -164,8 +163,19 @@ async function agregarContactoDesdeGoogle(c, mensajes, visibilidad) {
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      showToast("Error: " + err.error, "error");
+      // El 400 del backend trae { error: "..." } con el motivo del rechazo.
+      // Si el body no es JSON no queremos caer en el catch de red y perder ese
+      // mensaje, así que tolerateamos el parseo.
+      let err = {};
+      try {
+        err = await response.json();
+      } catch (parseErr) {
+        console.warn("No se pudo leer el error del servidor:", parseErr);
+      }
+      showToast(
+        "Error: " + (err.error || "No se pudo agregar el contacto"),
+        "error"
+      );
       return;
     }
 

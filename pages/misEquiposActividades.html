@@ -36,28 +36,30 @@
       <!-- Fin bajada encabezado -->
       <br />
       <div id="spinner" class="spinner hidden"></div>
-      <div id="accordion-container"></div>
-      <!-- BOTÓN PARA MOSTRAR FORMULARIO -->
-      <div class="accordion-header-activity">
-        <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
-        <span id="mostrarFormularioActividad">Agregar actividad</span>
-      </div>
-      <!-- FORMULARIO PARA CARGAR ACTIVIDAD (INICIALMENTE OCULTO) -->
-      <div id="actividadFormContainer">
-        <div class="hijoDeActividadFormContainer">
-          <form id="actividadForm" class="add-activity-form">
-            <input
-              class="input-activity"
-              type="text"
-              id="nuevaActividad"
-              name="nuevaActividad"
-              placeholder="Actividad"
-              required
-            />
-            <button type="submit" class="botonActividad">Agregar</button>
-          </form>
-          <div id="actividadError" class="error-message"></div>
-        </div>
+      <div class="actividades-wrapper">
+          <div id="accordion-container"></div>
+          <!-- BOTÓN PARA MOSTRAR FORMULARIO -->
+          <div class="accordion-header-activity">
+            <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
+            <span id="mostrarFormularioActividad">Agregar actividad</span>
+          </div>
+          <!-- FORMULARIO PARA CARGAR ACTIVIDAD (INICIALMENTE OCULTO) -->
+          <div id="actividadFormContainer">
+            <div class="hijoDeActividadFormContainer">
+              <form id="actividadForm" class="add-activity-form">
+                <input
+                class="input-activity"
+                type="text"
+                id="nuevaActividad"
+                name="nuevaActividad"
+                placeholder="Actividad"
+                required
+                />
+                <button type="submit" class="botonActividad">Agregar</button>
+              </form>
+              <div id="actividadError" class="error-message"></div>
+            </div>
+          </div>
       </div>
     </div>
     <div id="toast-container"></div>

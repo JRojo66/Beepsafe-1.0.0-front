@@ -1859,23 +1859,12 @@ margin: 10px 0;
   gap: 10px;
 }
 
-.stacked-inputs-container {
-    display: flex;
-    flex-direction: column; /* Apila los inputs verticalmente */
-    flex-grow: 1; /* Permite que este contenedor ocupe el espacio disponible */
-    /*gap: 10px;  Espacio entre los dos inputs apilados */
-}
-
-.input-activity{
-  width: 100%;
-}
-
 /* Estilos para el nuevo botón "Crear" */
 .btn-crear-grupo {
-  background-color: #49d1b7  ; /* mismo fondo que el input */
-  color: var(--color-fondo);
+  background-color: var(--color-fondo); /* mismo fondo que el input */
+  color: white;
   box-sizing: border-box;  /* height incluye padding + border */
-  height: auto;            /* mismo alto */
+  height: 24px;            /* mismo alto */
   line-height: 24px;       /* centra el texto verticalmente */
   margin: 4px 0;           /* mismos márgenes verticales */
   border: 1px solid white; /* ambos con borde de 1px para paridad */
@@ -1897,49 +1886,3 @@ margin: 10px 0;
 .btn-crear-grupo:hover {
     background-color: #45a049; /* Un verde más oscuro al pasar el ratón */
 }
-
-/* Invitaciones pendientes */
-
-.invitacion-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: var(--color-fondo);
-  border-radius: 20px;
-  padding: 10px 15px;
-  margin-bottom: 10px;
-  gap: 10px;
-}
-
-.invitacion-info {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  color: white;
-  flex: 1;
-}
-
-.invitacion-actividad {
-  font-size: 0.85em;
-  opacity: 0.8;
-}
-
-.invitacion-actions {
-  display: flex;
-  gap: 8px;
-}
-
-/* .btn-cancelar-contacto {
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 20px;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.btn-cancelar-contacto:hover {
-  background-color: #b02a37;
-} */
-

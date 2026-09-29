@@ -4,14 +4,12 @@ import {
   //showConfirmOkOnly,
   //renderizarCabeceraContactos,
   //renderizarFilasContactos
-} from './utils.js';
-
+} from "./utils.js";
 
 let contactosMisContactosCompleta = []; // todos los contactos filtrados
 let paginaActualMisContactos = 1;
 const PAGE_SIZE_MIS_CONTACTOS = 10;
 let terminoBusquedaMisContactos = "";
-
 
 function renderizarMisContactos(contactos) {
   contactosMisContactosCompleta = contactos;
@@ -139,7 +137,7 @@ function renderizarFilasMisContactos() {
     const checkboxMensajesMC = document.createElement("input");
     checkboxMensajesMC.type = "checkbox";
     checkboxMensajesMC.name = "recibirMensajes";
-    checkboxMensajesMC.className = "checkbox-input"; 
+    checkboxMensajesMC.className = "checkbox-input";
     checkboxMensajesMC.checked = c.mensajes !== false; // **
 
     const mensajesColMC = document.createElement("div");
@@ -240,6 +238,7 @@ function renderizarFilasMisContactos() {
           },
         });
         const { contactos } = await res.json();
+
         // 🔁 Refrescar lista de contactos de Google
         if (typeof refrescarContactosGoogle === "function") {
           await refrescarContactosGoogle(); // <- importante usar await para que se actualice a tiempo

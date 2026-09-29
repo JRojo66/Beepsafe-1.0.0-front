@@ -342,6 +342,13 @@ export function renderizarContactosConPaginado({
 }
 
 
+// ⚠️ Heurística NO AUTORITATIVA, solo de presentación.
+//
+// Sirve para COMPARAR en la interfaz (por ejemplo, para avisarle al usuario que
+// Beepsafe le agregó el prefijo 9) y para mostrar un número con formato. NO es la
+// fuente de verdad del teléfono guardado: el backend normaliza y valida el
+// valor canónico con su propia `normalizarTelefonoE164`, así que NUNCA hay que
+// usar el resultado de esta función para armar el payload de un POST.
 export function sanitizarTelefonoE164(input) {
   const limpio = input.trim().replace(/[^\d+]/g, ""); // 🔧 Elimina todo excepto dígitos y "+"
   const soloNumeros = limpio.replace(/\D/g, ""); // solo números
@@ -382,6 +389,24 @@ export function sanitizarTelefonoE164(input) {
 
   // Fallback genérico (último recurso)
   return "+" + soloNumeros;
+}
+
+// Chequeo previo (pre-flight) del teléfono, SOLO para dar feedback instantáneo
+// en la interfaz sin hacer un viaje al servidor.
+//
+// Deliberadamente NO intenta construir ni adivinar un valor E.164 canónico: solo
+// cuenta dígitos para responder "¿esto parece un teléfono?". El valor que se
+// guarda lo decide el backend con su propia `normalizarTelefonoE164` y su regex
+// `/^\+\d{10,15}$/`.
+//
+// El mínimo de 7 dígitos sale de ese regex: el backend necesita un E.164 de al
+// menos 10 dígitos y como mucho le agrega 3 (el prefijo "+549"), o sea que
+// nunca puede convertir algo de 6 dígitos o menos en un teléfono válido. Por
+// eso este chequeo NUNCA rechaza un número que el backend sí aceptaría, y el
+// prefijo queda del lado del servidor.
+export function esTelefonoValido(telefono) {
+  const soloDigitos = String(telefono ?? "").replace(/\D/g, "");
+  return soloDigitos.length >= 7;
 }
 
 

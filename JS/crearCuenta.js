@@ -19,14 +19,13 @@ function isValidEmail(email) {
   return emailRegex.test(email);
 }
 
+// Chequeo previo (pre-flight) del teléfono: cuenta dígitos y nada más.
+// NO valida formato ni arma un E.164, el prefijo y la forma canónica los
+// decide el backend con su propia normalización y su regex /^\+\d{10,15}$/.
+// Acá se manda el número tal cual lo tipeó el usuario.
 function isValidLocalPhone(phone) {
   const digits = phone.replace(/\D/g, "");
   return digits.length >= 10 && digits.length <= 11;
-}
-
-function normalizarTelefonoE164(input) {
-  const digits = input.replace(/\D/g, "");
-  return `+54${digits}`;
 }
 
 const form = document.getElementById("registroForm");
@@ -75,7 +74,7 @@ form.addEventListener("submit", function (event) {
     isValid = false;
   } else if (!isValidLocalPhone(phone)) {
     document.getElementById("phoneError").textContent =
-      "Ingresá tu número con código de área, sin +54, sin 0, sin 15 y ni espacios";
+      "Ingresá los 10 u 11 dígitos de tu número con código de área, sin el +54.";
     isValid = false;
   }
 
@@ -111,19 +110,31 @@ form.addEventListener("submit", function (event) {
       }),
     })
       .then((response) => {
-        console.log("THEN EJECUTADO:", response);
         if (!response.ok) {
-          console.log("Respuesta no OK:", response.status);
-          return response.json().then((errData) => {
-            const errorMessage =
-              errData.payload || "Algo salió mal, contacte al administrador."; // Obtener el mensaje del backend
-            throw new Error(errorMessage);
-          });
+          // El backend de registro responde { payload } en los 400 de validación
+          // (nombre, email, teléfono, contraseña y duplicados) y { error } en el
+          // 500. Si el body no viene en JSON no queremos que el error de parseo
+          // tape el motivo real del rechazo, así que toleramos el parseo.
+          return response
+            .json()
+            .catch((parseErr) => {
+              console.warn(
+                "No se pudo leer el error del servidor:",
+                parseErr
+              );
+              return {};
+            })
+            .then((errData) => {
+              const errorMessage =
+                errData.payload ||
+                errData.error ||
+                "Algo salió mal, contacte al administrador."; // Obtener el mensaje del backend
+              throw new Error(errorMessage);
+            });
         }
         return response.json();
       })
-      .then((data) => {
-        console.log("DATA EN THEN:", data);
+      .then(() => {
         window.location.href = "cuentaCreadaExitosamente.html";
       })
       .catch((error) => {

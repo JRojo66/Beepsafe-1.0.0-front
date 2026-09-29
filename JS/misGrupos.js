@@ -1,5 +1,23 @@
-// misGrupos.js (CORREGIDO)
+// misGrupos.js
 import { showToast, showConfirm } from "./utils.js";
+
+// Verifica que esté logueado
+async function checkAuthOrRedirect() {
+  try {
+    const res = await fetch(`${ROOT_URL}/api/sessions/current`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (!res.ok) throw new Error();
+    return true;
+  } catch {
+    window.location.href = "iniciarSesion.html";
+    return false;
+  }
+}
+
 
 // --- Variables globales para PAGINACIÓN Y BÚSQUEDA de "Crear Grupo" ---
 let contactosGrupoCompleta = [];
@@ -446,9 +464,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
       if (!isVisible) {
         // Cargar y renderizar TUS GRUPOS EXISTENTES
-        showToast("Cargando tus grupos...", "info");
-        // await loadMyExistingGroups(); // Una función que cargaría tus grupos y los mostraría
-        listaMisGruposExistentes.innerHTML = `<p style="color:white; text-align:center; padding:1em;">Funcionalidad para listar grupos pendientes.</p>`;
+        await loadMyExistingGroups();
       }
     });
   } else {
@@ -644,16 +660,52 @@ function renderizarInvitacionesPendientes(groups) {
   }
 
   groups.forEach((group) => {
-    const row = document.createElement("div");
-    row.className = "invitacion-row";
+    const wrapper = document.createElement("div");
+    wrapper.className = "invitacion-grupo-wrapper";
 
-    const info = document.createElement("div");
-    info.className = "invitacion-info";
-    info.innerHTML = `
-      <strong>${group.name}</strong>
-      <div class="invitacion-actividad">${group.activity}</div>
+    /* ===== CABECERA ===== */
+    const header = document.createElement("div");
+    header.className = "invitacion-header";
+    header.innerHTML = `
+      <div>
+        <strong>${escapeHtml(group.name)}</strong>
+        <div class="invitacion-actividad">${escapeHtml(group.activity)}</div>
+      </div>
+      <i class="fas fa-chevron-down"></i>
     `;
 
+    /* ===== DETALLE ===== */
+    const detalle = document.createElement("div");
+    detalle.className = "invitacion-detalle";
+    detalle.style.display = "none";
+
+    group.members.forEach((m) => {
+      const row = document.createElement("div");
+      row.className = "invitacion-miembro";
+
+      const esCreador = m.phone === group.owner;
+      const esAdmin = group.admins.includes(m.phone);
+
+      let rol = "Miembro";
+      if (esCreador) rol = "👑 Creador";
+      else if (esAdmin) rol = "⭐ Co-Admin";
+
+      let estado = "⏳ Pendiente";
+      if (m.accepted === true) estado = "✅ Aceptada";
+      if (m.accepted === false) estado = "❌ Rechazada";
+
+      const displayName = m.name && m.name.trim() !== "" ? m.name : m.phone;
+
+      row.innerHTML = `
+      <div class="miembro-nombre">${escapeHtml(displayName)}</div>
+      <div class="miembro-rol">${rol}</div>
+      <div class="miembro-estado">${estado}</div>
+    `;
+
+      detalle.appendChild(row);
+    });
+
+    /* ===== ACCIONES ===== */
     const actions = document.createElement("div");
     actions.className = "invitacion-actions";
 
@@ -670,10 +722,198 @@ function renderizarInvitacionesPendientes(groups) {
     actions.appendChild(btnAceptar);
     actions.appendChild(btnRechazar);
 
-    row.appendChild(info);
-    row.appendChild(actions);
+    /* ===== TOGGLE ===== */
+    header.addEventListener("click", () => {
+      detalle.style.display =
+        detalle.style.display === "none" ? "block" : "none";
+      header.querySelector("i").classList.toggle("rotate");
+    });
 
-    container.appendChild(row);
+    wrapper.appendChild(header);
+    wrapper.appendChild(detalle);
+    wrapper.appendChild(actions);
+    container.appendChild(wrapper);
   });
 }
 
+// ============================================================
+// MIS GRUPOS (grupos donde soy creador o acepté la invitación)
+// ============================================================
+
+// Escapa texto antes de interpolarlo en innerHTML (XSS).
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Lee el teléfono del usuario actual desde el payload del JWT.
+// Devuelve null si no se puede decodificar, para degradar sin romper.
+function getCurrentUserPhone() {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    // JWT usa base64url: padding + alfabeto alternativo
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64.padEnd(
+      base64.length + ((4 - (base64.length % 4)) % 4),
+      "="
+    );
+    const data = JSON.parse(atob(padded));
+    return data && data.phone != null ? String(data.phone) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadMyExistingGroups() {
+  const container = document.getElementById("lista-mis-grupos-existentes");
+  if (!container) {
+    console.error("Contenedor #lista-mis-grupos-existentes no encontrado.");
+    return;
+  }
+
+  // Estado de carga
+  container.innerHTML = `<p style="color:white; text-align:center; padding:1em;">Cargando grupos...</p>`;
+
+  try {
+    const res = await fetch(`${ROOT_URL}/api/groups`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (!res.ok) throw new Error("Error al cargar tus grupos");
+
+    const data = await res.json();
+    renderizarMisGrupos(data && data.groups);
+  } catch (err) {
+    console.error(err);
+    showToast("Error al cargar tus grupos", "error");
+    container.innerHTML = `<p style="color:white; text-align:center; padding:1em;">No se pudieron cargar tus grupos. Intentá de nuevo.</p>`;
+  }
+}
+
+function renderizarMisGrupos(groups) {
+  const container = document.getElementById("lista-mis-grupos-existentes");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (!groups || !groups.length) {
+    container.innerHTML = `
+      <p style="color:white; text-align:center; padding:1em;">
+        No tenés grupos todavía
+      </p>`;
+    return;
+  }
+
+  const myPhone = getCurrentUserPhone();
+
+  groups.forEach((group) => {
+    const admins = Array.isArray(group.admins) ? group.admins : [];
+    const members = Array.isArray(group.members) ? group.members : [];
+
+    // Rol del usuario actual dentro del grupo
+    let rol = "Miembro";
+    if (myPhone && group.owner === myPhone) rol = "👑 Creador";
+    else if (myPhone && admins.includes(myPhone)) rol = "⭐ Co-Admin";
+
+    /* ===== WRAPPER ===== */
+    const wrapper = document.createElement("div");
+    wrapper.className = "invitacion-grupo-wrapper";
+    wrapper.style.backgroundColor = "rgba(0,0,0,0.2)";
+    wrapper.style.borderRadius = "0.4em";
+    wrapper.style.marginBottom = "0.6em";
+    wrapper.style.padding = "0.6em";
+
+    /* ===== CABECERA ===== */
+    const header = document.createElement("div");
+    header.className = "invitacion-header";
+    header.style.display = "flex";
+    header.style.alignItems = "center";
+    header.style.justifyContent = "space-between";
+    header.style.gap = "1em";
+    header.style.color = "white";
+    header.style.cursor = "pointer";
+
+    const info = document.createElement("div");
+
+    const nombre = document.createElement("strong");
+    nombre.textContent = group.name || "(sin nombre)";
+    nombre.style.color = "white";
+
+    const actividad = document.createElement("div");
+    actividad.className = "invitacion-actividad";
+    actividad.textContent = group.activity || "(sin actividad)";
+    actividad.style.opacity = "0.85";
+    actividad.style.fontSize = "0.9em";
+
+    const meta = document.createElement("div");
+    meta.style.marginTop = "0.3em";
+    meta.style.fontSize = "0.85em";
+    meta.style.opacity = "0.9";
+    meta.textContent = `${rol} · ${members.length} integrantes`;
+
+    info.appendChild(nombre);
+    info.appendChild(actividad);
+    info.appendChild(meta);
+
+    const icon = document.createElement("i");
+    icon.className = "fas fa-chevron-down";
+    icon.style.color = "white";
+
+    header.appendChild(info);
+    header.appendChild(icon);
+
+    /* ===== DETALLE ===== */
+    const detalle = document.createElement("div");
+    detalle.className = "invitacion-detalle";
+    detalle.style.display = "none";
+    detalle.style.color = "white";
+    detalle.style.paddingTop = "0.5em";
+
+    if (members.length) {
+      const resumen = document.createElement("div");
+      resumen.style.fontSize = "0.85em";
+      resumen.style.opacity = "0.8";
+      resumen.textContent = `Este grupo tiene ${members.length} integrantes.`;
+      detalle.appendChild(resumen);
+    }
+
+    /* ===== ACCIONES ===== */
+    const actions = document.createElement("div");
+    actions.className = "invitacion-actions";
+    actions.style.marginTop = "0.5em";
+
+    const btnEnviar = document.createElement("button");
+    btnEnviar.textContent = "Enviar mensaje";
+    btnEnviar.className = "btn-guardar-contacto";
+    btnEnviar.disabled = true; // sin flujo de envío de mensajes todavía
+    btnEnviar.style.padding = "0.3em 0.8em";
+    btnEnviar.style.borderRadius = "0.3em";
+    btnEnviar.style.border = "none";
+    btnEnviar.style.cursor = "default";
+    btnEnviar.style.backgroundColor = "#6c757d";
+    btnEnviar.style.color = "white";
+
+    actions.appendChild(btnEnviar);
+
+    /* ===== TOGGLE ===== */
+    header.addEventListener("click", () => {
+      detalle.style.display =
+        detalle.style.display === "none" ? "block" : "none";
+      icon.classList.toggle("rotate");
+    });
+
+    wrapper.appendChild(header);
+    wrapper.appendChild(detalle);
+    wrapper.appendChild(actions);
+    container.appendChild(wrapper);
+  });
+}

@@ -1,61 +1,10 @@
 import {
   showToast,
-  showConfirm,
-  showConfirmOkOnly,
-  //renderizarCabeceraContactos,
-  //renderizarFilasContactos
+  esTelefonoValido
 } from './utils.js';
 
 const misContactosList = document.getElementById("mis-contactos-manuales-list");
 const toggleContactosManual = document.getElementById("toggleContactosManual");
-
-// Función para sanitizar teléfono (reutilizamos la misma del archivo Google)
-function sanitizarTelefonoE164(input) {
-  const limpio = input.trim().replace(/[^\d+]/g, ""); // Elimina todo excepto dígitos y "+"
-  const soloNumeros = limpio.replace(/\D/g, ""); // solo números
-
-  // Si empieza con 00 → internacional
-  if (soloNumeros.startsWith("00")) {
-    return "+" + soloNumeros.slice(2);
-  }
-
-  // Si empieza con +54 (Argentina), forzamos +549...
-  if (limpio.startsWith("+54")) {
-    const sinMas = soloNumeros; // Ej: "541134560947" o "5491151227864"
-    if (sinMas.startsWith("54") && !sinMas.startsWith("549")) {
-      return "+549" + sinMas.slice(2); // fuerza el 9 después de 54
-    }
-    return "+" + sinMas;
-  }
-
-  // Si empieza con 15 y tiene 11 dígitos → +549...
-  if (soloNumeros.startsWith("15") && soloNumeros.length === 11) {
-    return "+549" + soloNumeros.slice(2);
-  }
-
-  // Si empieza con 9 y tiene 11 dígitos → ya está bien
-  if (soloNumeros.startsWith("9") && soloNumeros.length === 11) {
-    return "+54" + soloNumeros;
-  }
-
-  // Si empieza con 0 y tiene 11 dígitos → forzamos +549...
-  if (soloNumeros.startsWith("0") && soloNumeros.length === 11) {
-    return "+549" + soloNumeros.slice(1);
-  }
-
-  // Si tiene 10 dígitos → asumimos móvil sin 0 ni 9 → le agregamos ambos
-  if (soloNumeros.length === 10) {
-    return "+549" + soloNumeros;
-  }
-
-  // Fallback genérico (último recurso)
-  return "+" + soloNumeros;
-}
-
-function esTelefonoValido(numero) {
-  // Debe empezar con + y tener entre 10 y 15 dígitos
-  return /^\+\d{10,15}$/.test(numero);
-}
 
 // Función para limpiar el formulario
 function limpiarFormulario() {
@@ -101,18 +50,17 @@ async function agregarContactoManual(event) {
     return;
   }
   
-  // Sanitizar y validar teléfono
-  const telefonoSanitizado = sanitizarTelefonoE164(telefono);
-  
-  if (!esTelefonoValido(telefonoSanitizado)) {
+  // Chequeo previo sólo para feedback instantáneo. No sanitizamos acá: el
+  // backend es el dueño de la forma canónica del teléfono.
+  if (!esTelefonoValido(telefono)) {
     showToast(`El número de teléfono "${telefono}" no es válido`, "error");
     return;
   }
   
-  // Preparar payload
+  // Preparar payload con lo que escribió el usuario
   const payload = {
     nombre: nombre,
-    telefono: telefonoSanitizado,
+    telefono: telefono,
     mensajes: recibirMensajes,
     visibilidad: queMeVea,
   };
@@ -128,7 +76,15 @@ async function agregarContactoManual(event) {
     });
     
     if (!response.ok) {
-      const err = await response.json();
+      // El 400 del backend trae { error: "..." } con el motivo del rechazo.
+      // Si el body no es JSON no queremos caer en el catch de red y perder ese
+      // mensaje, así que tolerateamos el parseo.
+      let err = {};
+      try {
+        err = await response.json();
+      } catch (parseErr) {
+        console.warn("No se pudo leer el error del servidor:", parseErr);
+      }
       showToast("Error: " + (err.error || "No se pudo agregar el contacto"), "error");
       return;
     }
