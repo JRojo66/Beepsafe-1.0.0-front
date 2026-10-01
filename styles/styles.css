@@ -1886,3 +1886,170 @@ margin: 10px 0;
 .btn-crear-grupo:hover {
     background-color: #45a049; /* Un verde más oscuro al pasar el ratón */
 }
+
+/* ================================================================
+   Mis Grupos: tarjetas de grupo, lista de integrantes y panel de
+   invitación. Estas clases las emite JS/misGrupos.js tanto en
+   "Invitaciones pendientes" como en "Mis Grupos".
+   No se define `display` en `.invitacion-detalle` a propósito: el JS lo
+   muestra y oculta con estilos inline al hacer click en la cabecera.
+   ================================================================ */
+.invitacion-grupo-wrapper {
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 5px;
+  margin-bottom: 0.6em;
+  padding: 0.6em;
+  text-align: left;
+}
+
+.invitacion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  color: white;
+  cursor: pointer;
+}
+
+.invitacion-nombre {
+  color: white;
+}
+
+.invitacion-actividad {
+  color: var(--color-principal);
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+
+.invitacion-meta {
+  margin-top: 0.3em;
+  font-size: 0.85em;
+  opacity: 0.9;
+}
+
+.invitacion-detalle {
+  color: white;
+  padding-top: 0.5em;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 0.5em;
+}
+
+.invitacion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  margin-top: 0.5em;
+}
+
+/* --- Lista de integrantes --- */
+.invitacion-miembros {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+}
+
+.invitacion-miembro {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  flex-wrap: wrap;
+  padding: 0.35em 0.5em;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  text-align: left;
+}
+
+.miembro-nombre {
+  flex: 2 1 140px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: bold;
+}
+
+.miembro-rol {
+  flex: 1 1 90px;
+  min-width: 0;
+  font-size: 0.85em;
+  color: var(--color-principal);
+  white-space: nowrap;
+}
+
+.miembro-estado {
+  flex: 1 1 110px;
+  min-width: 0;
+  font-size: 0.85em;
+  text-align: center;
+  border-radius: 20px;
+  padding: 0.15em 0.5em;
+  background-color: rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+}
+
+/* Un color por estado de la invitación */
+.miembro-estado.estado-pendiente {
+  color: #ffc857;
+  border: 1px solid #ffc857;
+}
+
+.miembro-estado.estado-aceptada {
+  color: #4caf50;
+  border: 1px solid #4caf50;
+}
+
+.miembro-estado.estado-rechazada {
+  color: #f44336;
+  border: 1px solid #f44336;
+}
+
+.btn-quitar-miembro {
+  flex: 0 0 auto;
+  background-color: transparent;
+  color: #f44336;
+  border: 1px solid #f44336;
+  border-radius: 20px;
+  padding: 0.2em 0.7em;
+  font-size: 0.8em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-quitar-miembro:hover {
+  background-color: #f44336;
+  color: white;
+}
+
+/* --- Panel para invitar contactos a un grupo existente --- */
+.invitacion-panel {
+  margin-top: 0.5em;
+  padding: 0.5em;
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 5px;
+}
+
+.invitacion-panel-barra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  margin-bottom: 0.4em;
+}
+
+@media (max-width: 600px) {
+  .invitacion-miembro {
+    align-items: flex-start;
+  }
+
+  .miembro-nombre {
+    flex: 1 1 100%;
+  }
+
+  .miembro-rol,
+  .miembro-estado {
+    flex: 1 1 auto;
+  }
+
+  .invitacion-actions > button {
+    width: 100%;
+  }
+}
