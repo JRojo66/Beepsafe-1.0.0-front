@@ -12,6 +12,15 @@ function togglePassword(id, icon) {
   }
 }
 
+// Los ojitos se enlazan desde JS y no con onclick inline para permitir una
+// CSP estricta (script-src 'self' bloquea los handlers en linea). El input que
+// cada ojito controla viaja en data-password-for.
+document.querySelectorAll(".ojo[data-password-for]").forEach((icon) => {
+  icon.addEventListener("click", () => {
+    togglePassword(icon.dataset.passwordFor, icon);
+  });
+});
+
 
 
 // Extraer token de la URL
