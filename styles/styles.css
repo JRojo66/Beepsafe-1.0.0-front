@@ -2053,3 +2053,20 @@ margin: 10px 0;
     width: 100%;
   }
 }
+
+/* Mensaje de espera o vacio dentro de las listas de grupos. Se usa tanto en
+   el HTML como en los mensajes que misGrupos.js arma por innerHTML. */
+.grupos-message {
+  color: white;
+  text-align: center;
+  padding: 1em;
+}
+
+/* Etiqueta con checkbox dentro del modal informativo. */
+.modal-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-top: 10px;
+  font-size: 0.95em;
+}

@@ -225,7 +225,7 @@ function renderizarFilasSeleccion(ctx) {
   body.innerHTML = ""; // Borra filas renderizadas
 
   if (ctx.contactos.length === 0) {
-    body.innerHTML = `<p style="color:white; text-align:center; padding:1em;">No se encontraron contactos para seleccionar.</p>`;
+    body.innerHTML = `<p class="grupos-message">No se encontraron contactos para seleccionar.</p>`;
     renderizarControlesPaginadoSeleccion(ctx);
     return;
   }
@@ -751,7 +751,7 @@ function renderizarInvitacionesPendientes(groups) {
 
   if (!groups || !groups.length) {
     container.innerHTML = `
-      <p style="color:white; text-align:center; padding:1em;">
+      <p class="grupos-message">
         No tenés invitaciones pendientes
       </p>`;
     return;
@@ -979,7 +979,7 @@ async function loadMyExistingGroups() {
   }
 
   // Estado de carga
-  container.innerHTML = `<p style="color:white; text-align:center; padding:1em;">Cargando grupos...</p>`;
+  container.innerHTML = `<p class="grupos-message">Cargando grupos...</p>`;
 
   try {
     const res = await fetch(`${ROOT_URL}/api/groups`, {
@@ -995,7 +995,7 @@ async function loadMyExistingGroups() {
   } catch (err) {
     console.error(err);
     showToast("Error al cargar tus grupos", "error");
-    container.innerHTML = `<p style="color:white; text-align:center; padding:1em;">No se pudieron cargar tus grupos. Intentá de nuevo.</p>`;
+    container.innerHTML = `<p class="grupos-message">No se pudieron cargar tus grupos. Intentá de nuevo.</p>`;
   }
 }
 
@@ -1007,7 +1007,7 @@ function renderizarMisGrupos(groups) {
 
   if (!groups || !groups.length) {
     container.innerHTML = `
-      <p style="color:white; text-align:center; padding:1em;">
+      <p class="grupos-message">
         No tenés grupos todavía
       </p>`;
     return;
