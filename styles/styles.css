@@ -1778,6 +1778,9 @@ margin: 10px 0;
   
   /* Transición suave */
   transition: all 0.3s ease;
+
+  /* Aumento visual del checkbox (antes inline en misContactos.html) */
+  transform: scale(1.2);
 }
 
 /* Checkbox cuando está checked */

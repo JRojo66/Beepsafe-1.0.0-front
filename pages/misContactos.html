@@ -3,6 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+      default-src 'self';
+      script-src 'self';
+      style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com;
+      font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;
+      img-src 'self';
+      connect-src 'self' http://localhost:8080 https://beepsafe-1-0-0-back.onrender.com https://beepsafe-10-0-back-production.up.railway.app;
+      object-src 'none';
+    "
+    />
     <title>Mis Contactos</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
     <link rel="stylesheet" href="../styles/styles.css">
@@ -25,14 +37,14 @@
             <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
             <span>Mis contactos</span>
         </div>
-        <div id="mis-contactos-list" class="contactos-lista" style="display: none;"></div>
+        <div id="mis-contactos-list" class="contactos-lista hidden"></div>
 
         <!-- Agregar contactos manualmente -->
         <div id="toggleContactosManual" class="accordion-header-activity">
             <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
             <span>Agregar contactos manualmente</span>
         </div>
-        <div id="mis-contactos-manuales-list" class="contactos-lista" style="display: none;">
+        <div id="mis-contactos-manuales-list" class="contactos-lista hidden">
             <form id="form-agregar-contacto" class="add-activity-form">
                 <!-- Nombre -->
                 <input 
@@ -58,12 +70,12 @@
                 <!-- Checkboxes -->
                 <div class="checkboxes-container">
                     <label class="checkbox-label">
-                        <input class="checkbox-input" type="checkbox" id="recibir-mensajes" checked style="transform: scale(1.2);">
+                        <input class="checkbox-input" type="checkbox" id="recibir-mensajes" checked>
                         <span>Quiero que reciba mis mensajes</span>
                     </label>
                     
                     <label class="checkbox-label">
-                        <input class="checkbox-input" type="checkbox" id="que-me-vea" checked style="transform: scale(1.2);">
+                        <input class="checkbox-input" type="checkbox" id="que-me-vea" checked>
                         <span>Quiero que me vea</span>
                     </label>
                 </div>
@@ -82,7 +94,7 @@
             <span class="toggle-icon"><i class="fas fa-chevron-down"></i></span>
             <span>Importar contactos desde Google</span>
         </div>
-        <div id="google-contacts-list" class="contactos-lista" style="display: none;"></div>
+        <div id="google-contacts-list" class="contactos-lista hidden"></div>
     </div>
 </div>
 
@@ -103,7 +115,7 @@
   <div class="modal-content">
     <p id="info-message">...</p>
     <!-- 🆕 Casilla de "No volver a mostrar" -->
-    <label style="display: flex; align-items: center; gap: 0.5em; margin-top: 10px; font-size: 0.95em;">
+    <label class="modal-checkbox-label">
       <input type="checkbox" id="info-dont-show-again" />
       No volver a mostrar este mensaje
     </label>
