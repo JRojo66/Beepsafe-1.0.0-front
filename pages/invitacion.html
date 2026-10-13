@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+      default-src 'self';
+      script-src 'self';
+      style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com;
+      font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;
+      img-src 'self';
+      connect-src 'self' http://localhost:8080 https://beepsafe-1-0-0-back.onrender.com https://beepsafe-10-0-back-production.up.railway.app;
+      object-src 'none';
+    "
+    />
+    <title>Invitación</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="../styles/styles.css" />
+  </head>
+  <body>
+    <div class="configuracion">
+      <a href="../pages/misMensajes.html" class="perfil">
+        <div class="containerPerfil">
+          <img src="../imagenes/volver.PNG" alt="Volver" />
+          <img
+            src="../imagenes/misMensajes.PNG"
+            alt="invitacion"
+            class="encabezado"
+          />
+          <div class="opciones">Invitación</div>
+        </div>
+      </a>
+      <p class="encabezadoBajada">
+        Editá los mensajes que se envían al invitar a una persona a un grupo.
+        Podés usar las palabras {nombre}, {grupo}, {actividad} y {link}: se
+        reemplazan automáticamente al enviar el mensaje.
+      </p>
+      <div class="break"></div>
+
+      <form id="form-plantillas" class="invitacion-editor">
+        <label class="invitacion-editor-label" for="plantilla-registered">
+          Mensaje para personas que ya tienen cuenta
+        </label>
+        <textarea
+          id="plantilla-registered"
+          class="invitacion-editor-textarea"
+          rows="6"
+        ></textarea>
+
+        <label class="invitacion-editor-label" for="plantilla-notRegistered">
+          Mensaje para personas que no tienen cuenta
+        </label>
+        <textarea
+          id="plantilla-notRegistered"
+          class="invitacion-editor-textarea"
+          rows="6"
+        ></textarea>
+
+        <button
+          type="button"
+          id="guardar-plantillas-btn"
+          class="invitacion-guardar"
+        >
+          Guardar
+        </button>
+      </form>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="../JS/config.js"></script>
+    <script type="module" src="../JS/invitacion.js"></script>
+  </body>
+</html>
