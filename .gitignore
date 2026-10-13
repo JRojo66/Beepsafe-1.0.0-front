@@ -1,6 +1,10 @@
 # Dependencies (never commit)
 node_modules/
 
+# Stray backend npm manifest (this repo is a static front — delete these lines if the front ever needs npm)
+package.json
+package-lock.json
+
 # Environment variables (never commit config/secrets)
 .env
 .env.local
