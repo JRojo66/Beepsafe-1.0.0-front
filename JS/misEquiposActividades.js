@@ -131,15 +131,15 @@ async function fetchUserActivities(
                 .join("")}
                 <span class="toggle-add-equipment botonActividad">
                 <i class="fas fa-chevron-down toggle-icon"></i>Agregar equipo</span>
-                <div class="add-equipment-form" style="display:none;">
+                <div class="add-equipment-form hidden">
                     <input type="text" placeholder="Nombre equipo" class="input-name" />
                     <input type="text" placeholder="Descripción" class="input-desc" />
                     <!--<input type="text" placeholder="URL foto" class="input-photo" />-->
                   <div class="upload-buttons">
                     <button class="upload-btn camera-btn">📷 Cámara</button>
                     <button class="upload-btn gallery-btn">🖼️ Galería</button>
-                    <input type="file" accept="image/*" capture="environment" class="camera-input" style="display:none;" />
-                    <input type="file" accept="image/*" class="gallery-input" style="display:none;" />
+                    <input type="file" accept="image/*" capture="environment" class="camera-input hidden" />
+                    <input type="file" accept="image/*" class="gallery-input hidden" />
                   </div>                    
                     <button class="add-equipment-btn">Guardar Equipo</button>
                 </div>
