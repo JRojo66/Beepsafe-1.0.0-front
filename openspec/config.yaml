@@ -1,0 +1,61 @@
+# openspec/config.yaml
+schema: spec-driven
+
+context: |
+  Tech stack: Static site — vanilla HTML5 + ES modules + CSS, served by GitHub Pages. No bundler, no build step, no npm.
+  Architecture: index.html + 18 pages in /pages, 18 vanilla JS ES modules in /JS, shared /styles, /imagenes.
+    Strict Content-Security-Policy on every page (7 directives; script-src 'self', no inline scripts/styles).
+  Testing: UNAVAILABLE in this repo (no test runner, no test dir, no test/lint/type config). The root package.json is a
+    stray gitignored BACKEND manifest, explicitly documented as not front tooling in .gitignore — do not treat it as the front manifest.
+  Style: UI copy in Spanish; kebab-case file names; pages mirror JS modules 1:1 by feature (e.g., misGrupos.html <-> misGrupos.js).
+  Backend: sibling repo Beepsafe-1.0-0-back (Node/Express + MongoDB, Mocha/Chai/Supertest) is READ-ONLY reference, not the SDD home.
+
+testing:
+  strict_tdd: false
+  detected: 2026-10-12
+  runner:
+    command: ""
+    framework: none
+  layers:
+    unit: false
+    integration: false
+    e2e: false
+  coverage:
+    available: false
+    command: ""
+  quality:
+    linter: false
+    type_checker: false
+    formatter: false
+  note: >
+    Testing is unavailable by design: the front is a static site with no test runner.
+    Evidence: no test/ dir; no eslint/prettier/jsconfig/vitest/playwright/cypress config; the root package.json is a
+    gitignored stray backend manifest whose `npm test` target (mocha ./test/**/*.js) does not exist in this repo.
+    Verify front changes manually (browser smoke test + network panel). Sibling backend has Mocha/Chai/Supertest,
+    but that is reference-only and does not enable strict TDD for the SDD home.
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns: vanilla ES modules, no frameworks, no build step
+      - Respect the strict CSP on every page: no inline scripts/styles, no external scripts
+      - Keep user-visible UI copy in Spanish, following the current pages' tone
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
