@@ -1,0 +1,13 @@
+# Dependencies (never commit)
+node_modules/
+
+# Environment variables (never commit config/secrets)
+.env
+.env.local
+
+# Logs
+*.log
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
