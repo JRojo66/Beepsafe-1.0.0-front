@@ -37,6 +37,33 @@ function isValidLocalPhone(phone) {
   return digits.length >= 10 && digits.length <= 11;
 }
 
+// Normaliza un teléfono al número nacional que espera este formulario: quita
+// un `+` inicial (vía el filtro de dígitos), el código de país `54` y el
+// prefijo móvil `9`. Es idéntica a `telefonoNacionalAr` de `../JS/whatsapp.js`,
+// pero este script es clásico (no módulo) y no puede importarla.
+function normalizarTelefonoNacional(valor) {
+  let tel = String(valor || "").replace(/\D/g, "");
+  if (tel.startsWith("54")) tel = tel.slice(2);
+  if (tel.startsWith("9")) tel = tel.slice(1);
+  return tel;
+}
+
+// Prefill desde el link de invitación (?phone=<nacional>). El parámetro puede
+// llegar ya nacional o como E.164 crudo, así que se normaliza de forma
+// defensiva. Si no viene o no queda un número nacional plausible, no se toca
+// el campo y el formulario sigue igual. El valor es solo un borrador: el
+// usuario lo confirma o edita, nunca se auto-envía.
+(function prefillTelefonoDesdeQuery() {
+  const telefono = normalizarTelefonoNacional(
+    new URLSearchParams(window.location.search).get("phone")
+  );
+  if (!telefono || !isValidLocalPhone(telefono)) return;
+  const phoneInput = document.getElementById("phone");
+  // Only prefill an empty field: never clobber a browser-restored or autofilled
+  // value the user (or the browser) already put there.
+  if (phoneInput && !phoneInput.value.trim()) phoneInput.value = telefono;
+})();
+
 const form = document.getElementById("registroForm");
 
 // Hace el POST del formulario
