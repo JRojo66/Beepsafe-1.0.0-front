@@ -1,35 +1,35 @@
 # Tasks: Group Invite Message
 
 ## Phase 1: Backend account status (BACK, PR-B1)
-- [ ] 1.1 `GroupsController.getMyGroups`: unique phones → one `userModel.find({phone:{$in}})`, add `hasAccount` per member (no N+1).
-- [ ] 1.2 Supertest: `hasAccount` true/false.
-- [ ] 1.3 Test: single batched lookup, not per-member.
+- [x] 1.1 `GroupsController.getMyGroups`: unique phones → one `userModel.find({phone:{$in}})`, add `hasAccount` per member (no N+1).
+- [x] 1.2 Supertest: `hasAccount` true/false.
+- [x] 1.3 Test: single batched lookup, not per-member.
 
 ## Phase 2: Backend invite templates (BACK, PR-B2)
-- [ ] 2.1 `userModel.js`: add `inviteTemplates:{registered:String,notRegistered:String}` default `""`.
-- [ ] 2.2 Create `InviteTemplatesController.js`: GET stored-or-defaults; PUT validates ≤2000 (400 else), updates caller.
-- [ ] 2.3 Create `inviteTemplatesRouter.js`: `GET /`, `PUT /` behind `authJWT`.
-- [ ] 2.4 `app.js`: mount `/api/invite-templates`.
-- [ ] 2.5 Tests: GET defaults; PUT→GET; 401; 400.
+- [x] 2.1 `userModel.js`: add `inviteTemplates:{registered:String,notRegistered:String}` default `""`.
+- [x] 2.2 Create `InviteTemplatesController.js`: GET stored-or-defaults; PUT validates ≤2000 (400 else), updates caller.
+- [x] 2.3 Create `inviteTemplatesRouter.js`: `GET /`, `PUT /` behind `authJWT`.
+- [x] 2.4 `app.js`: mount `/api/invite-templates`.
+- [x] 2.5 Tests: GET defaults; PUT→GET; 401; 400.
 
 ## Phase 3: Front template editor (FRONT, PR-F1)
-- [ ] 3.1 Create `JS/inviteTemplates.js`: `DEFAULT_INVITE_TEMPLATES` (mirror back), `renderMensaje` (tokens+fallbacks), `cargarPlantillas`/`guardarPlantillas` (GET/PUT + localStorage fallback/degrade).
-- [ ] 3.2 Create `pages/invitacion.html`: CSP meta from `misGrupos.html`, `config.js` + module `invitacion.js`, two textareas + Guardar (Spanish).
-- [ ] 3.3 Create `JS/invitacion.js`: load→populate, save→PUT, surface failures via `showToast`.
-- [ ] 3.4 `pages/misMensajes.html`: `.perfilb` card → `pages/invitacion.html`.
-- [ ] 3.5 `styles/styles.css`: editor layout classes.
+- [x] 3.1 Create `JS/inviteTemplates.js`: `DEFAULT_INVITE_TEMPLATES` (mirror back), `renderMensaje` (tokens+fallbacks), `cargarPlantillas`/`guardarPlantillas` (GET/PUT + localStorage fallback/degrade).
+- [x] 3.2 Create `pages/invitacion.html`: CSP meta from `misGrupos.html`, `config.js` + module `invitacion.js`, two textareas + Guardar (Spanish).
+- [x] 3.3 Create `JS/invitacion.js`: load→populate, save→PUT, surface failures via `showToast`.
+- [x] 3.4 `pages/misMensajes.html`: `.perfilb` card → `pages/invitacion.html`.
+- [x] 3.5 `styles/styles.css`: editor layout classes.
 
 ## Phase 4: Front invite action + badge (FRONT, PR-F2)
-- [ ] 4.1 Create `JS/whatsapp.js`: `normalizarTelefonoE164`, `esTelefonoE164Valido`, `telefonoNacionalAr`, `construirWaMeUrl` (E.164 minus `+`, `encodeURIComponent`).
-- [ ] 4.2 `misGrupos.js`: remove local `normalizarTelefonoE164`; import from `whatsapp.js`.
-- [ ] 4.3 `renderizarMiembrosGrupo`: badge when `hasAccount` defined (true→ok, false→neutral; omit when absent); per-row invite button only if pending/not-creator/admin.
-- [ ] 4.4 Invite handler: invalid phone ⇒ `showToast("Teléfono inválido")`; else key by `hasAccount===true`; destination `misGrupos.html` vs `crearCuenta.html?phone=<nacional>`; `renderMensaje`; `window.open(wa.me,…,"noopener")` (no fetch).
-- [ ] 4.5 Precache templates on init.
-- [ ] 4.6 Remove disabled `btnEnviar` (L1076-1082).
-- [ ] 4.7 `styles/styles.css`: `.miembro-cuenta` (ok/no), `.btn-invitar-miembro`.
+- [x] 4.1 Create `JS/whatsapp.js`: `normalizarTelefonoE164`, `esTelefonoE164Valido`, `telefonoNacionalAr`, `construirWaMeUrl` (E.164 minus `+`, `encodeURIComponent`).
+- [x] 4.2 `misGrupos.js`: remove local `normalizarTelefonoE164`; import from `whatsapp.js`.
+- [x] 4.3 `renderizarMiembrosGrupo`: badge when `hasAccount` defined (true→ok, false→neutral; omit when absent); per-row invite button only if pending/not-creator/admin.
+- [x] 4.4 Invite handler: invalid phone ⇒ `showToast("Teléfono inválido")`; else key by `hasAccount===true`; destination `misGrupos.html` vs `crearCuenta.html?phone=<nacional>`; `renderMensaje`; `window.open(wa.me,…,"noopener")` (no fetch).
+- [x] 4.5 Precache templates on init.
+- [x] 4.6 Remove disabled `btnEnviar` (L1076-1082).
+- [x] 4.7 `styles/styles.css`: `.miembro-cuenta` (ok/no), `.btn-invitar-miembro`.
 
 ## Phase 5: crearCuenta prefill (FRONT, PR-F3)
-- [ ] 5.1 `JS/crearCuenta.js`: read `?phone=`, strip `+`/`54`/leading `9`, prefill `#phone`.
+- [x] 5.1 `JS/crearCuenta.js`: read `?phone=`, strip `+`/`54`/leading `9`, prefill `#phone`.
 
 ## Phase 6: Verification
 - [ ] 6.1 Front smoke: invite registered/not-registered, badge true/false/absent, prefill, template round-trip, no CSP errors, existing flows unchanged.
