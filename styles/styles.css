@@ -2025,6 +2025,47 @@ margin: 10px 0;
   color: white;
 }
 
+/* Estado de cuenta del miembro (hasAccount). Solo se renderiza cuando el
+   backend informa el dato; si no viene, la fila no muestra esta etiqueta. */
+.miembro-cuenta {
+  flex: 1 1 90px;
+  min-width: 0;
+  font-size: 0.85em;
+  text-align: center;
+  border-radius: 20px;
+  padding: 0.15em 0.5em;
+  background-color: rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+}
+
+.miembro-cuenta.miembro-cuenta-ok {
+  color: #4caf50;
+  border: 1px solid #4caf50;
+}
+
+.miembro-cuenta.miembro-cuenta-no {
+  color: #b0b0b0;
+  border: 1px solid #b0b0b0;
+}
+
+/* Botón por fila para enviar la invitación por WhatsApp a un miembro pendiente. */
+.btn-invitar-miembro {
+  flex: 0 0 auto;
+  background-color: transparent;
+  color: #25d366;
+  border: 1px solid #25d366;
+  border-radius: 20px;
+  padding: 0.2em 0.7em;
+  font-size: 0.8em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-invitar-miembro:hover {
+  background-color: #25d366;
+  color: white;
+}
+
 /* --- Panel para invitar contactos a un grupo existente --- */
 .invitacion-panel {
   margin-top: 0.5em;
@@ -2051,7 +2092,8 @@ margin: 10px 0;
   }
 
   .miembro-rol,
-  .miembro-estado {
+  .miembro-estado,
+  .miembro-cuenta {
     flex: 1 1 auto;
   }
 

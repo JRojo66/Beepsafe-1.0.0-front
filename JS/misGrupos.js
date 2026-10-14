@@ -1,5 +1,16 @@
 // misGrupos.js
 import { showToast, showConfirm } from "./utils.js";
+import {
+  normalizarTelefonoE164,
+  esTelefonoE164Valido,
+  telefonoNacionalAr,
+  construirWaMeUrl,
+} from "./whatsapp.js";
+import {
+  cargarPlantillas,
+  renderMensaje,
+  DEFAULT_INVITE_TEMPLATES,
+} from "./inviteTemplates.js";
 
 // Verifica que esté logueado
 async function checkAuthOrRedirect() {
@@ -18,28 +29,27 @@ async function checkAuthOrRedirect() {
   }
 }
 
-/**
- * Normaliza un teléfono a E.164 canónico. Es el mismo criterio que aplica el
- * backend en `normalizarTelefonoE164` (src/utils.js): sin esta copia el front
- * no puede comparar un contacto con los miembros del grupo, porque los miembros
- * se guardan normalizados y los contactos pueden venir de cualquier formato.
- * El backend sigue siendo la autoridad: revalida y normaliza todo lo que llega.
- */
-function normalizarTelefonoE164(input) {
-  if (!input) return null;
-  let tel = String(input).replace(/\D/g, "");
-  if (tel.startsWith("0")) tel = tel.slice(1);
-  if (tel.startsWith("549")) return `+${tel}`;
-  if (tel.startsWith("54")) return `+549${tel.slice(2)}`;
-  if (tel.startsWith("9")) return `+54${tel}`;
-  return `+549${tel}`;
-}
-
 function normalizarContacto(c) {
   return {
     name: c.name || c.nombre || "",
     phone: c.phone || c.telefono || "",
   };
+}
+
+// Plantillas de invitación precargadas una vez al init, para que el clic en
+// "Enviar mensaje" arme el texto al instante y sin red. Si el backend no está
+// disponible se usan las predeterminadas (cargarPlantillas ya degrada solo).
+let plantillasInvitacion = { ...DEFAULT_INVITE_TEMPLATES };
+
+async function precargarPlantillasInvitacion() {
+  try {
+    const resultado = await cargarPlantillas();
+    if (resultado && resultado.templates) {
+      plantillasInvitacion = resultado.templates;
+    }
+  } catch {
+    // Sin conexión: se conservan las predeterminadas.
+  }
 }
 
 // *************************
@@ -452,6 +462,10 @@ window.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
+  // Precargar las plantillas de invitación (una sola vez) para que el botón
+  // "Enviar mensaje" arme el texto al instante, incluso sin backend.
+  await precargarPlantillasInvitacion();
+
   // Toggle "Mis Grupos"
   const toggleMisGrupos = document.getElementById("toggleMisGrupos");
   const listaMisGruposExistentes = document.getElementById(
@@ -685,6 +699,37 @@ function rolDeMiembro(group, member) {
 }
 
 /**
+ * Abre WhatsApp con el mensaje de invitación para un miembro pendiente.
+ * Es una navegación de navegador (`window.open`), nunca fetch/XHR, así que la
+ * CSP estricta de la página no se toca. Único bloqueo posible: un teléfono que
+ * no se puede normalizar a E.164 válido.
+ */
+function enviarInvitacionWhatsapp(group, member) {
+  const phone = normalizarTelefonoE164(member.phone);
+  if (!esTelefonoE164Valido(phone)) {
+    showToast("Teléfono inválido", "error");
+    return;
+  }
+
+  const registrado = member.hasAccount === true;
+  const clave = registrado ? "registered" : "notRegistered";
+  const link = registrado
+    ? `${FRONT_URL}/pages/misGrupos.html`
+    : `${FRONT_URL}/pages/crearCuenta.html?phone=${telefonoNacionalAr(phone)}`;
+
+  const plantilla = plantillasInvitacion[clave] || DEFAULT_INVITE_TEMPLATES[clave];
+  const mensaje = renderMensaje(plantilla, {
+    nombre: member.name,
+    telefono: member.phone,
+    grupo: group.name,
+    actividad: group.activity,
+    link,
+  });
+
+  window.open(construirWaMeUrl(phone, mensaje), "_blank", "noopener");
+}
+
+/**
  * Arma la lista de integrantes de un grupo.
  * @param {object} group  grupo con `members`, `admins` y `owner`
  * @param {object} opciones
@@ -696,6 +741,7 @@ function rolDeMiembro(group, member) {
 function renderizarMiembrosGrupo(group, opciones = {}) {
   const { userPhone = null, mostrarQuitar = false } = opciones;
   const members = Array.isArray(group.members) ? group.members : [];
+  const administra = elUsuarioAdministraElGrupo(group, userPhone);
 
   const lista = document.createElement("div");
   lista.className = "invitacion-miembros";
@@ -727,14 +773,36 @@ function renderizarMiembrosGrupo(group, opciones = {}) {
     row.appendChild(rol);
     row.appendChild(estadoEl);
 
+    // Estado de cuenta: solo se muestra si el backend lo informa. Si el campo
+    // no viene (backend viejo), no se muestra nada para no inducir a error.
+    if (m.hasAccount === true || m.hasAccount === false) {
+      const cuentaEl = document.createElement("div");
+      cuentaEl.className = m.hasAccount
+        ? "miembro-cuenta miembro-cuenta-ok"
+        : "miembro-cuenta miembro-cuenta-no";
+      cuentaEl.textContent = m.hasAccount ? "Con cuenta" : "Sin cuenta";
+      row.appendChild(cuentaEl);
+    }
+
     // Nunca se ofrece quitar al creador, ni siquiera al owner o a un admin
-    if (mostrarQuitar && !esCreador && elUsuarioAdministraElGrupo(group, userPhone)) {
+    if (mostrarQuitar && !esCreador && administra) {
       const btnQuitar = document.createElement("button");
       btnQuitar.type = "button";
       btnQuitar.className = "btn-quitar-miembro";
       btnQuitar.textContent = "Quitar";
       btnQuitar.onclick = () => quitarMiembroDelGrupo(group, m.phone, displayName);
       row.appendChild(btnQuitar);
+    }
+
+    // Invitación por WhatsApp: solo owner/co-admin, solo a pendientes y nunca
+    // al creador del grupo.
+    if (administra && m.accepted === null && !esCreador) {
+      const btnInvitar = document.createElement("button");
+      btnInvitar.type = "button";
+      btnInvitar.className = "btn-invitar-miembro";
+      btnInvitar.textContent = "Enviar mensaje";
+      btnInvitar.onclick = () => enviarInvitacionWhatsapp(group, m);
+      row.appendChild(btnInvitar);
     }
 
     lista.appendChild(row);
@@ -1073,14 +1141,6 @@ function renderizarMisGrupos(groups) {
     const actions = document.createElement("div");
     actions.className = "invitacion-actions";
 
-    const btnEnviar = document.createElement("button");
-    btnEnviar.type = "button";
-    btnEnviar.textContent = "Enviar mensaje";
-    btnEnviar.className = "btn-guardar-contacto";
-    btnEnviar.disabled = true; // sin flujo de envío de mensajes todavía
-
-    actions.appendChild(btnEnviar);
-
     // Solo owner y co-admins pueden invitar gente nueva al grupo
     if (administra) {
       const btnInvitar = document.createElement("button");
@@ -1121,7 +1181,9 @@ function renderizarMisGrupos(groups) {
 
     wrapper.appendChild(header);
     wrapper.appendChild(detalle);
-    wrapper.appendChild(actions);
+    if (actions.childElementCount > 0) {
+      wrapper.appendChild(actions);
+    }
     container.appendChild(wrapper);
   });
 }
