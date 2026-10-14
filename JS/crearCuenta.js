@@ -59,7 +59,9 @@ function normalizarTelefonoNacional(valor) {
   );
   if (!telefono || !isValidLocalPhone(telefono)) return;
   const phoneInput = document.getElementById("phone");
-  if (phoneInput) phoneInput.value = telefono;
+  // Only prefill an empty field: never clobber a browser-restored or autofilled
+  // value the user (or the browser) already put there.
+  if (phoneInput && !phoneInput.value.trim()) phoneInput.value = telefono;
 })();
 
 const form = document.getElementById("registroForm");
