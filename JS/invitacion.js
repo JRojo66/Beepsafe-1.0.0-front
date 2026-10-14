@@ -13,9 +13,20 @@ const txtRegistered = document.getElementById("plantilla-registered");
 const txtNotRegistered = document.getElementById("plantilla-notRegistered");
 const btnGuardar = document.getElementById("guardar-plantillas-btn");
 
+// Fields the user has already edited. The async load MUST NOT clobber these.
+const camposTocados = new Set();
+
+// Guards saving until the initial load settles, so a click during the GET never
+// persists half-loaded (empty) textareas.
+let cargado = false;
+
 function pintarPlantillas(templates) {
-  if (txtRegistered) txtRegistered.value = templates.registered;
-  if (txtNotRegistered) txtNotRegistered.value = templates.notRegistered;
+  if (txtRegistered && !camposTocados.has(txtRegistered)) {
+    txtRegistered.value = templates.registered;
+  }
+  if (txtNotRegistered && !camposTocados.has(txtNotRegistered)) {
+    txtNotRegistered.value = templates.notRegistered;
+  }
 }
 
 function leerFormulario() {
@@ -43,6 +54,7 @@ async function init() {
 }
 
 async function onGuardar() {
+  if (!cargado) return;
   if (btnGuardar) btnGuardar.disabled = true;
   try {
     const resultado = await guardarPlantillas(leerFormulario());
@@ -59,8 +71,24 @@ async function onGuardar() {
   }
 }
 
+if (txtRegistered) {
+  txtRegistered.addEventListener("input", () => camposTocados.add(txtRegistered));
+}
+if (txtNotRegistered) {
+  txtNotRegistered.addEventListener("input", () =>
+    camposTocados.add(txtNotRegistered)
+  );
+}
+
 if (btnGuardar) {
+  // Disabled until init() settles: no saving against a half-loaded editor.
+  btnGuardar.disabled = true;
   btnGuardar.addEventListener("click", onGuardar);
 }
 
-init();
+// Enable Guardar only once the load has finished (success or failure), and mark
+// the editor as ready so a stray click cannot persist empty defaults.
+init().finally(() => {
+  cargado = true;
+  if (btnGuardar) btnGuardar.disabled = false;
+});

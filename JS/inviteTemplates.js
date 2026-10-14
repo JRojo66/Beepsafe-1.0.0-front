@@ -87,34 +87,33 @@ function leerPlantillasLocales() {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return null;
-    return {
+    const entrada = {
       registered: toText(parsed.registered),
       notRegistered: toText(parsed.notRegistered),
     };
+    // Legacy entries (written before this marker existed) carry no flag; leaving
+    // `pendingSync` undefined keeps the migration path able to recognize them.
+    if (typeof parsed.pendingSync === "boolean") {
+      entrada.pendingSync = parsed.pendingSync;
+    }
+    return entrada;
   } catch {
     return null;
   }
 }
 
-function escribirPlantillasLocales(plantillas) {
+function escribirPlantillasLocales(plantillas, pendingSync) {
   try {
     localStorage.setItem(
       LS_KEY,
       JSON.stringify({
         registered: plantillas.registered,
         notRegistered: plantillas.notRegistered,
+        pendingSync: pendingSync === true,
       })
     );
   } catch {
     // Storage might be full or blocked; degrade silently.
-  }
-}
-
-function borrarPlantillasLocales() {
-  try {
-    localStorage.removeItem(LS_KEY);
-  } catch {
-    // Nothing to do if storage is unavailable.
   }
 }
 
@@ -153,11 +152,16 @@ async function subirPlantillas(plantillas) {
  * Success -> { ok: true, source: "server" | "local", templates }
  * Failure -> { ok: false, source: "local" | "default", templates }
  *
- * The `source` field lets the page distinguish "loaded from server", "loaded
- * from this device", and "built-in defaults", so it can surface the right
- * message. When the backend is reachable but still holds defaults while local
- * values exist, the local values are pushed and the local key is cleared
- * (migration path from the transitional localStorage store).
+ * Resolution order:
+ *   1. Local copy marked `pendingSync` (a previous PUT degraded): push it and
+ *      clear the flag on success. Unsynced edits always win over the server.
+ *   2. Legacy local copy (no flag) while the server still holds defaults: push
+ *      it, then mark it synced (migration from the transitional store).
+ *   3. Otherwise the server value is authoritative, so a deliberate server-side
+ *      reset to defaults is NOT resurrected by a stale local copy.
+ *
+ * Local values always pass through resolverPlantillas() so missing/empty fields
+ * fall back to the built-in defaults instead of rendering empty editors.
  */
 export async function cargarPlantillas() {
   try {
@@ -170,29 +174,51 @@ export async function cargarPlantillas() {
     const plantillas = resolverPlantillas(data?.templates);
 
     const locales = leerPlantillasLocales();
-    if (locales && esValorDefault(plantillas)) {
-      // Migration: backend not yet carrying the user's local values.
+
+    if (locales && locales.pendingSync === true) {
       const subido = await subirPlantillas(locales);
-      if (subido) borrarPlantillasLocales();
-      return { ok: true, source: "local", templates: locales };
+      if (subido) escribirPlantillasLocales(locales, false);
+      return {
+        ok: true,
+        source: "local",
+        templates: resolverPlantillas(locales),
+      };
+    }
+
+    if (locales && locales.pendingSync === undefined && esValorDefault(plantillas)) {
+      const subido = await subirPlantillas(locales);
+      if (subido) escribirPlantillasLocales(locales, false);
+      return {
+        ok: true,
+        source: "local",
+        templates: resolverPlantillas(locales),
+      };
     }
 
     return { ok: true, source: "server", templates: plantillas };
   } catch (err) {
     console.error("No se pudieron cargar las plantillas desde el servidor", err);
     const locales = leerPlantillasLocales();
+    if (locales) {
+      return {
+        ok: false,
+        source: "local",
+        templates: resolverPlantillas(locales),
+      };
+    }
     return {
       ok: false,
-      source: locales ? "local" : "default",
-      templates: locales || { ...DEFAULT_INVITE_TEMPLATES },
+      source: "default",
+      templates: { ...DEFAULT_INVITE_TEMPLATES },
     };
   }
 }
 
 /**
- * Persists the templates. On success the values are mirrored to localStorage;
- * on failure they are kept in localStorage so nothing is lost, and the caller
- * is told the save was degraded.
+ * Persists the templates. The local copy is always mirrored with an explicit
+ * `pendingSync` marker: false after a successful PUT (server is authoritative),
+ * true after a degraded one (the edits are unsynced and must be pushed by the
+ * next load instead of trusting a stale server value).
  *
  * Returns { ok, degraded, templates }.
  */
@@ -203,7 +229,7 @@ export async function guardarPlantillas(plantillas) {
   };
 
   const ok = await subirPlantillas(limpias);
-  escribirPlantillasLocales(limpias);
+  escribirPlantillasLocales(limpias, !ok);
 
   return { ok, degraded: !ok, templates: limpias };
 }
