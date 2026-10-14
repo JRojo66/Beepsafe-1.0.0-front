@@ -57,15 +57,27 @@ async function onGuardar() {
   if (!cargado) return;
   if (btnGuardar) btnGuardar.disabled = true;
   try {
-    const resultado = await guardarPlantillas(leerFormulario());
+    const formulario = leerFormulario();
+    const resultado = await guardarPlantillas(formulario);
     if (resultado.ok) {
       showToast("Plantillas guardadas", "success");
-    } else {
+      return;
+    }
+    if (resultado.reason === "empty") {
+      showToast("La plantilla no puede estar vacía", "error");
+      return;
+    }
+    if (resultado.reason === "rejected") {
       showToast(
-        "No se pudieron guardar en el servidor. Se guardaron en este dispositivo.",
+        "No se pudieron guardar en el servidor. Revisá el contenido e intentá nuevamente.",
         "error"
       );
+      return;
     }
+    showToast(
+      "No se pudieron guardar en el servidor. Se guardaron en este dispositivo.",
+      "error"
+    );
   } finally {
     if (btnGuardar) btnGuardar.disabled = false;
   }

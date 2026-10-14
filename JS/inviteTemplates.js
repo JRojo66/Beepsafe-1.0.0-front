@@ -125,8 +125,11 @@ function authHeaders(extra = {}) {
 }
 
 /**
- * Low-level PUT. Returns true on HTTP 2xx, false on any failure (network,
- * non-2xx). Never throws — callers decide how to surface the failure.
+ * Low-level PUT. Returns structured result.
+ * - ok: true only on HTTP 2xx
+ * - status: HTTP status if available
+ * - is4xx: true if response status is 4xx
+ * - isTransient: true for network/5xx/timeout errors (retryable)
  */
 async function subirPlantillas(plantillas) {
   try {
@@ -138,11 +141,20 @@ async function subirPlantillas(plantillas) {
         notRegistered: plantillas.notRegistered,
       }),
     });
-    if (!res.ok) throw new Error(`PUT /api/invite-templates -> ${res.status}`);
-    return true;
+    if (res.ok) {
+      return { ok: true, status: res.status, is4xx: false, isTransient: false };
+    }
+    const status = res.status;
+    const is4xx = status >= 400 && status < 500;
+    return {
+      ok: false,
+      status,
+      is4xx,
+      isTransient: !is4xx, // non-4xx failures (5xx, others) are considered transient
+    };
   } catch (err) {
     console.error("No se pudieron guardar las plantillas en el servidor", err);
-    return false;
+    return { ok: false, status: undefined, is4xx: false, isTransient: true };
   }
 }
 
@@ -176,22 +188,76 @@ export async function cargarPlantillas() {
     const locales = leerPlantillasLocales();
 
     if (locales && locales.pendingSync === true) {
-      const subido = await subirPlantillas(locales);
-      if (subido) escribirPlantillasLocales(locales, false);
+      // Defense-in-depth: if pending snapshot is blank, do not retry; clear flag.
+      const localesLim = {
+        registered: toText(locales.registered),
+        notRegistered: toText(locales.notRegistered),
+      };
+      const pendingBlank =
+        localesLim.registered.trim() === "" ||
+        localesLim.notRegistered.trim() === "";
+      if (pendingBlank) {
+        escribirPlantillasLocales(localesLim, false);
+        return {
+          ok: true,
+          source: "local",
+          templates: resolverPlantillas(localesLim),
+        };
+      }
+      const subido = await subirPlantillas(localesLim);
+      if (subido.ok) {
+        escribirPlantillasLocales(localesLim, false);
+        return {
+          ok: true,
+          source: "local",
+          templates: resolverPlantillas(localesLim),
+        };
+      }
+      // If rejected (4xx), do not keep pendingSync — do not retry forever.
+      if (subido.is4xx) {
+        escribirPlantillasLocales(localesLim, false);
+        return {
+          ok: true,
+          source: "local",
+          templates: resolverPlantillas(localesLim),
+        };
+      }
+      // Transient failure (5xx/network) — keep pendingSync for later retry.
+      escribirPlantillasLocales(localesLim, true);
       return {
         ok: true,
         source: "local",
-        templates: resolverPlantillas(locales),
+        templates: resolverPlantillas(localesLim),
       };
     }
 
     if (locales && locales.pendingSync === undefined && esValorDefault(plantillas)) {
-      const subido = await subirPlantillas(locales);
-      if (subido) escribirPlantillasLocales(locales, false);
+      const localesLim = {
+        registered: toText(locales.registered),
+        notRegistered: toText(locales.notRegistered),
+      };
+      const subido = await subirPlantillas(localesLim);
+      if (subido.ok) {
+        escribirPlantillasLocales(localesLim, false);
+        return {
+          ok: true,
+          source: "local",
+          templates: resolverPlantillas(localesLim),
+        };
+      }
+      if (subido.is4xx) {
+        escribirPlantillasLocales(localesLim, false);
+        return {
+          ok: true,
+          source: "local",
+          templates: resolverPlantillas(localesLim),
+        };
+      }
+      escribirPlantillasLocales(localesLim, true);
       return {
         ok: true,
         source: "local",
-        templates: resolverPlantillas(locales),
+        templates: resolverPlantillas(localesLim),
       };
     }
 
@@ -216,11 +282,12 @@ export async function cargarPlantillas() {
 
 /**
  * Persists the templates. The local copy is always mirrored with an explicit
- * `pendingSync` marker: false after a successful PUT (server is authoritative),
- * true after a degraded one (the edits are unsynced and must be pushed by the
- * next load instead of trusting a stale server value).
+ * `pendingSync` marker:
+ * - false after a successful PUT (server is authoritative)
+ * - true only for transient failures (network/5xx/timeout) so edits are retried
+ *   on next load. On 4xx (rejected by server), we do NOT set pendingSync.
  *
- * Returns { ok, degraded, templates }.
+ * Returns { ok, degraded, templates, reason? }
  */
 export async function guardarPlantillas(plantillas) {
   const limpias = {
@@ -228,8 +295,29 @@ export async function guardarPlantillas(plantillas) {
     notRegistered: toText(plantillas?.notRegistered),
   };
 
-  const ok = await subirPlantillas(limpias);
-  escribirPlantillasLocales(limpias, !ok);
+  // A. Block blank before PUT
+  const registeredBlank = limpias.registered.trim() === "";
+  const notRegisteredBlank = limpias.notRegistered.trim() === "";
+  if (registeredBlank || notRegisteredBlank) {
+    return {
+      ok: false,
+      degraded: false,
+      reason: "empty",
+      templates: limpias,
+    };
+  }
 
-  return { ok, degraded: !ok, templates: limpias };
+  const res = await subirPlantillas(limpias);
+  if (res.ok) {
+    escribirPlantillasLocales(limpias, false);
+    return { ok: true, degraded: false, templates: limpias };
+  }
+  if (res.is4xx) {
+    // Rejected by server — do not mark as pending sync; local value is unsatisfiable
+    escribirPlantillasLocales(limpias, false);
+    return { ok: false, degraded: false, reason: "rejected", templates: limpias };
+  }
+  // Transient: 5xx/network — mark pending sync for retry
+  escribirPlantillasLocales(limpias, true);
+  return { ok: false, degraded: true, templates: limpias };
 }
