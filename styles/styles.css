@@ -2076,3 +2076,54 @@ margin: 10px 0;
   margin-top: 10px;
   font-size: 0.95em;
 }
+
+/* ================================================================
+   Editor de plantillas de invitación (pages/invitacion.html).
+   Estructura emitida por el propio HTML; solo layout, sin estilos
+   inline (cumple el CSP estricto).
+   ================================================================ */
+.invitacion-editor {
+  width: 90%;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 1em 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.invitacion-editor-label {
+  color: white;
+  text-align: left;
+  font-size: 0.95em;
+}
+
+.invitacion-editor-textarea {
+  width: 100%;
+  min-height: 120px;
+  box-sizing: border-box;
+  padding: 0.6em;
+  border: 1px solid white;
+  border-radius: 5px;
+  background-color: var(--color-fondo);
+  color: white;
+  font-family: inherit;
+  font-size: 0.9em;
+  resize: vertical;
+}
+
+.invitacion-guardar {
+  align-self: center;
+  padding: 0.6em 1.6em;
+  border: 1px solid white;
+  border-radius: 20px;
+  background-color: var(--color-principal);
+  color: var(--color-fondo);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.invitacion-guardar:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
