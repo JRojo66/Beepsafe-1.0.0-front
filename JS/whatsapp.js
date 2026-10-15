@@ -17,6 +17,22 @@
 // No browser globals are touched here, so the module is safe to import from
 // any page (CSP-friendly: pure functions, no DOM, no fetch).
 
+// Removes the Argentine local mobile prefix ("15") written between the area
+// code and the subscriber number, e.g. "011 15 5122-7864". It is only removed
+// when the result is a plausible AR national number (10 or 11 digits), so
+// numbers already in national format are never altered.
+function quitarPrefijoMovil15(nacional) {
+  for (const largoArea of [2, 3, 4]) {
+    if (
+      nacional.slice(largoArea, largoArea + 2) === "15" &&
+      [10, 11].includes(nacional.length - 2)
+    ) {
+      return nacional.slice(0, largoArea) + nacional.slice(largoArea + 2);
+    }
+  }
+  return nacional;
+}
+
 /**
  * Normalizes a phone number to canonical E.164 for the AR numbering plan.
  * Non-digit characters are stripped first, so any input format is accepted.
@@ -26,10 +42,10 @@ export function normalizarTelefonoE164(input) {
   if (!input) return null;
   let tel = String(input).replace(/\D/g, "");
   if (tel.startsWith("0")) tel = tel.slice(1);
-  if (tel.startsWith("549")) return `+${tel}`;
-  if (tel.startsWith("54")) return `+549${tel.slice(2)}`;
-  if (tel.startsWith("9")) return `+54${tel}`;
-  return `+549${tel}`;
+  if (tel.startsWith("549")) return `+549${quitarPrefijoMovil15(tel.slice(3))}`;
+  if (tel.startsWith("54")) return `+549${quitarPrefijoMovil15(tel.slice(2))}`;
+  if (tel.startsWith("9")) return `+549${quitarPrefijoMovil15(tel.slice(1))}`;
+  return `+549${quitarPrefijoMovil15(tel)}`;
 }
 
 /**
