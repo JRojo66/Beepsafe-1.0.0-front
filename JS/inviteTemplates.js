@@ -20,7 +20,7 @@ export const DEFAULT_INVITE_TEMPLATES = {
   registered:
     "¡Hola {nombre}! Te sumé al grupo {grupo} ({actividad}) en Beepsafe. Entrá a tu cuenta y aceptá la invitación acá: {link}",
   notRegistered:
-    "¡Hola {nombre}! Te invité al grupo {grupo} ({actividad}) en Beepsafe. Creá tu cuenta y aceptá la invitación acá: {link}",
+    "¡Hola {nombre}! Estoy usando una nueva aplicación llamada Beepsafe, para comunicarnos cuando practiquemos ({actividad}). Te invité al grupo {grupo}, donde estamos todos. Creá tu cuenta y aceptá la invitación acá: {link}",
 };
 
 // Fallback values for empty context, per the design's deterministic rules.
