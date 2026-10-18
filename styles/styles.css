@@ -514,18 +514,18 @@ select.menu {
   border-radius: 20px;
 }
 
+/* Clase compartida con perfil.html: también la usa <img class="logoActividad">,
+   así que el bloque debe seguir funcionando para ambos usos. */
 .logoActividad {
   margin-bottom: 5%;
   width: 45%;
   height: 45%;
-  padding-top: 5x;
   object-fit: contain; /* Ajusta la imagen para que quepa dentro del contenedor manteniendo sus proporciones */
   max-height: 100px;
 }
 
 .botonIniciar {
-  border: 20px solid var(--color-principal); /*Borde de 20px en el color especificado */
-  /* border-image: linear-gradient(to right, red 10%, #5DFDCB 10%) 1 round; */
+  border: none; /* El anillo lo dibuja el SVG .anilloReloj, misma huella visual (310px) */
   height: 270px;
   width: 270px;
   color: white;
@@ -536,6 +536,43 @@ select.menu {
   cursor: pointer; /* Cambia el cursor al pasar el ratón por encima */
   flex-direction: column; /* Apila los elementos verticalmente */
   align-items: center; /* Centra los elementos horizontalmente */
+}
+
+/* Reloj: mismo pie que el botón anterior (270px + 20px de anillo = 310px) */
+.reloj {
+  position: relative;
+  width: 310px;
+  height: 310px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.anilloReloj {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg); /* el progreso arranca en las 12 en punto */
+  pointer-events: none;
+}
+
+.anilloBase,
+.anilloProgreso {
+  fill: none;
+  stroke-width: 20;
+}
+
+.anilloBase {
+  stroke: var(--color-principal);
+}
+
+.anilloProgreso {
+  stroke: #ff3b30; /* rojo de progreso */
+  stroke-dasharray: 911.062; /* 2 * PI * 145 aprox. (lo recalcula el JS) */
+  stroke-dashoffset: 911.062; /* sin progreso al inicio */
+  transition: stroke-dashoffset 1s linear; /* suaviza los pasos de 1 segundo */
 }
 
 .tiempo {

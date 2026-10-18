@@ -33,34 +33,31 @@
                 <p id="nombre" class="saludo"><strong></strong></p>
             </div>
             <div class = "caja2">
-                <img class="logoActividad" src="../imagenes/windsurf_fondo_azul.jpg" alt="logo">
+                <img class="logoActividad" id="iconoActividad" src="../imagenes/IlustracionWindsurf.png" alt="Imagen de actividad">
             </div>
         </div>
-        <button class="botonIniciar">INICIAR<br><span class="tiempo">03:00:00</span></button>
+        <div class="reloj">
+            <svg class="anilloReloj" viewBox="0 0 310 310" aria-hidden="true">
+                <circle class="anilloBase" cx="155" cy="155" r="145" fill="none" stroke-width="20"></circle>
+                <circle id="anilloProgreso" class="anilloProgreso" cx="155" cy="155" r="145" fill="none" stroke-width="20"></circle>
+            </svg>
+            <button class="botonIniciar" id="botonIniciar" type="button"><span id="etiquetaBoton">INICIAR</span><br><span class="tiempo">03:00:00</span></button>
+        </div>
 
 
         <div class="contenedor-padre">
             <div class="flex-container">
                 <div class="item1">
-                <select class="menu">
-                    <option value="Actividad">Actividad</option>
-                    <option value="OtraActividad">Otra Actividad</option>
-                </select>
-                <p class="elegidos">Windsurf</p>
+                <select class="menu" id="selectActividad"></select>
+                <p class="elegidos"></p>
                 </div>
                 <div class="item2">
-                <select class="menu">
-                    <option value="Equipo">Equipo</option>
-                    <option value="OtroEquipo">Otro Equipo</option>
-                </select>
-                <p class="elegidos">Goya verde fluo 5.0</p>
+                <select class="menu" id="selectEquipo"></select>
+                <p class="elegidos"></p>
                 </div>
                 <div class="item3">
-                <select class="menu">
-                    <option value="Tiempo">Tiempo</option>
-                    <option value="OtroTiempo">Otro Tiempo</option>
-                </select>
-                <p class="elegidos">03:00:00</p>
+                <select class="menu" id="selectTiempo"></select>
+                <p class="elegidos"></p>
                 </div>
             </div>
         </div>
