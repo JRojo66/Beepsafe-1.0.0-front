@@ -329,6 +329,21 @@ test('imagenParaActividad: match exacto y por token', () => {
   assert.equal(t.ctxTest.imagenParaActividad('Kitesurf'), 'Jetski.png');
 });
 
+test('imagenParaActividad: prefijo y clave más larga ganan', () => {
+  const t = crearContexto();
+  assert.equal(
+    t.ctxTest.imagenParaActividad('Windsurfing'),
+    'IlustracionWindsurf.png',
+    'prefijo: "Windsurfing" empieza con "windsurf"'
+  );
+  assert.equal(
+    t.ctxTest.imagenParaActividad('Surf & Windsurf'),
+    'IlustracionWindsurf.png',
+    'clave más larga gana: "windsurf" (8) sobre "surf" (4)'
+  );
+  assert.equal(t.ctxTest.imagenParaActividad('Paddleboard'), 'SUP.png');
+});
+
 test('imagenParaActividad: fallback estable para actividades sin imagen', () => {
   const t = crearContexto();
   const primera = t.ctxTest.imagenParaActividad('Maratón de montaña');

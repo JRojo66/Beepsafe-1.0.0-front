@@ -91,8 +91,12 @@ function normalizarNombre(texto) {
 }
 
 // Devuelve la imagen de una actividad: coincidencia exacta normalizada,
-// luego por palabra, y si no hay coincidencia una imagen por defecto
-// elegida de forma estable a partir del nombre (mismo nombre -> misma imagen).
+// luego por palabra (exacta o por prefijo) y, entre las candidatas, gana la
+// clave más larga. La palabra exacta tiene prioridad sobre el prefijo: así
+// "Surf & Windsurf" elige windsurf (no el primer token "surf"), pero
+// "Surf de olas" sigue eligiendo surf. "Windsurfing" matchea "windsurf"
+// por prefijo. Sin coincidencia usa una imagen por defecto elegida de forma
+// estable con el nombre (mismo nombre -> misma imagen).
 function imagenParaActividad(nombre) {
   const normalizado = normalizarNombre(nombre);
   if (!normalizado) return IMAGENES_POR_DEFECTO[0];
@@ -100,10 +104,23 @@ function imagenParaActividad(nombre) {
     return IMAGEN_POR_ACTIVIDAD[normalizado];
   }
   const tokens = normalizado.split(/[^a-z0-9]+/).filter(Boolean);
+  const exactas = [];
+  const porPrefijo = [];
   for (const token of tokens) {
     if (Object.prototype.hasOwnProperty.call(IMAGEN_POR_ACTIVIDAD, token)) {
-      return IMAGEN_POR_ACTIVIDAD[token];
+      exactas.push(token);
     }
+    for (const clave of Object.keys(IMAGEN_POR_ACTIVIDAD)) {
+      if (clave.startsWith(token) || token.startsWith(clave)) {
+        porPrefijo.push(clave);
+      }
+    }
+  }
+  const masLarga = (lista) =>
+    lista.slice().sort((a, b) => b.length - a.length)[0];
+  const mejor = exactas.length > 0 ? masLarga(exactas) : masLarga(porPrefijo);
+  if (mejor) {
+    return IMAGEN_POR_ACTIVIDAD[mejor];
   }
   // Hash FNV-1a del nombre -> índice estable entre las imágenes por defecto
   let hash = 2166136261;

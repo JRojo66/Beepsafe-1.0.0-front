@@ -25,6 +25,8 @@ las correcciones de una revisión de fiabilidad y una segunda ronda de 13 fixes
    la actividad elegida: mapa actividad → imagen de `imagenes/` (4 PNGs:
    `IlustracionWindsurf.png`, `Surf.png`, `SUP.png`, `Jetski.png`) con fallback
    estable por hash FNV-1a del nombre (mismo nombre → misma imagen). Sin emojis.
+   Match en orden: nombre exacto → palabra exacta (la más larga gana:
+   "Surf & Windsurf" → windsurf) → prefijo ("Windsurfing" → windsurf) → hash.
 3. **Tiempo sincronizado**: el `HH:MM:SS` visible bajo la etiqueta del botón y el
    select Tiempo y el label "elegidos" muestran siempre lo mismo.
 4. **Cuenta regresiva + anillo rojo**: al apretar INICIAR corre un countdown y el
