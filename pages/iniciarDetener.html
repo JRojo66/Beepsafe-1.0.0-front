@@ -48,16 +48,63 @@
         <div class="contenedor-padre">
             <div class="flex-container">
                 <div class="item1">
-                <select class="menu" id="selectActividad"></select>
-                <p class="elegidos"></p>
+                <div class="desplegable">
+                    <button type="button" class="triggerDesplegable" id="triggerActividad" aria-haspopup="true" aria-expanded="false">Actividad</button>
+                    <button type="button" class="filaValor" id="filaValorActividad" tabindex="-1">Sin actividad</button>
+                    <div class="panelDesplegable" id="panelActividad">
+                    <ul class="listaDesplegable" id="listaActividad"></ul>
+                    </div>
+                </div>
                 </div>
                 <div class="item2">
-                <select class="menu" id="selectEquipo"></select>
-                <p class="elegidos"></p>
+                <div class="desplegable">
+                    <button type="button" class="triggerDesplegable" id="triggerEquipo1" aria-haspopup="true" aria-expanded="false">Equipo 1</button>
+                    <button type="button" class="filaValor" id="filaValorEquipo1" tabindex="-1">Sin equipo</button>
+                    <div class="panelDesplegable" id="panelEquipo1">
+                    <ul class="listaDesplegable" id="listaEquipo1"></ul>
+                    </div>
+                </div>
                 </div>
                 <div class="item3">
-                <select class="menu" id="selectTiempo"></select>
-                <p class="elegidos"></p>
+                <div class="desplegable">
+                    <button type="button" class="triggerDesplegable" id="triggerEquipo2" aria-haspopup="true" aria-expanded="false">Equipo 2</button>
+                    <button type="button" class="filaValor" id="filaValorEquipo2" tabindex="-1">Ninguno</button>
+                    <div class="panelDesplegable" id="panelEquipo2">
+                    <ul class="listaDesplegable" id="listaEquipo2"></ul>
+                    </div>
+                </div>
+                </div>
+                <div class="item4">
+                <div class="desplegable">
+                    <button type="button" class="triggerDesplegable" id="triggerTiempo" aria-haspopup="true" aria-expanded="false">Tiempo</button>
+                    <button type="button" class="filaValor" id="filaValorTiempo" tabindex="-1">3h</button>
+                    <div class="panelDesplegable panelTiempo" id="panelTiempo">
+                    <div class="filaTiempo">
+                        <span class="etiquetaFilaTiempo">Días</span>
+                        <div class="stepperTiempo">
+                        <button type="button" class="botonStepper" id="btnDiasMas" aria-label="Más días">▲</button>
+                        <span class="valorStepper" id="valorDias">0</span>
+                        <button type="button" class="botonStepper" id="btnDiasMenos" aria-label="Menos días">▼</button>
+                        </div>
+                    </div>
+                    <div class="filaTiempo">
+                        <span class="etiquetaFilaTiempo">Horas</span>
+                        <div class="stepperTiempo">
+                        <button type="button" class="botonStepper" id="btnHorasMas" aria-label="Más horas">▲</button>
+                        <span class="valorStepper" id="valorHoras">3</span>
+                        <button type="button" class="botonStepper" id="btnHorasMenos" aria-label="Menos horas">▼</button>
+                        </div>
+                    </div>
+                    <div class="filaTiempo">
+                        <span class="etiquetaFilaTiempo">Minutos</span>
+                        <div class="stepperTiempo">
+                        <button type="button" class="botonStepper" id="btnMinutosMas" aria-label="Más minutos">▲</button>
+                        <span class="valorStepper" id="valorMinutos">0</span>
+                        <button type="button" class="botonStepper" id="btnMinutosMenos" aria-label="Menos minutos">▼</button>
+                        </div>
+                    </div>
+                    </div>
+                </div>
                 </div>
             </div>
         </div>

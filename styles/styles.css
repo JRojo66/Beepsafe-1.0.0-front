@@ -507,13 +507,6 @@ a {
   max-height: 150px;
 }
 
-select.menu {
-  background-color: var(--color-fondo);
-  color: white;
-  padding: 5px;
-  border-radius: 20px;
-}
-
 /* Clase compartida con perfil.html: también la usa <img class="logoActividad">,
    así que el bloque debe seguir funcionando para ambos usos. */
 .logoActividad {
@@ -600,24 +593,229 @@ select.menu {
   max-width: 400px;
 }
 
-.menu {
-  /*Estilos para los menús desplegables */
-  width: 100%; /* Ocupa todo el ancho de la celda */
-  background-color: var(--color-fondo); /* Fondo negro para el menú*/
-  color: white; /* Texto blanco para las opciones */
-  /* border: 1px solid red; */
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  font-size: 16px;
-  border: none;
-  /* margin-right: 2px; */
+/* Desplegables personalizados de Iniciar/Detener (reemplazan a los <select
+   class="menu"> nativos): cada caja visible tiene dos filas — la cabecera
+   estática (título + flecha) y, debajo, la fila con el valor elegido — y el
+   panel de opciones se abre debajo de la caja */
+.desplegable {
+  position: relative;
+  width: calc(100% - 8px);
+  margin: 4px;
+  box-sizing: border-box;
+  border: 1px solid var(--color-principal);
+  border-radius: 20px;
+  background-color: var(--color-fondo);
 }
 
-.elegidos {
+.triggerDesplegable,
+.filaValor {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+/* cabecera: solo el título, con la flecha a la derecha; nunca el valor */
+.triggerDesplegable {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.75); /* contraste: pesa menos que el valor */
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25); /* separador entre filas */
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: left;
+  min-height: 22px;
+  cursor: pointer;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* flecha de la cabecera: triángulo CSS (sin emoji) */
+.triggerDesplegable::after {
+  content: '';
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--color-principal);
+  transition: transform 0.15s ease;
+}
+
+.triggerDesplegable.activo {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.triggerDesplegable.activo::after {
+  transform: rotate(180deg);
+}
+
+.triggerDesplegable:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.triggerDesplegable:disabled::after {
+  border-top-color: rgba(255, 255, 255, 0.5);
+}
+
+/* fila de valor: la selección actual (o su placeholder), compacta y con
+   ellipsis para nombres largos */
+.filaValor {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 5px 8px;
+  color: white;
+  font-size: 13px;
+  font-weight: bold;
+  text-align: left;
+  min-height: 26px;
+  cursor: pointer;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filaValor:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* fila de valor en fallo de carga (RES-001): el mensaje de error es más largo
+   que un placeholder, así que se permite el wrap para mostrarlo completo y
+   quede al instante distinto de una cuenta vacía ("Sin actividades") */
+.filaValor.cargaFallida {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* hover/focus: las dos filas clicables de la caja invitan a abrir el panel */
+.triggerDesplegable:hover:not(:disabled),
+.triggerDesplegable:focus-visible,
+.filaValor:hover:not(:disabled),
+.filaValor:focus-visible {
+  background-color: rgba(255, 255, 255, 0.1);
+  outline: none;
+}
+
+/* panel blanco con borde y sombra, consistente con el resto de la app */
+.panelDesplegable {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background-color: #fff;
+  color: var(--color-fondo);
+  border: 1px solid var(--color-principal);
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.panelDesplegable.abierto {
+  display: block;
+}
+
+/* la última columna no desborda el contenedor hacia la derecha */
+.item4 .panelDesplegable {
+  left: auto;
+  right: 0;
+}
+
+.listaDesplegable {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 224px; /* alto de ~7-8 opciones */
+  overflow-y: auto;
+}
+
+.opcionDesplegable {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: var(--color-fondo);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.opcionDesplegable:hover,
+.opcionDesplegable:focus-visible {
+  background-color: var(--color-principal);
+  outline: none;
+}
+
+/* stepper de Tiempo: una fila por campo con ▲ valor ▼ */
+.panelTiempo {
+  padding: 6px 8px;
+  min-width: 150px;
+}
+
+.filaTiempo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+}
+
+.etiquetaFilaTiempo {
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--color-fondo);
+}
+
+.stepperTiempo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.botonStepper {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--color-principal);
+  border-radius: 50%;
   background-color: var(--color-fondo);
-  /* border: 1px solid blue; */
-  margin: 0px;
-  padding: 0px;
+  color: white;
+  font-size: 11px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.botonStepper:hover {
+  background-color: var(--color-fondo-hover);
+}
+
+.valorStepper {
+  min-width: 20px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: bold;
+  color: var(--color-fondo);
 }
 
 .flex-container {
@@ -632,29 +830,19 @@ select.menu {
 
 .item1,
 .item2,
-.item3 {
-  width: 33%;
+.item3,
+.item4 {
+  width: 25%;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .item1,
-.item2 {
+.item2,
+.item3 {
   border-right: 1px solid var(--color-principal);
   background-color: var(--color-fondo);
-}
-
-.menu option {
-  color: white;
-  border: none;
-  cursor: pointer;
-  text-align: center; /* Centra el texto de las opciones */
-  font-size: 14px;
-}
-
-.menu option:hover {
-  background-color: #333; /* Fondo gris oscuro al pasar el mouse */
 }
 
 .contenedor-padre2 {
@@ -954,10 +1142,6 @@ select.menu {
   color: white;
   background-color: var(--color-fondo);
   max-width: 380px;
-}
-
-.desplegable {
-  height: 15px;
 }
 
 .opcionesAmigosb {
