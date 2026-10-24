@@ -1000,7 +1000,11 @@ async function obtenerActividades(destino) {
   const url = `${ROOT_URL}/api/activities/${encodeURIComponent(destino)}`;
   for (let intento = 1; intento <= MAX_INTENTOS_PETICION; intento++) {
     try {
-      const respuesta = await fetchConTimeout(url);
+      const respuesta = await fetchConTimeout(url, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`, // iOS
+        },
+      });
       if (!respuesta.ok) {
         console.error(
           `[iniciarDetener] activities falló (intento ${intento}/${MAX_INTENTOS_PETICION}): ${url} status=${respuesta.status}`

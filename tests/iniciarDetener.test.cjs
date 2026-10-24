@@ -1447,6 +1447,23 @@ await testAsync('RES-002: activities aborta a los 8000 ms, reintenta una vez y a
   );
 });
 
+await testAsync('auth gap: el fetch de activities lleva Authorization con el token de localStorage', async () => {
+  const TOKEN = 'token-de-prueba-123';
+  const store = new Map([['token', TOKEN]]);
+  const t = crearContexto({ fetch: fetchNormal(), store });
+  await t.domListo();
+
+  const llamadas = t.fetchLog.filter((l) => l.url.includes('/api/activities/'));
+  assert.equal(llamadas.length, 1, 'un solo fetch de activities en la carga sana');
+  const init = llamadas[0].init;
+  assert.ok(init && init.headers, 'el init del fetch de activities lleva headers');
+  assert.equal(
+    init.headers.Authorization,
+    `Bearer ${TOKEN}`,
+    'el GET /api/activities/<email> se autentica con el token (GET /:email exige JWT)'
+  );
+});
+
 await testAsync('RES-003: sessions/current reintenta una vez ante un 500 y la segunda sana carga activities normal', async () => {
   let llamadasCurrent = 0;
   const t = crearContexto({
