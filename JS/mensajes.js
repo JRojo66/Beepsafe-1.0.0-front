@@ -523,6 +523,12 @@ function abrirEdicionContacto(fila, contacto) {
   const checkMensajes = crearCheck('Recibe mis mensajes', contacto.mensajes);
   const checkVisibilidad = crearCheck('Quiero que me vea', contacto.visibilidad);
   editor.appendChild(checkMensajes.label);
+
+  const ayudaMensajes = document.createElement('p');
+  ayudaMensajes.className = 'msj-ayuda msj-edicion-ayuda';
+  ayudaMensajes.textContent = 'Si lo desactivás, dejará de aparecer en esta lista.';
+  editor.appendChild(ayudaMensajes);
+
   editor.appendChild(checkVisibilidad.label);
 
   const acciones = document.createElement('div');
@@ -644,12 +650,19 @@ async function refrescarContactos(mensajeExito) {
     marcarEstado(estado, 'No se pudieron cargar los contactos. Podés seguir escribiendo tu mensaje.', 'error');
     return false;
   }
-  if (resultado.contactos.length === 0) {
-    marcarEstado(estado, 'Todavía no tenés contactos.', '');
+  const receptores = resultado.contactos.filter((contacto) => contacto.mensajes === true);
+  if (resultado.contactos.length === 0 || receptores.length === 0) {
+    if (mensajeExito) {
+      marcarEstado(estado, mensajeExito, 'ok');
+    } else if (resultado.contactos.length === 0) {
+      marcarEstado(estado, 'Todavía no tenés contactos.', '');
+    } else {
+      marcarEstado(estado, 'Todavía no tenés contactos que reciban mensajes.', '');
+    }
     return true;
   }
   marcarEstado(estado, mensajeExito || '', mensajeExito ? 'ok' : '');
-  for (const contacto of resultado.contactos) {
+  for (const contacto of receptores) {
     lista.appendChild(crearFilaContacto(contacto));
   }
   return true;

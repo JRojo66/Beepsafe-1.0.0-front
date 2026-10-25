@@ -23,28 +23,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../styles/styles.css">
 </head>
-<body data-tipo="fin">
-    <main class="msj-pantalla">
-        <header class="msj-cabecera">
-            <div class="msj-cabecera-inner">
-                <div class="msj-cabecera-barra">
-                    <a class="msj-volver" href="../pages/misMensajes.html" aria-label="Volver a Mis Mensajes">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                            <path d="M15 5l-7 7 7 7"/>
-                        </svg>
-                    </a>
-                    <span class="msj-cabecera-icono" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                            <path d="M20 12h-9"/>
-                            <path d="M14 8l-4 4 4 4"/>
-                            <path d="M6 4v16"/>
-                        </svg>
-                    </span>
-                </div>
-                <h1 class="msj-titulo">Mensaje de fin</h1>
-                <p class="msj-bajada">Se envía a tus contactos cada vez que finalizás una actividad.</p>
+<body data-tipo="fin" data-page="editor">
+    <div class="configuracion msj-configuracion">
+        <a href="../pages/misMensajes.html" class="perfil">
+            <div class="containerPerfil">
+                <img src="../imagenes/volver.PNG" alt="Volver">
+                <img src="../imagenes/mensajeDeFin.PNG" alt="" class="encabezado">
+                <div class="opciones">Mensaje de fin</div>
             </div>
-        </header>
+        </a>
+        <p class="encabezadoBajada">Estos mensajes serán enviados cuando finalices tu actividad.</p>
+        <div class="break"></div>
 
         <div class="msj-contenido">
             <section class="msj-tarjeta" aria-labelledby="tituloEditor">
@@ -66,7 +55,7 @@
 
             <section class="msj-seccion" id="seccionContactos" aria-labelledby="tituloContactos">
                 <h2 class="msj-subtitulo" id="tituloContactos">Contactos</h2>
-                <p class="msj-ayuda">Quienes reciban tus mensajes van a ver cuándo iniciás o terminás una actividad.</p>
+                <p class="msj-ayuda">Estos son los contactos que reciben tus mensajes. <a class="msj-enlace-contactos" href="../pages/misContactos.html">Gestionar todos mis contactos</a></p>
                 <p class="msj-estado mensajes-estado" id="estadoContactos" role="status" aria-live="polite"></p>
                 <ul class="msj-contactos mensajes-contactos" id="listaContactos"></ul>
 
@@ -90,7 +79,7 @@
                 </form>
             </section>
         </div>
-    </main>
+    </div>
 
     <script src="../JS/config.js"></script>
     <script src="../JS/mensajes.js"></script>

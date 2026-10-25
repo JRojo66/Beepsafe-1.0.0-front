@@ -2888,7 +2888,8 @@ margin: 10px 0;
    (mensajes-estado-*, mensajes-contacto, mensajes-edicion, etc.) se
    reestilizan dentro de .msj-pantalla sin renombrarlas.
    ================================================================ */
-.msj-pantalla {
+.msj-pantalla,
+.msj-configuracion {
   --msj-fondo: #0c243c;
   --msj-banda: #300965;
   --msj-superficie: #0c243c;
@@ -2900,6 +2901,9 @@ margin: 10px 0;
   --msj-radio-banda: 24px;
   --msj-acento: var(--color-principal);
   --msj-acento-hover: var(--color-principal-hover);
+}
+
+.msj-pantalla {
   box-sizing: border-box;
   width: auto;
   margin: -8px -8px 0;
@@ -2907,6 +2911,11 @@ margin: 10px 0;
   overflow-x: hidden;
   background-color: var(--msj-fondo);
   color: var(--msj-texto);
+  text-align: left;
+}
+
+.msj-configuracion {
+  box-sizing: border-box;
   text-align: left;
 }
 
@@ -3218,6 +3227,22 @@ margin: 10px 0;
   line-height: 1.35;
 }
 
+.msj-enlace-contactos {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  color: var(--msj-acento);
+  font-size: inherit;
+  font-weight: 700;
+  text-align: inherit;
+  text-decoration: underline;
+}
+
+.msj-edicion-ayuda {
+  margin: 0;
+  font-size: 12px;
+}
+
 .msj-contactos {
   display: flex;
   flex-direction: column;
@@ -3227,7 +3252,8 @@ margin: 10px 0;
   list-style: none;
 }
 
-.msj-pantalla .mensajes-contacto {
+.msj-pantalla .mensajes-contacto,
+.msj-configuracion .mensajes-contacto {
   box-sizing: border-box;
   display: flex;
   flex-wrap: wrap;
@@ -3241,12 +3267,14 @@ margin: 10px 0;
   box-shadow: var(--msj-sombra);
 }
 
-.msj-pantalla .mensajes-contacto-datos {
+.msj-pantalla .mensajes-contacto-datos,
+.msj-configuracion .mensajes-contacto-datos {
   flex: 1 1 140px;
   min-width: 0;
 }
 
-.msj-pantalla .mensajes-contacto-nombre {
+.msj-pantalla .mensajes-contacto-nombre,
+.msj-configuracion .mensajes-contacto-nombre {
   color: var(--msj-texto);
   font-size: 17px;
   font-weight: 700;
@@ -3254,14 +3282,16 @@ margin: 10px 0;
   overflow-wrap: anywhere;
 }
 
-.msj-pantalla .mensajes-contacto-telefono {
+.msj-pantalla .mensajes-contacto-telefono,
+.msj-configuracion .mensajes-contacto-telefono {
   color: var(--msj-texto-suave);
   font-size: 13px;
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
-.msj-pantalla .mensajes-contacto-marca {
+.msj-pantalla .mensajes-contacto-marca,
+.msj-configuracion .mensajes-contacto-marca {
   display: inline-block;
   margin-top: 6px;
   padding: 2px 8px;
@@ -3273,13 +3303,16 @@ margin: 10px 0;
 }
 
 .msj-pantalla .mensajes-contacto-acciones,
-.msj-pantalla .mensajes-edicion-acciones {
+.msj-pantalla .mensajes-edicion-acciones,
+.msj-configuracion .mensajes-contacto-acciones,
+.msj-configuracion .mensajes-edicion-acciones {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.msj-pantalla .mensajes-boton-mini {
+.msj-pantalla .mensajes-boton-mini,
+.msj-configuracion .mensajes-boton-mini {
   box-sizing: border-box;
   min-height: 40px;
   margin: 0;
@@ -3294,22 +3327,28 @@ margin: 10px 0;
 }
 
 .msj-pantalla .mensajes-boton-mini:hover,
-.msj-pantalla .mensajes-boton-mini:focus-visible {
+.msj-pantalla .mensajes-boton-mini:focus-visible,
+.msj-configuracion .mensajes-boton-mini:hover,
+.msj-configuracion .mensajes-boton-mini:focus-visible {
   background-color: rgba(255, 255, 255, 0.18);
   outline: none;
 }
 
-.msj-pantalla .mensajes-boton-peligro {
+.msj-pantalla .mensajes-boton-peligro,
+.msj-configuracion .mensajes-boton-peligro {
   background-color: rgba(244, 67, 54, 0.18);
   color: #ffb3ad;
 }
 
 .msj-pantalla .mensajes-boton-peligro:hover,
-.msj-pantalla .mensajes-boton-peligro:focus-visible {
+.msj-pantalla .mensajes-boton-peligro:focus-visible,
+.msj-configuracion .mensajes-boton-peligro:hover,
+.msj-configuracion .mensajes-boton-peligro:focus-visible {
   background-color: rgba(244, 67, 54, 0.3);
 }
 
-.msj-pantalla .mensajes-edicion {
+.msj-pantalla .mensajes-edicion,
+.msj-configuracion .mensajes-edicion {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -3317,7 +3356,8 @@ margin: 10px 0;
 }
 
 .msj-check,
-.msj-pantalla .mensajes-check {
+.msj-pantalla .mensajes-check,
+.msj-configuracion .mensajes-check {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -3328,7 +3368,8 @@ margin: 10px 0;
 }
 
 .msj-check input,
-.msj-pantalla .mensajes-check input {
+.msj-pantalla .mensajes-check input,
+.msj-configuracion .mensajes-check input {
   flex: none;
   width: 20px;
   height: 20px;

@@ -162,6 +162,13 @@ function buscarPorTexto(nodo, texto) {
   return null;
 }
 
+function buscarTodos(nodo, predicado, encontrados = []) {
+  if (!nodo) return encontrados;
+  if (predicado(nodo)) encontrados.push(nodo);
+  for (const hijo of nodo.hijos || []) buscarTodos(hijo, predicado, encontrados);
+  return encontrados;
+}
+
 function textosDe(nodo) {
   const textos = [];
   (function recorrer(actual) {
@@ -327,10 +334,10 @@ test('JS/mensajes.js no construye HTML dinámico con innerHTML', () => {
 
 test('las cuatro páginas de mensaje cumplen el contrato de HTML', () => {
   const paginas = [
-    ['mensajeDeInicio.html', 'inicio'],
-    ['mensajeDeFin.html', 'fin'],
-    ['mensajeDeAlarma.html', 'alarma'],
-    ['mensajeDePrueba.html', 'prueba'],
+    ['mensajeDeInicio.html', 'inicio', 'mensajeDeInicio.PNG', 'Mensaje de inicio'],
+    ['mensajeDeFin.html', 'fin', 'mensajeDeFin.PNG', 'Mensaje de fin'],
+    ['mensajeDeAlarma.html', 'alarma', 'mensajeDeAlarma.PNG', 'Mensaje de alarma'],
+    ['mensajeDePrueba.html', 'prueba', 'MensajeDePrueba.jpeg', 'Mensaje de prueba'],
   ];
   const ids = [
     'mensaje',
@@ -357,12 +364,31 @@ test('las cuatro páginas de mensaje cumplen el contrato de HTML', () => {
     'Kayak Rio Manso',
   ];
 
-  for (const [archivo, tipo] of paginas) {
+  for (const [archivo, tipo, icono, titulo] of paginas) {
     const html = fs.readFileSync(path.join(__dirname, '..', 'pages', archivo), 'utf8');
     for (const id of ids) {
       assert.ok(html.includes(`id="${id}"`), `${archivo}: falta #${id}`);
     }
     assert.ok(html.includes(`data-tipo="${tipo}"`), `${archivo}: data-tipo incorrecto`);
+    assert.ok(html.includes('data-page="editor"'), `${archivo}: falta data-page="editor"`);
+    assert.ok(html.includes('../imagenes/volver.PNG'), `${archivo}: falta el botón volver`);
+    assert.ok(
+      html.includes(`<img src="../imagenes/${icono}" alt="" class="encabezado">`),
+      `${archivo}: falta el icono ${icono} con class="encabezado"`
+    );
+    assert.ok(
+      html.includes(`<div class="opciones">${titulo}</div>`),
+      `${archivo}: falta el título "${titulo}" en class="opciones"`
+    );
+    assert.ok(html.includes('class="encabezadoBajada"'), `${archivo}: falta encabezadoBajada`);
+    assert.ok(
+      html.includes('href="../pages/misContactos.html"'),
+      `${archivo}: falta el enlace a misContactos.html`
+    );
+    assert.ok(
+      html.includes('Gestionar todos mis contactos'),
+      `${archivo}: falta el texto del enlace a misContactos.html`
+    );
     assert.ok(html.includes('maxlength="1000"'), `${archivo}: falta maxlength=1000`);
     assert.ok(html.includes('id="botonGrabar" type="button"'), `${archivo}: el botón debe ser type=button`);
     assert.ok(html.includes('Quiero que reciba mis mensajes'), `${archivo}: falta el checkbox de mensajes`);
@@ -830,6 +856,112 @@ async function testsAsync() {
     assert.ok(borrado, 'se hizo DELETE al eliminar');
     assert.equal(borrado.url, 'http://back.test/api/contacts?nombre=Beto');
     assert.equal(t.nodos.listaContactos.hijos.length, 0);
+    assert.equal(t.nodos.estadoContactos.textContent, 'Contacto eliminado.');
+  });
+
+  await testAsync('la lista de contactos muestra solo a quienes reciben mensajes', async () => {
+    let contactos = [
+      { nombre: 'Ana', telefono: '111', mensajes: true, visibilidad: true },
+      { nombre: 'Beto', telefono: '222', mensajes: false, visibilidad: true },
+      { nombre: 'Carla', telefono: '333', mensajes: true, visibilidad: true },
+    ];
+    const token = crearToken({ email: 'ana@test.com' });
+    const t = crearContexto({
+      store: new Map([['token', token]]),
+      fetch: async () => respuestaOk({ contactos }),
+    });
+
+    await t.ctxTest.inicializarContactos();
+    assert.equal(t.nodos.listaContactos.hijos.length, 2, 'solo se renderizan los receptores');
+    const textos = t.nodos.listaContactos.hijos.map((nodo) => textosDe(nodo)).flat();
+    assert.ok(textos.includes('Ana'), 'la receptora Ana se muestra');
+    assert.ok(textos.includes('Carla'), 'la receptora Carla se muestra');
+    assert.ok(!textos.includes('Beto'), 'Beto no recibe mensajes y no se muestra');
+
+    contactos = contactos.map((contacto) => ({ ...contacto, mensajes: false }));
+    await t.ctxTest.refrescarContactos();
+    assert.equal(t.nodos.listaContactos.hijos.length, 0, 'sin receptores no hay filas');
+    assert.ok(
+      t.nodos.estadoContactos.textContent.includes('que reciban mensajes'),
+      'el estado vacío aclara que no hay contactos que reciban mensajes'
+    );
+  });
+
+  await testAsync('desmarcar "Recibe mis mensajes" oculta la fila y conserva el aviso', async () => {
+    let contactos = [
+      { nombre: 'Ana', telefono: '111', mensajes: true, visibilidad: true },
+    ];
+    const token = crearToken({ email: 'ana@test.com' });
+    const t = crearContexto({
+      store: new Map([['token', token]]),
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (metodo === 'GET') return respuestaOk({ contactos });
+        if (metodo === 'PUT') {
+          const cuerpo = JSON.parse(init.body);
+          contactos = contactos.map((contacto) =>
+            contacto.nombre === cuerpo.nombre ? { ...contacto, ...cuerpo } : contacto
+          );
+          return respuestaOk({});
+        }
+        throw new Error(`método inesperado: ${metodo}`);
+      },
+    });
+
+    await t.ctxTest.inicializarContactos();
+    assert.equal(t.nodos.listaContactos.hijos.length, 1, 'Ana arranca listada');
+    const fila = t.nodos.listaContactos.hijos[0];
+    await buscarPorTexto(fila, 'Editar').disparar('click');
+
+    const ayuda = buscarPorTexto(fila, 'Si lo desactivás, dejará de aparecer en esta lista.');
+    assert.ok(ayuda, 'el editor muestra el aviso de consecuencias');
+    const checks = buscarTodos(fila, (nodo) => nodo.type === 'checkbox');
+    assert.equal(checks.length, 2, 'el editor tiene los dos checks');
+    checks[0].checked = false;
+
+    await buscarPorTexto(fila, 'Guardar').disparar('click');
+    assert.equal(t.nodos.listaContactos.hijos.length, 0, 'la fila desaparece al dejar de recibir');
+    assert.equal(t.nodos.estadoContactos.textContent, 'Contacto actualizado.');
+    assert.ok(t.nodos.estadoContactos.classList.contains('mensajes-estado-ok'));
+  });
+
+  await testAsync('agregar un contacto sin el check no lo agrega a la lista visible', async () => {
+    let contactos = [
+      { nombre: 'Ana', telefono: '111', mensajes: true, visibilidad: true },
+    ];
+    const token = crearToken({ email: 'ana@test.com' });
+    const t = crearContexto({
+      store: new Map([['token', token]]),
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (metodo === 'GET') return respuestaOk({ contactos });
+        if (metodo === 'POST') {
+          contactos = [...contactos, JSON.parse(init.body)];
+          return respuestaOk({});
+        }
+        throw new Error(`método inesperado: ${metodo}`);
+      },
+    });
+
+    await t.ctxTest.inicializarContactos();
+    t.nodos.contactoNombre.value = 'Beto';
+    t.nodos.contactoTelefono.value = '222';
+    t.nodos.contactoMensajes.checked = false;
+    await t.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
+
+    const post = t.fetchLog.find((llamada) => llamada.init && llamada.init.method === 'POST');
+    assert.ok(post, 'se hizo POST al agregar');
+    assert.deepEqual(JSON.parse(post.init.body), {
+      nombre: 'Beto',
+      telefono: '222',
+      mensajes: false,
+      visibilidad: true,
+    });
+    assert.equal(t.nodos.listaContactos.hijos.length, 1, 'solo sigue visible Ana');
+    assert.ok(
+      !textosDe(t.nodos.listaContactos).includes('Beto'),
+      'Beto no aparece porque no recibe mensajes'
+    );
   });
 
   await testAsync('RES-001/REL-002: un guardado degradado sobrevive a un GET exitoso', async () => {
