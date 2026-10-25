@@ -33,7 +33,6 @@ const TITULO_TIEMPO = 'Tiempo';
 const TEXTO_SIN_ACTIVIDAD = 'Sin actividad';
 const TEXTO_SIN_ACTIVIDADES = 'Sin actividades';
 const TEXTO_SIN_EQUIPO = 'Sin equipo';
-const TEXTO_NINGUNO = 'Ninguno';
 // La fila de valor de Tiempo muestra "0h" cuando todo el stepper está en cero
 const TEXTO_TIEMPO_EN_CERO = '0h';
 // Mensaje de la fila de valor cuando el fetch de actividades FALLÓ: distinto
@@ -72,14 +71,14 @@ const RUTA_IMAGENES = '../imagenes/';
 // Estado de la UI de los desplegables: valores elegidos (la fuente de verdad
 // de los disparadores custom; ya no hay <select> nativos)
 let valorActividad = '';
-let valorEquipo1 = '';
-let valorEquipo2 = '';
+// Selección múltiple y ordenada de equipos de la actividad elegida
+let equiposSeleccionados = [];
 let tiempoDias = DIAS_DEFECTO;
 let tiempoHoras = HORAS_DEFECTO;
 let tiempoMinutos = MINUTOS_DEFECTO;
 
-// Panel desplegable abierto a este momento ('actividad' | 'equipo1' |
-// 'equipo2' | 'tiempo' | null); solo uno puede estar abierto a la vez
+// Panel desplegable abierto a este momento ('actividad' | 'equipo' |
+// 'tiempo' | null); solo uno puede estar abierto a la vez
 let panelAbierto = null;
 
 // true mientras la sesión corre: los cuatro triggers quedan bloqueados (REL-103)
@@ -88,7 +87,7 @@ let controlesBloqueados = false;
 // Estado compartido de la sesión seleccionada
 const estadoSesion = {
   actividad: '',
-  equipo: [], // 0-2 nombres elegidos (los vacíos se filtran)
+  equipo: [], // 0-N nombres elegidos, en orden de selección
   tiempoSegundos: DIAS_DEFECTO * 86400 + HORAS_DEFECTO * 3600 + MINUTOS_DEFECTO * 60,
 };
 
@@ -114,14 +113,12 @@ let triggerActividad = null;
 let filaValorActividad = null;
 let panelActividad = null;
 let listaActividad = null;
-let triggerEquipo1 = null;
-let filaValorEquipo1 = null;
-let panelEquipo1 = null;
-let listaEquipo1 = null;
-let triggerEquipo2 = null;
-let filaValorEquipo2 = null;
-let panelEquipo2 = null;
-let listaEquipo2 = null;
+let triggerEquipo = null;
+let filaValorEquipo = null;
+let panelEquipo = null;
+let listaEquipo = null;
+// Botones de la lista de Equipo, en el mismo orden en que se crearon
+let opcionesEquipo = [];
 let triggerTiempo = null;
 let filaValorTiempo = null;
 let panelTiempo = null;
@@ -257,9 +254,12 @@ function segundosDesdeValoresTiempo() {
   return Math.round(tiempoDias * 86400 + tiempoHoras * 3600 + tiempoMinutos * 60);
 }
 
-// Construye las opciones de una lista; cada opción es un <button> con su handler
+// Construye las opciones de una lista; cada opción es un <button> con su handler.
+// Devuelve los botones creados para poder re-marcarlos sin volver a consultar
+// el DOM (la selección múltiple de Equipo usa esta referencia)
 function poblarListaOpciones(lista, opciones) {
   lista.innerHTML = '';
+  const botones = [];
   for (const opcion of opciones) {
     const elemento = document.createElement('button');
     elemento.type = 'button';
@@ -267,7 +267,9 @@ function poblarListaOpciones(lista, opciones) {
     elemento.textContent = opcion.texto;
     elemento.addEventListener('click', opcion.alElegir);
     lista.appendChild(elemento);
+    botones.push(elemento);
   }
+  return botones;
 }
 
 function poblarListaActividad() {
@@ -292,41 +294,40 @@ function equiposDeActividad(nombreActividad) {
     : [];
 }
 
-function poblarListaEquipo1(nombreActividad) {
+function poblarListaEquipo(nombreActividad) {
   // sin actividad no hay equipos que mostrar: la caja queda no-interactiva
   // y la fila de valor en "Sin equipo" (REL-109)
   const equipos = equiposDeActividad(nombreActividad);
-  // sin dedupe: el usuario puede usar el mismo equipo en las dos ranuras
-  poblarListaOpciones(
-    listaEquipo1,
+  // sin dedupe en la lista: cada equipo de la actividad aparece una sola vez y
+  // la selección múltiple se marca por nombre con la clase `seleccionada`
+  opcionesEquipo = poblarListaOpciones(
+    listaEquipo,
     equipos.map((equipo) => ({
       texto: equipo.name,
-      alElegir: () => manejarSeleccionEquipo1(equipo.name),
+      alElegir: () => manejarSeleccionEquipo(equipo.name),
     }))
   );
+  marcarOpcionesEquipoSeleccionadas();
   actualizarDisponibilidadTriggers();
 }
 
-function poblarListaEquipo2(nombreActividad) {
-  const equipos = equiposDeActividad(nombreActividad);
-  // "Ninguno" es siempre la primera opción (valor vacío, no bloquea el arranque)
-  // sin dedupe: el usuario puede usar el mismo equipo en las dos ranuras
-  poblarListaOpciones(listaEquipo2, [
-    { texto: TEXTO_NINGUNO, alElegir: () => manejarSeleccionEquipo2('') },
-    ...equipos.map((equipo) => ({
-      texto: equipo.name,
-      alElegir: () => manejarSeleccionEquipo2(equipo.name),
-    })),
-  ]);
-  actualizarDisponibilidadTriggers();
+// Re-marca las opciones del panel sin reconstruirlo: mantiene el scroll y el
+// estado de cada <button> en sincronía con la selección (multi-select)
+function marcarOpcionesEquipoSeleccionadas() {
+  for (const opcion of opcionesEquipo) {
+    if (equiposSeleccionados.includes(opcion.textContent)) {
+      opcion.classList.add('seleccionada');
+      opcion.setAttribute('aria-selected', 'true');
+    } else {
+      opcion.classList.remove('seleccionada');
+      opcion.setAttribute('aria-selected', 'false');
+    }
+  }
 }
 
-// Equipos elegidos como array de 0-2 nombres (los vacíos se filtran)
+// Equipos elegidos como array ordenado de 0-N nombres (copia del estado)
 function equipoElegido() {
-  const nombres = [];
-  if (valorEquipo1) nombres.push(valorEquipo1);
-  if (valorEquipo2) nombres.push(valorEquipo2);
-  return nombres;
+  return equiposSeleccionados.slice();
 }
 
 function sincronizarEstadoSesion() {
@@ -342,16 +343,31 @@ function sincronizarEstadoSesion() {
 function actualizarDisponibilidadTriggers() {
   const equiposDisponibles = equiposDeActividad(valorActividad);
   triggerActividad.disabled = controlesBloqueados || !cargaCompleta || actividades.length === 0;
-  triggerEquipo1.disabled =
+  triggerEquipo.disabled =
     controlesBloqueados || !valorActividad || equiposDisponibles.length === 0;
-  triggerEquipo2.disabled = controlesBloqueados || !valorActividad;
   triggerTiempo.disabled = controlesBloqueados;
   // la fila de valor se bloquea junto con su cabecera: la caja completa queda
   // no-interactiva (mismo gating, sin lógica nueva)
   filaValorActividad.disabled = triggerActividad.disabled;
-  filaValorEquipo1.disabled = triggerEquipo1.disabled;
-  filaValorEquipo2.disabled = triggerEquipo2.disabled;
+  filaValorEquipo.disabled = triggerEquipo.disabled;
   filaValorTiempo.disabled = triggerTiempo.disabled;
+}
+
+// Pinta la fila de valor de Equipo: los dos primeros nombres, cada uno en su
+// propio <span> y sin contador; la selección completa se conserva en el estado
+// (el corte con elipsis de cada línea lo resuelve el CSS)
+function renderizarEquipoSeleccionado() {
+  const lineas =
+    equiposSeleccionados.length === 0
+      ? [TEXTO_SIN_EQUIPO]
+      : equiposSeleccionados.slice(0, 2);
+  filaValorEquipo.innerHTML = '';
+  for (const nombre of lineas) {
+    const linea = document.createElement('span');
+    linea.className = 'lineaEquipo';
+    linea.textContent = nombre;
+    filaValorEquipo.appendChild(linea);
+  }
 }
 
 // Actualiza el texto de las cuatro filas de valor (la cabecera es estática:
@@ -377,8 +393,7 @@ function refrescarTriggers() {
   } else {
     filaValorActividad.classList.remove('cargaFallida');
   }
-  filaValorEquipo1.textContent = valorEquipo1 || TEXTO_SIN_EQUIPO;
-  filaValorEquipo2.textContent = valorEquipo2 || TEXTO_NINGUNO;
+  renderizarEquipoSeleccionado();
   const resumen = resumenTiempoCorto(tiempoDias, tiempoHoras, tiempoMinutos);
   filaValorTiempo.textContent =
     resumen === TITULO_TIEMPO ? TEXTO_TIEMPO_EN_CERO : resumen;
@@ -390,11 +405,11 @@ function refrescarTriggers() {
 
 // Cierra cualquier panel desplegable abierto (click fuera o segundo click)
 function cerrarPaneles() {
-  const paneles = [panelActividad, panelEquipo1, panelEquipo2, panelTiempo];
+  const paneles = [panelActividad, panelEquipo, panelTiempo];
   for (const panel of paneles) {
     if (panel) panel.classList.remove('abierto');
   }
-  const triggers = [triggerActividad, triggerEquipo1, triggerEquipo2, triggerTiempo];
+  const triggers = [triggerActividad, triggerEquipo, triggerTiempo];
   for (const trigger of triggers) {
     if (trigger) {
       trigger.classList.remove('activo');
@@ -407,8 +422,7 @@ function cerrarPaneles() {
 // Devuelve panel y trigger de un desplegable por nombre corto
 function elementosPanel(nombre) {
   if (nombre === 'actividad') return { panel: panelActividad, trigger: triggerActividad };
-  if (nombre === 'equipo1') return { panel: panelEquipo1, trigger: triggerEquipo1 };
-  if (nombre === 'equipo2') return { panel: panelEquipo2, trigger: triggerEquipo2 };
+  if (nombre === 'equipo') return { panel: panelEquipo, trigger: triggerEquipo };
   return { panel: panelTiempo, trigger: triggerTiempo };
 }
 
@@ -443,16 +457,10 @@ function manejarClickTriggerActividad(evento) {
   alternarPanel('actividad');
 }
 
-function manejarClickTriggerEquipo1(evento) {
+function manejarClickTriggerEquipo(evento) {
   if (esClickEnPanel(evento)) return;
-  if (triggerEquipo1.disabled) return;
-  alternarPanel('equipo1');
-}
-
-function manejarClickTriggerEquipo2(evento) {
-  if (esClickEnPanel(evento)) return;
-  if (triggerEquipo2.disabled) return;
-  alternarPanel('equipo2');
+  if (triggerEquipo.disabled) return;
+  alternarPanel('equipo');
 }
 
 function manejarClickTriggerTiempo(evento) {
@@ -465,13 +473,11 @@ function manejarSeleccionActividad(nombre) {
   if (triggerActividad.disabled) return;
   reiniciarSiFinalizado();
   valorActividad = nombre;
-  // al cambiar de actividad vuelven los defaults: primer equipo y "Ninguno"
-  // (mismo comportamiento que al poblar los viejos selects)
+  // al cambiar de actividad vuelve el default: se auto-selecciona el primer
+  // equipo de la actividad (o queda vacío si no tiene equipos)
   const equipos = equiposDeActividad(nombre);
-  valorEquipo1 = equipos.length > 0 ? equipos[0].name : '';
-  valorEquipo2 = '';
-  poblarListaEquipo1(nombre);
-  poblarListaEquipo2(nombre);
+  equiposSeleccionados = equipos.length > 0 ? [equipos[0].name] : [];
+  poblarListaEquipo(nombre);
   cerrarPaneles();
   sincronizarEstadoSesion();
   refrescarTriggers();
@@ -479,21 +485,19 @@ function manejarSeleccionActividad(nombre) {
   actualizarVisualizacion();
 }
 
-function manejarSeleccionEquipo1(nombre) {
-  if (triggerEquipo1.disabled) return;
+// Click en una opción del panel de Equipo: alterna su pertenencia a la
+// selección. El panel queda abierto (multi-select); se cierra con el trigger,
+// la fila de valor o un click afuera
+function manejarSeleccionEquipo(nombre) {
+  if (triggerEquipo.disabled) return;
   reiniciarSiFinalizado();
-  valorEquipo1 = nombre;
-  cerrarPaneles();
-  sincronizarEstadoSesion();
-  refrescarTriggers();
-  actualizarVisualizacion();
-}
-
-function manejarSeleccionEquipo2(nombre) {
-  if (triggerEquipo2.disabled) return;
-  reiniciarSiFinalizado();
-  valorEquipo2 = nombre;
-  cerrarPaneles();
+  const indice = equiposSeleccionados.indexOf(nombre);
+  if (indice === -1) {
+    equiposSeleccionados.push(nombre);
+  } else {
+    equiposSeleccionados.splice(indice, 1);
+  }
+  marcarOpcionesEquipoSeleccionadas();
   sincronizarEstadoSesion();
   refrescarTriggers();
   actualizarVisualizacion();
@@ -744,8 +748,8 @@ function restaurarUltimaSesion() {
   }
 
   // Equipos guardados: array (formato actual) o string (payloads viejos, que se
-  // migran a array de a un nombre). Los nombres que ya no existen en la
-  // actividad se descartan sin romper (poblarLista solo deja válidos).
+  // migran a array de un nombre). Se deduplican preservando el primer orden y
+  // se descartan los nombres que ya no existen en la actividad.
   const mismaActividad = Boolean(guardada) && guardada.actividad === nombreActividad;
   let equipoGuardado = [];
   if (mismaActividad && Array.isArray(guardada.equipo)) {
@@ -754,22 +758,24 @@ function restaurarUltimaSesion() {
     equipoGuardado = [guardada.equipo];
   }
 
-  // Equipo 1: el preferido si todavía existe; si no, el primero de la lista
-  // (mismo default que dejaba seleccionado el viejo <select>)
-  const equipos = equiposDeActividad(nombreActividad);
-  if (equipoGuardado[0] && equipos.some((equipo) => equipo.name === equipoGuardado[0])) {
-    valorEquipo1 = equipoGuardado[0];
-  } else {
-    valorEquipo1 = equipos.length > 0 ? equipos[0].name : '';
-  }
-  // Equipo 2: el preferido si todavía existe; si no, "Ninguno" (valor vacío)
-  valorEquipo2 =
-    equipoGuardado[1] && equipos.some((equipo) => equipo.name === equipoGuardado[1])
-      ? equipoGuardado[1]
-      : '';
+  // el primer nombre repetido gana; el orden de aparición se conserva
+  const vistos = new Set();
+  equipoGuardado = equipoGuardado.filter((nombre) => {
+    if (vistos.has(nombre)) return false;
+    vistos.add(nombre);
+    return true;
+  });
 
-  poblarListaEquipo1(nombreActividad);
-  poblarListaEquipo2(nombreActividad);
+  const equipos = equiposDeActividad(nombreActividad);
+  const nombresValidos = equipos.map((equipo) => equipo.name);
+  equiposSeleccionados = equipoGuardado.filter((nombre) => nombresValidos.includes(nombre));
+  // sin ninguna selección restaurable vuelve el default histórico: el primer
+  // equipo de la actividad (o vacío si la actividad no tiene equipos)
+  if (equiposSeleccionados.length === 0 && equipos.length > 0) {
+    equiposSeleccionados = [equipos[0].name];
+  }
+
+  poblarListaEquipo(nombreActividad);
 
   fijarTiempoDesdeSegundos(
     guardada && tiempoValido(guardada.tiempoSegundos)
@@ -873,14 +879,10 @@ function inicializarUI() {
   filaValorActividad = document.getElementById('filaValorActividad');
   panelActividad = document.getElementById('panelActividad');
   listaActividad = document.getElementById('listaActividad');
-  triggerEquipo1 = document.getElementById('triggerEquipo1');
-  filaValorEquipo1 = document.getElementById('filaValorEquipo1');
-  panelEquipo1 = document.getElementById('panelEquipo1');
-  listaEquipo1 = document.getElementById('listaEquipo1');
-  triggerEquipo2 = document.getElementById('triggerEquipo2');
-  filaValorEquipo2 = document.getElementById('filaValorEquipo2');
-  panelEquipo2 = document.getElementById('panelEquipo2');
-  listaEquipo2 = document.getElementById('listaEquipo2');
+  triggerEquipo = document.getElementById('triggerEquipo');
+  filaValorEquipo = document.getElementById('filaValorEquipo');
+  panelEquipo = document.getElementById('panelEquipo');
+  listaEquipo = document.getElementById('listaEquipo');
   triggerTiempo = document.getElementById('triggerTiempo');
   filaValorTiempo = document.getElementById('filaValorTiempo');
   panelTiempo = document.getElementById('panelTiempo');
@@ -904,14 +906,10 @@ function inicializarUI() {
     filaValorActividad,
     panelActividad,
     listaActividad,
-    triggerEquipo1,
-    filaValorEquipo1,
-    panelEquipo1,
-    listaEquipo1,
-    triggerEquipo2,
-    filaValorEquipo2,
-    panelEquipo2,
-    listaEquipo2,
+    triggerEquipo,
+    filaValorEquipo,
+    panelEquipo,
+    listaEquipo,
     triggerTiempo,
     filaValorTiempo,
     panelTiempo,
@@ -945,10 +943,8 @@ function inicializarUI() {
   // caja entera menos el panel es el área clicable
   triggerActividad.addEventListener('click', manejarClickTriggerActividad);
   filaValorActividad.addEventListener('click', manejarClickTriggerActividad);
-  triggerEquipo1.addEventListener('click', manejarClickTriggerEquipo1);
-  filaValorEquipo1.addEventListener('click', manejarClickTriggerEquipo1);
-  triggerEquipo2.addEventListener('click', manejarClickTriggerEquipo2);
-  filaValorEquipo2.addEventListener('click', manejarClickTriggerEquipo2);
+  triggerEquipo.addEventListener('click', manejarClickTriggerEquipo);
+  filaValorEquipo.addEventListener('click', manejarClickTriggerEquipo);
   triggerTiempo.addEventListener('click', manejarClickTriggerTiempo);
   filaValorTiempo.addEventListener('click', manejarClickTriggerTiempo);
   botonDiasMas.addEventListener('click', () => manejarPasoTiempo('dias', 1));

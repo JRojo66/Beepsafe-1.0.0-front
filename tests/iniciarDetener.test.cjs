@@ -21,10 +21,11 @@ const EXPORTS = `;globalThis.__test = {
   resumenTiempoCorto, IMAGENES_POR_DEFECTO, IMAGEN_POR_ACTIVIDAD,
   CLAVE_ULTIMA_SESION, CLAVE_SESION_EN_CURSO,
   cerrarPaneles, manejarPasoTiempo,
-  manejarSeleccionActividad, manejarSeleccionEquipo1, manejarSeleccionEquipo2,
-  manejarClickTriggerActividad, manejarClickTriggerEquipo1,
-  manejarClickTriggerEquipo2, manejarClickTriggerTiempo,
+  manejarSeleccionActividad, manejarSeleccionEquipo,
+  manejarClickTriggerActividad, manejarClickTriggerEquipo,
+  manejarClickTriggerTiempo,
   TEXTO_SIN_ACTIVIDADES, TEXTO_ERROR_ACTIVIDADES,
+  get equiposSeleccionados() { return equiposSeleccionados.slice(); },
   get cargaCompleta() { return cargaCompleta; },
   get cargaActividadesFallida() { return cargaActividadesFallida; },
 };`;
@@ -141,14 +142,10 @@ function crearContexto(opciones = {}) {
     filaValorActividad: crearNodo({ textContent: 'Sin actividad' }),
     panelActividad: crearNodo(),
     listaActividad: crearNodo({ tagName: 'UL' }),
-    triggerEquipo1: crearNodo({ textContent: 'Equipo 1' }),
-    filaValorEquipo1: crearNodo({ textContent: 'Sin equipo' }),
-    panelEquipo1: crearNodo(),
-    listaEquipo1: crearNodo({ tagName: 'UL' }),
-    triggerEquipo2: crearNodo({ textContent: 'Equipo 2' }),
-    filaValorEquipo2: crearNodo({ textContent: 'Ninguno' }),
-    panelEquipo2: crearNodo(),
-    listaEquipo2: crearNodo({ tagName: 'UL' }),
+    triggerEquipo: crearNodo({ textContent: 'Equipo' }),
+    filaValorEquipo: crearNodo({ textContent: 'Sin equipo' }),
+    panelEquipo: crearNodo(),
+    listaEquipo: crearNodo({ tagName: 'UL' }),
     triggerTiempo: crearNodo({ textContent: 'Tiempo' }),
     filaValorTiempo: crearNodo({ textContent: '3h' }),
     panelTiempo: crearNodo(),
@@ -337,20 +334,18 @@ const STEPPER = {
   minutos: { mas: 'btnMinutosMas', menos: 'btnMinutosMenos', valor: 'valorMinutos' },
 };
 
-const TRIGGERS = ['triggerActividad', 'triggerEquipo1', 'triggerEquipo2', 'triggerTiempo'];
+const TRIGGERS = ['triggerActividad', 'triggerEquipo', 'triggerTiempo'];
 
 // Cabecera (título estático) -> su fila de valor dentro de la misma caja
 const FILAS_VALOR = {
   triggerActividad: 'filaValorActividad',
-  triggerEquipo1: 'filaValorEquipo1',
-  triggerEquipo2: 'filaValorEquipo2',
+  triggerEquipo: 'filaValorEquipo',
   triggerTiempo: 'filaValorTiempo',
 };
 
 const PANELES = {
   actividad: 'panelActividad',
-  equipo1: 'panelEquipo1',
-  equipo2: 'panelEquipo2',
+  equipo: 'panelEquipo',
   tiempo: 'panelTiempo',
 };
 
@@ -391,8 +386,7 @@ function assertTriggersDeshabilitados(t, esperado, mensaje = '') {
 function assertCabecerasEstaticas(t, mensaje = '') {
   const sufijo = mensaje ? ` ${mensaje}` : '';
   assert.equal(t.nodos.triggerActividad.textContent, 'Actividad', `cabecera Actividad${sufijo}`);
-  assert.equal(t.nodos.triggerEquipo1.textContent, 'Equipo 1', `cabecera Equipo 1${sufijo}`);
-  assert.equal(t.nodos.triggerEquipo2.textContent, 'Equipo 2', `cabecera Equipo 2${sufijo}`);
+  assert.equal(t.nodos.triggerEquipo.textContent, 'Equipo', `cabecera Equipo${sufijo}`);
   assert.equal(t.nodos.triggerTiempo.textContent, 'Tiempo', `cabecera Tiempo${sufijo}`);
 }
 
@@ -430,6 +424,11 @@ function opcionEnLista(t, lista, texto) {
 
 function textosLista(t, lista) {
   return t.nodos[lista].hijos.map((hijo) => hijo.textContent);
+}
+
+// Líneas renderizadas de la fila de valor de Equipo (un <span> por nombre)
+function lineasEquipo(t) {
+  return t.nodos.filaValorEquipo.hijos.map((hijo) => hijo.textContent);
 }
 
 function respuestaOk(json) {
@@ -583,20 +582,24 @@ test('resumenTiempoCorto omite unidades en cero y usa "Tiempo" si todo es 0', ()
   assert.equal(t.ctxTest.resumenTiempoCorto(0, 0, 0), 'Tiempo', 'todo en cero -> el título');
 });
 
-test('el HTML tiene los cuatro triggers con su título, paneles y stepper; sin selects', () => {
+test('guard: JS/iniciarDetener.js no usa .hijos (propiedad del harness, no del DOM)', () => {
+  assert.ok(
+    !FUENTE.includes('.hijos'),
+    'la producción no debe depender del stub .hijos: en el navegador es undefined'
+  );
+});
+
+test('el HTML tiene los tres triggers con su título, paneles y stepper; sin selects', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'pages', 'iniciarDetener.html'), 'utf8');
   for (const id of [
     'triggerActividad',
-    'triggerEquipo1',
-    'triggerEquipo2',
+    'triggerEquipo',
     'triggerTiempo',
     'panelActividad',
-    'panelEquipo1',
-    'panelEquipo2',
+    'panelEquipo',
     'panelTiempo',
     'listaActividad',
-    'listaEquipo1',
-    'listaEquipo2',
+    'listaEquipo',
     'btnDiasMas',
     'btnDiasMenos',
     'btnHorasMas',
@@ -614,9 +617,23 @@ test('el HTML tiene los cuatro triggers con su título, paneles y stepper; sin s
   assert.ok(!html.includes('class="elegidos"'), 'la repetición .elegidos fue eliminada');
   assert.ok(!html.includes('id="selectEquipo"'), 'el viejo #selectEquipo fue reemplazado');
   assert.ok(!html.includes('id="selectTiempo"'), 'el viejo #selectTiempo fue reemplazado');
+  // la caja vieja se fue: un solo desplegable de Equipo, sin segunda ranura
+  for (const id of [
+    'triggerEquipo1',
+    'triggerEquipo2',
+    'filaValorEquipo1',
+    'filaValorEquipo2',
+    'panelEquipo1',
+    'panelEquipo2',
+    'listaEquipo1',
+    'listaEquipo2',
+  ]) {
+    assert.ok(!html.includes(`id="${id}"`), `el nodo viejo #${id} ya no debe existir`);
+  }
+  assert.ok(!html.includes('class="item3"'), 'la tercera columna vieja fue eliminada');
   let posicion = -1;
-  for (const titulo of ['Actividad', 'Equipo 1', 'Equipo 2', 'Tiempo']) {
-    const marca = `id="trigger${titulo === 'Actividad' ? 'Actividad' : titulo.replace(' ', '')}"`;
+  for (const titulo of ['Actividad', 'Equipo', 'Tiempo']) {
+    const marca = `id="trigger${titulo}"`;
     const indice = html.indexOf(marca);
     assert.ok(indice > -1, `falta el trigger "${titulo}"`);
     assert.ok(indice > posicion, `el trigger "${titulo}" debe ir en orden`);
@@ -626,8 +643,7 @@ test('el HTML tiene los cuatro triggers con su título, paneles y stepper; sin s
   // cada caja tiene su fila de valor con el placeholder inicial
   for (const [id, placeholder] of [
     ['filaValorActividad', 'Sin actividad'],
-    ['filaValorEquipo1', 'Sin equipo'],
-    ['filaValorEquipo2', 'Ninguno'],
+    ['filaValorEquipo', 'Sin equipo'],
     ['filaValorTiempo', '3h'],
   ]) {
     assert.ok(html.includes(`id="${id}"`), `falta la fila de valor #${id}`);
@@ -653,8 +669,7 @@ await testAsync('init ok: triggers poblados, tiempo default 0d/3h/0m, ícono con
   assertTiempoValores(t, { dias: 0, horas: 3, minutos: 0 }, '(default 180 min)');
   assert.equal(t.nodos.etiquetaTiempo.textContent, '03:00:00');
   assert.equal(t.nodos.etiquetaBoton.textContent, 'INICIAR');
-  assert.equal(t.nodos.filaValorEquipo1.textContent, 'Goya verde 5.0', 'primer equipo por defecto');
-  assert.equal(t.nodos.filaValorEquipo2.textContent, 'Ninguno', 'Equipo 2 arranca sin elegir');
+  assert.deepEqual(lineasEquipo(t), ['Goya verde 5.0'], 'primer equipo por defecto');
   assert.equal(t.nodos.filaValorTiempo.textContent, '3h', 'resumen compacto del default');
   assert.ok(t.nodos.iconoActividad.src.endsWith('IlustracionWindsurf.png'));
   assert.ok(t.nodos.iconoActividad.src.startsWith('../imagenes/'));
@@ -667,26 +682,52 @@ await testAsync('las filas de valor arrancan con sus placeholders antes de elegi
 
   assertCabecerasEstaticas(t, 'antes de terminar la carga');
   assert.equal(t.nodos.filaValorActividad.textContent, 'Sin actividad');
-  assert.equal(t.nodos.filaValorEquipo1.textContent, 'Sin equipo');
-  assert.equal(t.nodos.filaValorEquipo2.textContent, 'Ninguno');
+  assert.deepEqual(lineasEquipo(t), ['Sin equipo']);
   assert.equal(t.nodos.filaValorTiempo.textContent, '3h', 'default 0d 3h 0m');
 
   await t.esperarCarga();
 });
 
-await testAsync('Equipo 1 y Equipo 2 se poblan con la misma lista (sin dedupe)', async () => {
+await testAsync('la caja de Equipo lista todos los equipos de la actividad (sin "Ninguno")', async () => {
   const t = crearContexto({ fetch: fetchNormal() });
   await t.domListo();
 
-  assert.deepEqual(textosLista(t, 'listaEquipo1'), ['Goya verde 5.0', 'Naish 5.8']);
-  assert.equal(t.nodos.filaValorEquipo1.textContent, 'Goya verde 5.0');
+  assert.deepEqual(textosLista(t, 'listaEquipo'), ['Goya verde 5.0', 'Naish 5.8']);
+  assert.deepEqual(lineasEquipo(t), ['Goya verde 5.0'], 'primer equipo auto-seleccionado');
 
-  assert.deepEqual(
-    textosLista(t, 'listaEquipo2'),
-    ['Ninguno', 'Goya verde 5.0', 'Naish 5.8'],
-    'Ninguno + los mismos equipos'
+  // el auto-select marca la opción inicial; la otra queda sin seleccionar
+  const goya = opcionEnLista(t, 'listaEquipo', 'Goya verde 5.0');
+  const naish = opcionEnLista(t, 'listaEquipo', 'Naish 5.8');
+  assert.ok(goya.classList.contains('seleccionada'), 'la opción elegida lleva la clase seleccionada');
+  assert.equal(goya.getAttribute('aria-selected'), 'true');
+  assert.ok(!naish.classList.contains('seleccionada'));
+  assert.equal(naish.getAttribute('aria-selected'), 'false');
+});
+
+await testAsync('regresión: dos opciones de Equipo se marcan seleccionadas a la vez (multi-select)', async () => {
+  const TRES = [
+    { name: 'Windsurf', equipment: [{ name: 'Goya verde 5.0' }, { name: 'Naish 5.8' }, { name: 'Fanatic 6.2' }] },
+  ];
+  const t = crearContexto({ fetch: fetchNormal({ actividades: TRES }) });
+  await t.domListo();
+
+  // quita el auto-select y elige dos opciones distintas con clicks reales
+  opcionEnLista(t, 'listaEquipo', 'Goya verde 5.0').disparar('click');
+  opcionEnLista(t, 'listaEquipo', 'Naish 5.8').disparar('click');
+  opcionEnLista(t, 'listaEquipo', 'Fanatic 6.2').disparar('click');
+
+  const naish = opcionEnLista(t, 'listaEquipo', 'Naish 5.8');
+  const fanatic = opcionEnLista(t, 'listaEquipo', 'Fanatic 6.2');
+  assert.ok(naish.classList.contains('seleccionada'), 'Naish queda marcada');
+  assert.equal(naish.getAttribute('aria-selected'), 'true');
+  assert.ok(fanatic.classList.contains('seleccionada'), 'Fanatic queda marcada');
+  assert.equal(fanatic.getAttribute('aria-selected'), 'true');
+  assert.ok(
+    !opcionEnLista(t, 'listaEquipo', 'Goya verde 5.0').classList.contains('seleccionada'),
+    'Goya quedó deseleccionada'
   );
-  assert.equal(t.nodos.filaValorEquipo2.textContent, 'Ninguno', 'Ninguno = sin elegir');
+  assert.deepEqual(lineasEquipo(t), ['Naish 5.8', 'Fanatic 6.2'], 'la fila muestra A y B, uno por línea');
+  assert.deepEqual([...t.ctxTest.equiposSeleccionados], ['Naish 5.8', 'Fanatic 6.2']);
 });
 
 await testAsync('restaura la última sesión guardada desde localStorage', async () => {
@@ -751,8 +792,8 @@ await testAsync('migra equipo string legado a array en la restauración', async 
   );
   await t.domListo();
 
-  assert.equal(t.nodos.filaValorEquipo1.textContent, 'Naish 5.8', 'string legado -> Equipo 1');
-  assert.equal(t.nodos.filaValorEquipo2.textContent, 'Ninguno', 'Equipo 2 queda en Ninguno');
+  assert.deepEqual(lineasEquipo(t), ['Naish 5.8'], 'string legado -> array de un nombre');
+  assert.deepEqual([...t.ctxTest.equiposSeleccionados], ['Naish 5.8'], 'el estado guarda el array migrado');
 });
 
 await testAsync('restaura equipo array filtrando nombres que ya no existen', async () => {
@@ -767,12 +808,63 @@ await testAsync('restaura equipo array filtrando nombres que ya no existen', asy
   );
   await t.domListo();
 
-  assert.equal(t.nodos.filaValorEquipo1.textContent, 'Goya verde 5.0');
-  assert.equal(t.nodos.filaValorEquipo2.textContent, 'Ninguno', 'nombre inexistente descartado -> Ninguno');
+  assert.deepEqual(lineasEquipo(t), ['Goya verde 5.0']);
+  assert.deepEqual([...t.ctxTest.equiposSeleccionados], ['Goya verde 5.0'], 'nombre inexistente descartado');
 
   t.nodos.botonIniciar.disparar('click');
   const guardada = JSON.parse(t.store.get('beepsafe_ultima_sesion:marcelo@test.com'));
   assert.deepEqual(guardada.equipo, ['Goya verde 5.0'], 'el payload re-persistido queda filtrado');
+});
+
+await testAsync('restaura equipo array deduplicando nombres repetidos sin perder el orden', async () => {
+  const t = crearContexto({ fetch: fetchNormal() });
+  t.store.set(
+    'beepsafe_ultima_sesion',
+    JSON.stringify({
+      actividad: 'Windsurf',
+      equipo: ['Naish 5.8', 'Naish 5.8', 'Goya verde 5.0', 'Naish 5.8'],
+      tiempoSegundos: 10800,
+    })
+  );
+  await t.domListo();
+
+  assert.deepEqual(
+    [...t.ctxTest.equiposSeleccionados],
+    ['Naish 5.8', 'Goya verde 5.0'],
+    'una sola caja no puede tener duplicados; gana la primera aparición'
+  );
+  assert.deepEqual(lineasEquipo(t), ['Naish 5.8', 'Goya verde 5.0']);
+
+  t.nodos.botonIniciar.disparar('click');
+  const guardada = JSON.parse(t.store.get('beepsafe_ultima_sesion:marcelo@test.com'));
+  assert.deepEqual(guardada.equipo, ['Naish 5.8', 'Goya verde 5.0'], 'el payload también deduplica');
+});
+
+await testAsync('restaura una selección de más de dos equipos completa (la vista muestra los dos primeros)', async () => {
+  const TRES = [
+    { name: 'Windsurf', equipment: [{ name: 'Goya verde 5.0' }, { name: 'Naish 5.8' }, { name: 'Fanatic 6.2' }] },
+  ];
+  const t = crearContexto({ fetch: fetchNormal({ actividades: TRES }) });
+  t.store.set(
+    'beepsafe_ultima_sesion',
+    JSON.stringify({
+      actividad: 'Windsurf',
+      equipo: ['Goya verde 5.0', 'Naish 5.8', 'Fanatic 6.2'],
+      tiempoSegundos: 10800,
+    })
+  );
+  await t.domListo();
+
+  assert.deepEqual(
+    [...t.ctxTest.equiposSeleccionados],
+    ['Goya verde 5.0', 'Naish 5.8', 'Fanatic 6.2'],
+    'el estado restaura los tres, no solo los visibles'
+  );
+  assert.deepEqual(
+    lineasEquipo(t),
+    ['Goya verde 5.0', 'Naish 5.8'],
+    'la fila muestra solo los dos primeros nombres, sin contador'
+  );
 });
 
 await testAsync('equipo string legado inexistente cae al primer equipo sin romper', async () => {
@@ -783,8 +875,7 @@ await testAsync('equipo string legado inexistente cae al primer equipo sin rompe
   );
   await t.domListo();
 
-  assert.equal(t.nodos.filaValorEquipo1.textContent, 'Goya verde 5.0', 'vuelve al default, sin crash');
-  assert.equal(t.nodos.filaValorEquipo2.textContent, 'Ninguno');
+  assert.deepEqual(lineasEquipo(t), ['Goya verde 5.0'], 'vuelve al default, sin crash');
 });
 
 await testAsync('RES-001: fetch de actividades falla -> loguea el error y muestra el mensaje de fallo (no "Sin actividades")', async () => {
@@ -820,13 +911,10 @@ await testAsync('RES-001: fetch de actividades falla -> loguea el error y muestr
   assert.equal(t.nodos.triggerActividad.disabled, true, 'la caja degradada no es interactiva');
   assert.equal(t.nodos.filaValorActividad.disabled, true);
   assert.deepEqual(textosLista(t, 'listaActividad'), [], 'sin opciones que ofrecer');
-  // sin actividad, las filas de equipo muestran sus placeholders (REL-109)
-  assert.equal(t.nodos.filaValorEquipo1.textContent, 'Sin equipo');
-  assert.equal(t.nodos.triggerEquipo1.disabled, true);
-  assert.equal(t.nodos.filaValorEquipo1.disabled, true);
-  assert.equal(t.nodos.filaValorEquipo2.textContent, 'Ninguno');
-  assert.equal(t.nodos.triggerEquipo2.disabled, true);
-  assert.equal(t.nodos.filaValorEquipo2.disabled, true);
+  // sin actividad, la fila de Equipo muestra su placeholder (REL-109)
+  assert.deepEqual(lineasEquipo(t), ['Sin equipo']);
+  assert.equal(t.nodos.triggerEquipo.disabled, true);
+  assert.equal(t.nodos.filaValorEquipo.disabled, true);
   assert.equal(t.nodos.etiquetaBoton.textContent, 'INICIAR');
 });
 
@@ -848,15 +936,14 @@ await testAsync('RES-001: cuenta vacía real sigue mostrando "Sin actividades" (
   assert.equal(t.ctxTest.cargaCompleta, true, 'la carga terminó igual');
 });
 
-await testAsync('actividad sin equipo -> Equipo 1 no interactivo, Equipo 2 solo Ninguno', async () => {
+await testAsync('actividad sin equipo -> la caja de Equipo no es interactiva', async () => {
   const t = crearContexto({ fetch: fetchNormal() });
   await t.domListo();
   t.ctxTest.manejarSeleccionActividad('Surf');
-  assert.deepEqual(textosLista(t, 'listaEquipo1'), [], 'Sin equipo: sin opciones');
-  assert.equal(t.nodos.filaValorEquipo1.textContent, 'Sin equipo', 'placeholder de la fila de valor');
-  assert.equal(t.nodos.triggerEquipo1.disabled, true, 'el trigger no debe abrir panel vacío');
-  assert.deepEqual(textosLista(t, 'listaEquipo2'), ['Ninguno'], 'Equipo 2 siempre ofrece "Ninguno"');
-  assert.equal(t.nodos.triggerEquipo2.disabled, false, 'aunque solo tenga "Ninguno"');
+  assert.deepEqual(textosLista(t, 'listaEquipo'), [], 'Sin equipo: sin opciones');
+  assert.deepEqual(lineasEquipo(t), ['Sin equipo'], 'placeholder de la fila de valor');
+  assert.equal(t.nodos.triggerEquipo.disabled, true, 'el trigger no debe abrir panel vacío');
+  assert.deepEqual([...t.ctxTest.equiposSeleccionados], [], 'selección vacía sin equipos');
 });
 
 await testAsync('nodo faltante -> no fetch de actividades y sin throw (REL-003)', async () => {
@@ -952,31 +1039,64 @@ await testAsync('la última sesión se persiste al INICIAR, no al cargar', async
   t.nodos.botonIniciar.disparar('click');
   const guardada = JSON.parse(t.store.get(clave));
   assert.equal(guardada.actividad, 'Windsurf');
-  assert.deepEqual(guardada.equipo, ['Goya verde 5.0'], 'equipo es un array con Equipo 1');
+  assert.deepEqual(guardada.equipo, ['Goya verde 5.0'], 'equipo es un array con el auto-select inicial');
   assert.equal(guardada.tiempoSegundos, 180 * 60);
 });
 
-await testAsync('payload equipo: array de los dos nombres elegidos (sin dedupe)', async () => {
+await testAsync('payload equipo: array ordenado de los nombres elegidos', async () => {
   const t = crearContexto({ fetch: fetchNormal() });
   await t.domListo();
 
-  t.ctxTest.manejarSeleccionEquipo2('Naish 5.8');
+  t.ctxTest.manejarSeleccionEquipo('Naish 5.8');
   t.nodos.botonIniciar.disparar('click');
 
   const guardada = JSON.parse(t.store.get('beepsafe_ultima_sesion:marcelo@test.com'));
   assert.deepEqual(guardada.equipo, ['Goya verde 5.0', 'Naish 5.8']);
 });
 
-await testAsync('payload equipo: repetir el mismo equipo en ambas ranuras está permitido', async () => {
+await testAsync('payload equipo: la selección múltiple persiste TODOS los equipos en orden', async () => {
+  const TRES = [
+    { name: 'Windsurf', equipment: [{ name: 'Goya verde 5.0' }, { name: 'Naish 5.8' }, { name: 'Fanatic 6.2' }] },
+  ];
+  const t = crearContexto({ fetch: fetchNormal({ actividades: TRES }) });
+  await t.domListo();
+
+  // el primero ya viene auto-seleccionado; se agregan los otros dos
+  t.ctxTest.manejarSeleccionEquipo('Naish 5.8');
+  t.ctxTest.manejarSeleccionEquipo('Fanatic 6.2');
+  assert.deepEqual(
+    [...t.ctxTest.equiposSeleccionados],
+    ['Goya verde 5.0', 'Naish 5.8', 'Fanatic 6.2'],
+    'el estado conserva los tres'
+  );
+
+  t.nodos.botonIniciar.disparar('click');
+  const guardada = JSON.parse(t.store.get('beepsafe_ultima_sesion:marcelo@test.com'));
+  assert.deepEqual(
+    guardada.equipo,
+    ['Goya verde 5.0', 'Naish 5.8', 'Fanatic 6.2'],
+    'localStorage no trunca a dos'
+  );
+  const enCurso = JSON.parse(t.store.get('beepsafe_sesion_en_curso:marcelo@test.com'));
+  assert.deepEqual(
+    enCurso.equipo,
+    ['Goya verde 5.0', 'Naish 5.8', 'Fanatic 6.2'],
+    'la sesión en curso también guarda todos'
+  );
+});
+
+await testAsync('la opción ya elegida se puede quitar (toggle, sin duplicados)', async () => {
   const t = crearContexto({ fetch: fetchNormal() });
   await t.domListo();
 
-  t.ctxTest.manejarSeleccionEquipo1('Naish 5.8');
-  t.ctxTest.manejarSeleccionEquipo2('Naish 5.8');
-  t.nodos.botonIniciar.disparar('click');
+  // Goya viene seleccionado por el auto-select: el click lo quita
+  t.ctxTest.manejarSeleccionEquipo('Goya verde 5.0');
+  assert.deepEqual([...t.ctxTest.equiposSeleccionados], []);
+  assert.deepEqual(lineasEquipo(t), ['Sin equipo']);
 
+  t.nodos.botonIniciar.disparar('click');
   const guardada = JSON.parse(t.store.get('beepsafe_ultima_sesion:marcelo@test.com'));
-  assert.deepEqual(guardada.equipo, ['Naish 5.8', 'Naish 5.8'], 'no hay dedupe');
+  assert.deepEqual(guardada.equipo, [], 'sin selección -> array vacío');
 });
 
 await testAsync('tiempoSegundos = días*86400 + horas*3600 + minutos*60 (1d 2h 3m = 93780)', async () => {
@@ -1034,7 +1154,7 @@ await testAsync('saludo con el nombre del usuario en mayúsculas', async () => {
   assert.equal(t.nodos.nombre.hijos[0].textContent, 'MARCELO!');
 });
 
-await testAsync('los cuatro triggers deshabilitados mientras corre; se reactivan al DETENER y al FINALIZADO', async () => {
+await testAsync('los tres triggers deshabilitados mientras corre; se reactivan al DETENER y al FINALIZADO', async () => {
   const t = crearContexto({ fetch: fetchNormal() });
   await t.domListo();
   fijarTiempo(t, { minutos: 15 });
@@ -1181,22 +1301,95 @@ await testAsync('las cabeceras mantienen el título y las filas de valor muestra
   await t.domListo();
   assertCabecerasEstaticas(t, 'con la sesión por defecto');
   assert.equal(t.nodos.filaValorActividad.textContent, 'Windsurf', 'actividad por defecto');
-  assert.equal(t.nodos.filaValorEquipo1.textContent, 'Goya verde 5.0', 'primer equipo por defecto');
-  assert.equal(t.nodos.filaValorEquipo2.textContent, 'Ninguno', 'sin elegir -> placeholder');
+  assert.deepEqual(lineasEquipo(t), ['Goya verde 5.0'], 'primer equipo por defecto');
 
   t.ctxTest.manejarSeleccionActividad('Surf');
   assertCabecerasEstaticas(t, 'tras elegir actividad');
   assert.equal(t.nodos.filaValorActividad.textContent, 'Surf');
-  assert.equal(t.nodos.filaValorEquipo1.textContent, 'Sin equipo', 'Surf no tiene equipo');
-  assert.equal(t.nodos.filaValorEquipo2.textContent, 'Ninguno');
+  assert.deepEqual(lineasEquipo(t), ['Sin equipo'], 'Surf no tiene equipo');
 
   t.ctxTest.manejarSeleccionActividad('Windsurf');
-  t.ctxTest.manejarSeleccionEquipo1('Naish 5.8');
-  assert.equal(t.nodos.filaValorEquipo1.textContent, 'Naish 5.8');
-  t.ctxTest.manejarSeleccionEquipo2('Naish 5.8');
-  assert.equal(t.nodos.filaValorEquipo2.textContent, 'Naish 5.8');
+  assert.deepEqual(lineasEquipo(t), ['Goya verde 5.0'], 'volver a Windsurf auto-selecciona el primero');
+  t.ctxTest.manejarSeleccionEquipo('Naish 5.8');
+  assert.deepEqual(lineasEquipo(t), ['Goya verde 5.0', 'Naish 5.8'], 'dos nombres completos');
+  t.ctxTest.manejarSeleccionEquipo('Goya verde 5.0');
+  assert.deepEqual(lineasEquipo(t), ['Naish 5.8'], 'quitar el primero deja el otro');
   assertCabecerasEstaticas(t, 'tras elegir equipos');
   assert.equal(t.nodos.iconoActividad.src.endsWith('IlustracionWindsurf.png'), true, 'el ícono sigue a la actividad');
+});
+
+await testAsync('la fila de valor de Equipo muestra solo los dos primeros nombres, sin contador', async () => {
+  const CUATRO = [
+    {
+      name: 'Windsurf',
+      equipment: [
+        { name: 'Goya verde 5.0' },
+        { name: 'Naish 5.8' },
+        { name: 'Fanatic 6.2' },
+        { name: 'Starboard 7.0' },
+      ],
+    },
+  ];
+  const t = crearContexto({ fetch: fetchNormal({ actividades: CUATRO }) });
+  await t.domListo();
+
+  // el primero ya está auto-seleccionado
+  t.ctxTest.manejarSeleccionEquipo('Naish 5.8');
+  assert.deepEqual(lineasEquipo(t), ['Goya verde 5.0', 'Naish 5.8'], 'dos nombres');
+
+  t.ctxTest.manejarSeleccionEquipo('Fanatic 6.2');
+  assert.deepEqual(lineasEquipo(t), ['Goya verde 5.0', 'Naish 5.8'], 'tres -> siguen los dos primeros');
+
+  t.ctxTest.manejarSeleccionEquipo('Starboard 7.0');
+  assert.deepEqual(lineasEquipo(t), ['Goya verde 5.0', 'Naish 5.8'], 'cuatro -> siguen los dos primeros');
+  assert.deepEqual(
+    [...t.ctxTest.equiposSeleccionados],
+    ['Goya verde 5.0', 'Naish 5.8', 'Fanatic 6.2', 'Starboard 7.0'],
+    'la vista muestra dos, el estado conserva los cuatro'
+  );
+});
+
+await testAsync('la fila de Equipo cubre 0/1/2/3+ selecciones: placeholder, un nombre o dos líneas', async () => {
+  const TRES = [
+    { name: 'Windsurf', equipment: [{ name: 'Goya verde 5.0' }, { name: 'Naish 5.8' }, { name: 'Fanatic 6.2' }] },
+  ];
+  const t = crearContexto({ fetch: fetchNormal({ actividades: TRES }) });
+  await t.domListo();
+
+  // el primero viene auto-seleccionado
+  assert.deepEqual(
+    lineasEquipo(t),
+    ['Goya verde 5.0'],
+    'uno -> el nombre solo, sin salto de línea'
+  );
+
+  t.ctxTest.manejarSeleccionEquipo('Naish 5.8');
+  assert.deepEqual(
+    lineasEquipo(t),
+    ['Goya verde 5.0', 'Naish 5.8'],
+    'dos -> un nombre por línea'
+  );
+  for (const linea of t.nodos.filaValorEquipo.hijos) {
+    assert.equal(linea.className, 'lineaEquipo', 'cada línea lleva su clase');
+  }
+
+  t.ctxTest.manejarSeleccionEquipo('Fanatic 6.2');
+  assert.deepEqual(
+    lineasEquipo(t),
+    ['Goya verde 5.0', 'Naish 5.8'],
+    'tres -> solo los dos primeros, sin tercero ni contador'
+  );
+  assert.ok(
+    !lineasEquipo(t).includes('Fanatic'),
+    'el tercer nombre no aparece en la fila'
+  );
+
+  t.ctxTest.manejarSeleccionActividad('Surf');
+  assert.deepEqual(
+    lineasEquipo(t),
+    ['Sin equipo'],
+    'cero -> placeholder, también en una sola línea'
+  );
 });
 
 await testAsync('los steppers de Tiempo clampean a 7d / 23h / 59m y tienen piso en 0', async () => {
@@ -1288,7 +1481,7 @@ await testAsync('un click originado dentro del panel no alterna el desplegable',
   t.ctxTest.manejarClickTriggerActividad(eventoClickEnPanel());
   assertSoloPanelAbierto(t, 'actividad', 'el guard de panel evita el toggle');
 
-  t.ctxTest.manejarClickTriggerEquipo2(eventoClickEnPanel());
+  t.ctxTest.manejarClickTriggerEquipo(eventoClickEnPanel());
   assertSoloPanelAbierto(t, 'actividad', 'ninguna cabecera reacciona a clicks del panel');
 
   t.ctxTest.manejarClickTriggerTiempo(eventoClickEnPanel());
@@ -1312,14 +1505,14 @@ await testAsync('solo un panel a la vez: abrir otro cierra el anterior; el segun
   t.nodos.triggerTiempo.disparar('click');
   assertNingunPanelAbierto(t, 'segundo click en el mismo trigger cierra');
 
-  t.nodos.triggerEquipo2.disparar('click');
-  assertSoloPanelAbierto(t, 'equipo2');
+  t.nodos.triggerEquipo.disparar('click');
+  assertSoloPanelAbierto(t, 'equipo');
 
-  t.nodos.triggerEquipo1.disparar('click');
-  assertSoloPanelAbierto(t, 'equipo1', 'cambiar de columna también cierra el anterior');
+  t.nodos.triggerActividad.disparar('click');
+  assertSoloPanelAbierto(t, 'actividad', 'cambiar de columna también cierra el anterior');
 });
 
-await testAsync('las opciones de los paneles están cableadas: el click elige y cierra el panel', async () => {
+await testAsync('las opciones de los paneles están cableadas: actividad cierra; Equipo togglea y queda abierto', async () => {
   const t = crearContexto({ fetch: fetchNormal() });
   await t.domListo();
 
@@ -1327,14 +1520,22 @@ await testAsync('las opciones de los paneles están cableadas: el click elige y 
   opcionEnLista(t, 'listaActividad', 'Surf').disparar('click');
   assert.equal(t.nodos.filaValorActividad.textContent, 'Surf');
   assertCabecerasEstaticas(t, 'elegir no toca las cabeceras');
-  assertNingunPanelAbierto(t, 'elegir una opción cierra el panel');
+  assertNingunPanelAbierto(t, 'elegir una actividad cierra su panel');
 
-  t.nodos.triggerEquipo2.disparar('click');
-  assertSoloPanelAbierto(t, 'equipo2');
-  // Surf no tiene equipos: la única opción es "Ninguno"
-  opcionEnLista(t, 'listaEquipo2', 'Ninguno').disparar('click');
-  assert.equal(t.nodos.filaValorEquipo2.textContent, 'Ninguno', 'Ninguno -> la fila de valor muestra el placeholder');
-  assertNingunPanelAbierto(t);
+  // Windsurf tiene equipos: se abre la caja de Equipo y se togglea una opción
+  t.ctxTest.manejarSeleccionActividad('Windsurf');
+  t.nodos.triggerEquipo.disparar('click');
+  assertSoloPanelAbierto(t, 'equipo');
+
+  // Goya viene auto-seleccionado; Naish se agrega sin cerrar el panel
+  opcionEnLista(t, 'listaEquipo', 'Naish 5.8').disparar('click');
+  assert.deepEqual(lineasEquipo(t), ['Goya verde 5.0', 'Naish 5.8']);
+  assertSoloPanelAbierto(t, 'equipo', 'el multi-select mantiene el panel abierto');
+
+  // un segundo click en la misma opción la quita y el panel sigue abierto
+  opcionEnLista(t, 'listaEquipo', 'Naish 5.8').disparar('click');
+  assert.deepEqual(lineasEquipo(t), ['Goya verde 5.0']);
+  assertSoloPanelAbierto(t, 'equipo', 'quitar también mantiene el panel abierto');
 });
 
 await testAsync('el panel de Tiempo permanece abierto mientras se usa el stepper', async () => {
@@ -1364,14 +1565,12 @@ await testAsync('los triggers de Equipo no son interactivos hasta elegir una act
   await t.domListo();
 
   assert.equal(t.nodos.triggerActividad.disabled, true, 'Sin actividades -> no interactivo');
-  assert.equal(t.nodos.triggerEquipo1.disabled, true);
-  assert.equal(t.nodos.triggerEquipo2.disabled, true);
+  assert.equal(t.nodos.triggerEquipo.disabled, true);
 
   t.nodos.triggerActividad.disparar('click');
   assertNingunPanelAbierto(t, 'el trigger degradado no abre panel');
-  t.nodos.triggerEquipo1.disparar('click');
-  t.nodos.triggerEquipo2.disparar('click');
-  assertNingunPanelAbierto(t, 'los triggers de equipo no abren sin actividad');
+  t.nodos.triggerEquipo.disparar('click');
+  assertNingunPanelAbierto(t, 'la caja de Equipo no abre sin actividad');
 });
 
 await testAsync('con la sesión corriendo los triggers ignoran clicks, steppers y selecciones', async () => {
@@ -1393,7 +1592,7 @@ await testAsync('con la sesión corriendo los triggers ignoran clicks, steppers 
   assertTiempoValores(t, { dias: 0, horas: 0, minutos: 15 }, 'los steppers no cambian valores');
   t.ctxTest.manejarSeleccionActividad('Surf');
   assert.equal(t.nodos.filaValorActividad.textContent, 'Windsurf', 'la selección se ignora');
-  assert.equal(t.nodos.filaValorEquipo1.textContent, 'Goya verde 5.0', 'el equipo no cambia');
+  assert.deepEqual(lineasEquipo(t), ['Goya verde 5.0'], 'el equipo no cambia');
 
   t.nodos.botonIniciar.disparar('click'); // DETENER
   assertTriggersDeshabilitados(t, false, 'al DETENER');
