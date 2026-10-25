@@ -3444,3 +3444,58 @@ margin: 10px 0;
     width: 100%;
   }
 }
+
+/* Mis mensajes — lista con encabezado legado (scope msj-) */
+
+.msj-configuracion {
+  width: min(380px, calc(100vw - 16px));
+}
+
+.perfilb-con-previa {
+  height: auto;
+  min-height: 4rem;
+  padding-bottom: 6px;
+}
+
+.perfilb-con-previa .containerPerfil {
+  gap: 10px;
+  align-items: center;
+}
+
+.msj-fila-textos {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.msj-fila-textos .opciones {
+  width: auto;
+  margin-left: 0;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.msj-previa {
+  max-width: 100%;
+  font-size: 12px;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.72);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.msj-previa.mensajes-previa-pendiente {
+  color: #ffd479;
+}
+
+.msj-lista {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
