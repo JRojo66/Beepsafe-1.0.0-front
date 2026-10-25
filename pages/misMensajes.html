@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,59 +17,115 @@
     "
     />
 
-    <title>Mis mensajes</title>
+    <title>Mis Mensajes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../styles/styles.css">
 </head>
-<body>
-    <div class="configuracion">
-        <a href="../pages/perfil.html" class="perfil">
-            <div class="containerPerfil">
-                <img src="../imagenes/volver.PNG" alt="Volver">
-                <img src="../imagenes/misMensajes.PNG" alt="mensajes" class="encabezado">
-                <div class="opciones">Mis Mensajes</div>
+<body data-page="lista">
+    <main class="msj-pantalla">
+        <header class="msj-cabecera">
+            <div class="msj-cabecera-inner">
+                <div class="msj-cabecera-barra">
+                    <a class="msj-volver" href="../pages/perfil.html" aria-label="Volver al perfil">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                            <path d="M15 5l-7 7 7 7"/>
+                        </svg>
+                    </a>
+                    <span class="msj-cabecera-icono" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                            <path d="M20 15a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </span>
+                </div>
+                <h1 class="msj-titulo">Mis mensajes</h1>
+                <p class="msj-bajada">Estos son los mensajes que serán enviados a tus contactos de emergencia. En “Mi Perfil &gt; Automatización” podrás asignar cada uno de estos a cuáles contactos se los querés enviar.</p>
             </div>
-        </a>
-        <p class="encabezadoBajada">Definí tus mensajes para cada evento, y a quien se los vas a enviar</p>
-        <div class="break"></div>
-        <a href="../pages/mensajeDeInicio.html" class="perfilb">
-            <div class="containerPerfil">
-                <img src="../imagenes/mensajeDeInicio.PNG" alt="mensajeDeInicio">
-                <div class="opciones">Mensaje de inicio de actividad</div>
-                <div>></div>
-            </div>
-        </a>
-        <div class="break"></div>
-        <a href="../pages/mensajeDeFin.html" class="perfilb">
-            <div class="containerPerfil">
-                <img src="../imagenes/mensajeDeFin.PNG" alt="mensajeDeFin">
-                <div class="opciones">Mensaje de fin de actividad</div>
-                <div>></div>
-            </div>
-        </a>
-        <div class="break"></div>
-        <a href="../pages/mensajeDeAlarma.html" class="perfilb">
-            <div class="containerPerfil">
-                <img src="../imagenes/mensajeDeAlarma.PNG" alt="mensajeDeAlarma">
-                <div class="opciones">Mensaje de alarma</div>
-                <div>></div>
-            </div>
-        </a>
-        <div class="break"></div>
-        <a href="../pages/mensajeDePrueba.html" class="perfilb">
-            <div class="containerPerfil">
-                <img class="imagenDePrueba"src="../imagenes/mensajeDePrueba.jpeg" alt="mensajeDePrueba">
-                <div class="opciones">Mensaje de prueba</div>
-                <div>></div>
-            </div>
-        </a>
-        <div class="break"></div>
-        <a href="../pages/invitacion.html" class="perfilb">
-            <div class="containerPerfil">
-                <img src="../imagenes/misMensajes.PNG" alt="invitacion">
-                <div class="opciones">Mensaje de invitación a grupo</div>
-                <div>></div>
-            </div>
-        </a>
-    </div>
+        </header>
+
+        <div class="msj-contenido">
+            <p class="msj-estado mensajes-estado" id="estadoListaMensajes" role="status" aria-live="polite"></p>
+
+            <nav class="msj-lista" id="listaMensajes" aria-label="Tipos de mensaje">
+                <a class="msj-fila" href="../pages/mensajeDeInicio.html">
+                    <span class="msj-fila-icono" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                            <path d="M4 12h9"/>
+                            <path d="M10 8l4 4-4 4"/>
+                            <path d="M18 4v16"/>
+                        </svg>
+                    </span>
+                    <span class="msj-fila-texto">
+                        <span class="msj-fila-label">Mensaje de inicio</span>
+                        <span class="msj-fila-preview" id="previewInicio">Sin mensaje</span>
+                    </span>
+                    <span class="msj-fila-chevron" aria-hidden="true">&#8250;</span>
+                </a>
+
+                <a class="msj-fila" href="../pages/mensajeDeFin.html">
+                    <span class="msj-fila-icono" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                            <path d="M20 12h-9"/>
+                            <path d="M14 8l-4 4 4 4"/>
+                            <path d="M6 4v16"/>
+                        </svg>
+                    </span>
+                    <span class="msj-fila-texto">
+                        <span class="msj-fila-label">Mensaje de fin</span>
+                        <span class="msj-fila-preview" id="previewFin">Sin mensaje</span>
+                    </span>
+                    <span class="msj-fila-chevron" aria-hidden="true">&#8250;</span>
+                </a>
+
+                <a class="msj-fila" href="../pages/mensajeDeAlarma.html">
+                    <span class="msj-fila-icono" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                            <path d="M18 16v-4a6 6 0 0 0-12 0v4l-2 3h16z"/>
+                            <path d="M10 21a2 2 0 0 0 4 0"/>
+                        </svg>
+                    </span>
+                    <span class="msj-fila-texto">
+                        <span class="msj-fila-label">Mensaje de alarma</span>
+                        <span class="msj-fila-preview" id="previewAlarma">Sin mensaje</span>
+                    </span>
+                    <span class="msj-fila-chevron" aria-hidden="true">&#8250;</span>
+                </a>
+
+                <a class="msj-fila" href="../pages/mensajeDePrueba.html">
+                    <span class="msj-fila-icono" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                            <circle cx="12" cy="12" r="8.5"/>
+                            <path d="M8 12.5l3 3 5-6"/>
+                        </svg>
+                    </span>
+                    <span class="msj-fila-texto">
+                        <span class="msj-fila-label">Mensaje de prueba</span>
+                        <span class="msj-fila-preview" id="previewPrueba">Sin mensaje</span>
+                    </span>
+                    <span class="msj-fila-chevron" aria-hidden="true">&#8250;</span>
+                </a>
+
+                <a class="msj-fila" href="../pages/invitacion.html">
+                    <span class="msj-fila-icono" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                            <circle cx="9" cy="8" r="3"/>
+                            <path d="M3.5 19a5.5 5.5 0 0 1 11 0"/>
+                            <path d="M16 5.5a3 3 0 0 1 0 5"/>
+                            <path d="M17.5 13.5a5.5 5.5 0 0 1 3 5"/>
+                        </svg>
+                    </span>
+                    <span class="msj-fila-texto">
+                        <span class="msj-fila-label">Mensaje de invitación</span>
+                        <span class="msj-fila-preview">Editá los textos que se envían al invitar a una persona.</span>
+                    </span>
+                    <span class="msj-fila-chevron" aria-hidden="true">&#8250;</span>
+                </a>
+            </nav>
+        </div>
+    </main>
+
+    <script src="../JS/config.js"></script>
+    <script src="../JS/mensajes.js"></script>
 </body>
 </html>

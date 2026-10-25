@@ -2438,3 +2438,1009 @@ margin: 10px 0;
   opacity: 0.6;
   cursor: default;
 }
+
+/* ================================================================
+   Mensajes (pages/misMensajes.html y pages/mensajeDe*.html).
+   Misma estética que Iniciar/Detener: fondo --color-fondo, acento
+   --color-principal, tarjetas de 20px sin bordes internos duros y
+   separadores sutiles. Responsive hasta 320px.
+   ================================================================ */
+.mensajes-pagina {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 16px 14px 40px;
+  box-sizing: border-box;
+  text-align: left;
+  color: white;
+  overflow-wrap: anywhere;
+}
+
+.mensajes-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.mensajes-volver {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--color-principal);
+  font-size: 22px;
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
+}
+
+.mensajes-volver:hover,
+.mensajes-volver:focus-visible {
+  background-color: rgba(255, 255, 255, 0.16);
+  outline: none;
+}
+
+.mensajes-titulos {
+  min-width: 0;
+}
+
+.mensajes-titulo {
+  margin: 0;
+  color: white;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.mensajes-bajada,
+.mensajes-ayuda {
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.mensajes-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mensajes-tarjeta {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 14px 44px 14px 16px;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.06);
+  color: white;
+  font-size: 1rem;
+  text-align: left;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.mensajes-tarjeta:hover,
+.mensajes-tarjeta:focus-visible {
+  background-color: rgba(255, 255, 255, 0.11);
+  outline: none;
+}
+
+.mensajes-tarjeta-titulo {
+  display: block;
+  color: var(--color-principal);
+  font-size: 1rem;
+  font-weight: bold;
+  line-height: 1.3;
+}
+
+.mensajes-tarjeta-preview {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mensajes-tarjeta-flecha {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  color: var(--color-principal);
+  font-size: 1.5rem;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+.mensajes-tarjeta-editor,
+.mensajes-seccion {
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  padding: 16px;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.mensajes-etiqueta {
+  display: block;
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.82rem;
+  font-weight: bold;
+}
+
+.mensajes-textarea {
+  display: block;
+  width: 100%;
+  min-height: 130px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 12px;
+  outline: none;
+  background-color: rgba(0, 0, 0, 0.28);
+  color: white;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  text-align: left;
+  resize: vertical;
+}
+
+.mensajes-textarea:focus {
+  box-shadow: 0 0 0 2px var(--color-principal);
+}
+
+.mensajes-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+  opacity: 1;
+}
+
+.mensajes-editor-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.mensajes-contador {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.78rem;
+}
+
+.mensajes-boton {
+  box-sizing: border-box;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 20px;
+  background-color: var(--color-principal);
+  color: var(--color-fondo);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.mensajes-boton:hover,
+.mensajes-boton:focus-visible {
+  background-color: var(--color-principal-hover);
+  outline: none;
+}
+
+.mensajes-boton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.mensajes-estado {
+  display: block;
+  min-height: 1.2em;
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.mensajes-estado-ok {
+  color: var(--color-principal);
+}
+
+.mensajes-estado-aviso {
+  color: #ffd479;
+}
+
+.mensajes-estado-error {
+  color: #ff9b93;
+}
+
+.mensajes-enlace-sesion {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.mensajes-previa-pendiente {
+  color: #ffd479;
+}
+
+.mensajes-subtitulo {
+  margin: 0 0 4px;
+  color: white;
+  font-size: 1.05rem;
+}
+
+.mensajes-ayuda {
+  margin-bottom: 10px;
+}
+
+.mensajes-contactos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.mensajes-contacto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.mensajes-contacto-datos {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+.mensajes-contacto-nombre {
+  color: white;
+  font-size: 0.95rem;
+  font-weight: bold;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.mensajes-contacto-telefono {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.8rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.mensajes-contacto-marca {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: rgba(144, 255, 239, 0.15);
+  color: var(--color-principal);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.mensajes-contacto-acciones,
+.mensajes-edicion-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mensajes-boton-mini {
+  box-sizing: border-box;
+  min-height: 36px;
+  margin: 0;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.mensajes-boton-mini:hover,
+.mensajes-boton-mini:focus-visible {
+  background-color: rgba(255, 255, 255, 0.18);
+  outline: none;
+}
+
+.mensajes-boton-peligro {
+  background-color: rgba(244, 67, 54, 0.18);
+  color: #ffb3ad;
+}
+
+.mensajes-boton-peligro:hover,
+.mensajes-boton-peligro:focus-visible {
+  background-color: rgba(244, 67, 54, 0.3);
+}
+
+.mensajes-edicion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.mensajes-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.mensajes-form-titulo {
+  margin: 0;
+  color: white;
+  font-size: 0.95rem;
+}
+
+.mensajes-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+}
+
+.mensajes-campo input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  outline: none;
+  background-color: rgba(0, 0, 0, 0.28);
+  color: white;
+  font-family: inherit;
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.mensajes-campo input:focus {
+  box-shadow: 0 0 0 2px var(--color-principal);
+}
+
+.mensajes-campo input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+  opacity: 1;
+}
+
+.mensajes-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+.mensajes-check input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--color-principal);
+}
+
+@media (max-width: 360px) {
+  .mensajes-pagina {
+    padding: 12px 10px 32px;
+  }
+
+  .mensajes-titulo {
+    font-size: 1.2rem;
+  }
+
+  .mensajes-tarjeta {
+    padding: 12px 38px 12px 14px;
+  }
+
+  .mensajes-tarjeta-editor,
+  .mensajes-seccion {
+    padding: 14px;
+  }
+
+  .mensajes-editor-pie {
+    align-items: stretch;
+  }
+
+  .mensajes-editor-pie .mensajes-boton {
+    width: 100%;
+  }
+}
+
+/* ================================================================
+   Mis mensajes — restyle según Figma (prefijo msj-).
+   Paleta y geometría tomadas del archivo de Figma:
+   - página #0c243c
+   - banda superior #300965, ~275px de alto, esquinas inferiores 24px
+   - tarjetas / filas #0c243c (mismo navy), radio 15px, sombra suave
+   - texto #ffffff, secundario rgba(255,255,255,.85)
+   - filas de ~76px, icono 28px a la izquierda, chevron a la derecha
+   - títulos 24px bold, descripción 15px / 1.35, labels de fila 20px
+   Todas las reglas nuevas viven acá y están scopeadas con msj- para no
+   alterar otros legados. Las clases mensajes-* que agrega JS/mensajes.js
+   (mensajes-estado-*, mensajes-contacto, mensajes-edicion, etc.) se
+   reestilizan dentro de .msj-pantalla sin renombrarlas.
+   ================================================================ */
+.msj-pantalla {
+  --msj-fondo: #0c243c;
+  --msj-banda: #300965;
+  --msj-superficie: #0c243c;
+  --msj-inset: #0a1e33;
+  --msj-texto: #ffffff;
+  --msj-texto-suave: rgba(255, 255, 255, 0.85);
+  --msj-sombra: 0 10px 20px rgba(0, 0, 0, 0.35);
+  --msj-radio: 15px;
+  --msj-radio-banda: 24px;
+  --msj-acento: var(--color-principal);
+  --msj-acento-hover: var(--color-principal-hover);
+  box-sizing: border-box;
+  width: auto;
+  margin: -8px -8px 0;
+  padding: 0 0 40px;
+  overflow-x: hidden;
+  background-color: var(--msj-fondo);
+  color: var(--msj-texto);
+  text-align: left;
+}
+
+.msj-cabecera {
+  box-sizing: border-box;
+  min-height: 275px;
+  padding: 14px 0 34px;
+  border-radius: 0 0 var(--msj-radio-banda) var(--msj-radio-banda);
+  background-color: var(--msj-banda);
+}
+
+.msj-cabecera-inner {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 18px;
+}
+
+.msj-cabecera-barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.msj-volver {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: 0 0 0 -10px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--msj-texto);
+  text-align: center;
+  text-decoration: none;
+}
+
+.msj-volver svg {
+  width: 24px;
+  height: 24px;
+}
+
+.msj-volver:hover,
+.msj-volver:focus-visible {
+  background-color: rgba(255, 255, 255, 0.14);
+  outline: none;
+}
+
+.msj-cabecera-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  color: var(--msj-texto);
+}
+
+.msj-cabecera-icono svg {
+  width: 26px;
+  height: 26px;
+}
+
+.msj-titulo {
+  margin: 14px 0 0;
+  color: var(--msj-texto);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.msj-bajada {
+  max-width: 46ch;
+  margin: 8px 0 0;
+  color: var(--msj-texto-suave);
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.msj-contenido {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 22px 18px 8px;
+}
+
+.msj-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.msj-fila {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 76px;
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: var(--msj-radio);
+  background-color: var(--msj-superficie);
+  box-shadow: var(--msj-sombra);
+  color: var(--msj-texto);
+  text-align: left;
+  text-decoration: none;
+  transition: box-shadow 0.15s ease;
+}
+
+.msj-fila:hover,
+.msj-fila:focus-visible {
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
+  outline: none;
+}
+
+.msj-fila:focus-visible {
+  outline: 2px solid var(--msj-acento);
+  outline-offset: 2px;
+}
+
+.msj-fila-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  color: var(--msj-texto);
+}
+
+.msj-fila-icono svg {
+  width: 28px;
+  height: 28px;
+}
+
+.msj-fila-texto {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.msj-fila-label {
+  color: var(--msj-texto);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.msj-fila-preview {
+  overflow: hidden;
+  color: var(--msj-texto-suave);
+  font-size: 13px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.msj-fila-chevron {
+  flex: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 26px;
+  line-height: 1;
+}
+
+.msj-tarjeta {
+  box-sizing: border-box;
+  margin: 0 0 18px;
+  padding: 18px;
+  border-radius: var(--msj-radio);
+  background-color: var(--msj-superficie);
+  box-shadow: var(--msj-sombra);
+}
+
+.msj-etiqueta {
+  display: block;
+  margin: 0 0 10px;
+  color: var(--msj-texto);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.msj-textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 150px;
+  margin: 0;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 12px;
+  outline: none;
+  background-color: var(--msj-inset);
+  color: var(--msj-texto);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: left;
+  resize: vertical;
+}
+
+.msj-textarea:focus {
+  box-shadow: 0 0 0 2px var(--msj-acento);
+}
+
+.msj-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+  opacity: 1;
+}
+
+.msj-editor-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.msj-contador {
+  color: var(--msj-texto-suave);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.msj-boton {
+  box-sizing: border-box;
+  min-height: 44px;
+  margin: 0;
+  padding: 12px 22px;
+  border: none;
+  border-radius: 999px;
+  background-color: var(--msj-acento);
+  color: var(--msj-fondo);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.msj-boton:hover,
+.msj-boton:focus-visible {
+  background-color: var(--msj-acento-hover);
+  outline: none;
+}
+
+.msj-boton:focus-visible {
+  outline: 2px solid var(--msj-texto);
+  outline-offset: 2px;
+}
+
+.msj-boton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.msj-boton-agregar {
+  align-self: flex-start;
+}
+
+.msj-estado {
+  display: block;
+  min-height: 1.2em;
+  margin: 10px 0 0;
+  color: var(--msj-texto-suave);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.msj-estado.mensajes-estado-ok {
+  color: var(--msj-acento);
+}
+
+.msj-estado.mensajes-estado-aviso {
+  color: #ffd479;
+}
+
+.msj-estado.mensajes-estado-error {
+  color: #ff9b93;
+}
+
+.msj-seccion {
+  box-sizing: border-box;
+  margin: 0 0 18px;
+}
+
+.msj-subtitulo {
+  margin: 0 0 4px;
+  color: var(--msj-texto);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.msj-ayuda {
+  margin: 0 0 12px;
+  color: var(--msj-texto-suave);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.msj-contactos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.msj-pantalla .mensajes-contacto {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 64px;
+  padding: 14px 16px;
+  border-radius: var(--msj-radio);
+  background-color: var(--msj-superficie);
+  box-shadow: var(--msj-sombra);
+}
+
+.msj-pantalla .mensajes-contacto-datos {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.msj-pantalla .mensajes-contacto-nombre {
+  color: var(--msj-texto);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.msj-pantalla .mensajes-contacto-telefono {
+  color: var(--msj-texto-suave);
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.msj-pantalla .mensajes-contacto-marca {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: rgba(144, 255, 239, 0.14);
+  color: var(--msj-acento);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.msj-pantalla .mensajes-contacto-acciones,
+.msj-pantalla .mensajes-edicion-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.msj-pantalla .mensajes-boton-mini {
+  box-sizing: border-box;
+  min-height: 40px;
+  margin: 0;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--msj-texto);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.msj-pantalla .mensajes-boton-mini:hover,
+.msj-pantalla .mensajes-boton-mini:focus-visible {
+  background-color: rgba(255, 255, 255, 0.18);
+  outline: none;
+}
+
+.msj-pantalla .mensajes-boton-peligro {
+  background-color: rgba(244, 67, 54, 0.18);
+  color: #ffb3ad;
+}
+
+.msj-pantalla .mensajes-boton-peligro:hover,
+.msj-pantalla .mensajes-boton-peligro:focus-visible {
+  background-color: rgba(244, 67, 54, 0.3);
+}
+
+.msj-pantalla .mensajes-edicion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.msj-check,
+.msj-pantalla .mensajes-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  color: var(--msj-texto-suave);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.msj-check input,
+.msj-pantalla .mensajes-check input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--msj-acento);
+}
+
+.msj-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 16px;
+  border-radius: var(--msj-radio);
+  background-color: var(--msj-superficie);
+  box-shadow: var(--msj-sombra);
+}
+
+.msj-form-titulo {
+  margin: 0;
+  color: var(--msj-texto);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.msj-form-campos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.msj-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  color: var(--msj-texto-suave);
+  font-size: 13px;
+}
+
+.msj-campo input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  outline: none;
+  background-color: var(--msj-inset);
+  color: var(--msj-texto);
+  font-family: inherit;
+  font-size: 15px;
+  text-align: left;
+}
+
+.msj-campo input:focus {
+  box-shadow: 0 0 0 2px var(--msj-acento);
+}
+
+.msj-campo input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  opacity: 1;
+}
+
+@media (max-width: 360px) {
+  .msj-cabecera {
+    min-height: 0;
+    padding-bottom: 26px;
+  }
+
+  .msj-cabecera-inner,
+  .msj-contenido {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .msj-titulo {
+    font-size: 22px;
+  }
+
+  .msj-fila {
+    gap: 12px;
+    min-height: 72px;
+    padding: 10px 12px;
+  }
+
+  .msj-fila-icono {
+    width: 34px;
+    height: 34px;
+  }
+
+  .msj-fila-icono svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .msj-fila-label {
+    font-size: 18px;
+  }
+
+  .msj-tarjeta,
+  .msj-form {
+    padding: 14px;
+  }
+
+  .msj-form-campos {
+    grid-template-columns: 1fr;
+  }
+
+  .msj-editor-pie .msj-boton {
+    width: 100%;
+  }
+}

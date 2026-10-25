@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,98 +17,82 @@
     "
     />
 
-    <title>Mis mensajes</title>
+    <title>Mensaje de fin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../styles/styles.css">
 </head>
-<body>
-    <div class="configuracion">
-        <a href="../pages/misMensajes.html" class="perfil">
-            <div class="containerPerfil">
-                <img src="../imagenes/volver.PNG" alt="Volver">
-                <img src="../imagenes/mensajeDeInicio.PNG" alt="mensajes" class="encabezado">
-                <div class="opciones">Mensaje de fin</div>
-            </div>
-        </a>
-        <p class="encabezadoBajada">Este mensaje será enviado a tus contactos cada vez que finalices una actividad</p>
-        <div class="break"></div>
-    </div>
-        <a href="" class="perfilb">
-            <div class="containerPerfil">
-                <div class="opciones">Mensaje de fin de actividad</div>
-            </div>
-        </a>
-        <div class="break"></div>    
-        <form action="">
-            <label for="mensaje">Mensaje:</label><br>
-            <textarea class="areaMensaje"id="mensaje" name="mensaje" rows="8" cols="50"></textarea><br><br>
-            <input class="submit" type="submit" value="Grabar Mensaje">
-        </form>
-        <a href="" class="perfilb">
-            <div class="containerPerfil">
-                <div class="opciones">Enviar a:
+<body data-tipo="fin">
+    <main class="msj-pantalla">
+        <header class="msj-cabecera">
+            <div class="msj-cabecera-inner">
+                <div class="msj-cabecera-barra">
+                    <a class="msj-volver" href="../pages/misMensajes.html" aria-label="Volver a Mis Mensajes">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                            <path d="M15 5l-7 7 7 7"/>
+                        </svg>
+                    </a>
+                    <span class="msj-cabecera-icono" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                            <path d="M20 12h-9"/>
+                            <path d="M14 8l-4 4 4 4"/>
+                            <path d="M6 4v16"/>
+                        </svg>
+                    </span>
                 </div>
-                    <input type="checkbox" id="miCheckbox" name="opciones" value="opcion1">
-                    <label class="chekboxDestinatarios" for="miCheckbox">mismos destinatarios que mensaje de inicio</label>
-                <div></div>
+                <h1 class="msj-titulo">Mensaje de fin</h1>
+                <p class="msj-bajada">Se envía a tus contactos cada vez que finalizás una actividad.</p>
             </div>
-        </a>
-        <a href="" class="perfild">
-            <div class="containerPerfil">
-                <div class="opcionesAmigosb">Juan</div>
-                <div class="opcionesAmigose">contacto</div>
-            </div>            
-        </a>
-        <a href="" class="perfild">
-            <div class="containerPerfil">
-                <div class="opcionesAmigosb">El Ombu</div>
-                <div class="opcionesAmigose">grupo</div>
-            </div>            
-        </a>
-        <a href="" class="perfilc">
-            <div class="containerPerfil">
-                <button class="opcionesAmigosc">Agregar destinatario</button>      
-                <img class="desplegableb"src="../imagenes/desplegable.png" alt="desplegable">                
-            </div>
-        </a>
-            <a href="" class="perfilf">
-                <div class="containerPerfilb">
-                    <div class="opcionesAmigosf">Contactos</div>
-                    <img class="desplegablec"src="../imagenes/desplegable.png" alt="desplegableb">    
-                </div> 
-            </a>
-            <a href="" class="perfilf">
-                <div class="containerPerfil">
-                    <div class="opcionesAmigosb">Pedro</div>
-                    <div class="opcionesAmigose">contacto</div>
+        </header>
+
+        <div class="msj-contenido">
+            <section class="msj-tarjeta" aria-labelledby="tituloEditor">
+                <label class="msj-etiqueta" id="tituloEditor" for="mensaje">Tu mensaje</label>
+                <textarea
+                    class="msj-textarea"
+                    id="mensaje"
+                    name="mensaje"
+                    rows="6"
+                    maxlength="1000"
+                    placeholder="Escribí el mensaje que van a recibir tus contactos."
+                ></textarea>
+                <div class="msj-editor-pie">
+                    <span class="msj-contador" id="contadorMensaje">0/1000</span>
+                    <button class="msj-boton" id="botonGrabar" type="button">Grabar Mensaje</button>
                 </div>
-                <div class="containerPerfil">
-                    <div class="opcionesAmigosb">Luis</div>
-                    <div class="opcionesAmigose">contacto</div>
-                </div> 
-            </a>
-            <br>
-            <a href="" class="perfilf">
-                <div class="containerPerfilb">
-                    <div class="opcionesAmigosf">Grupos</div>
-                    <img class="desplegablec"src="../imagenes/desplegable.png" alt="desplegable">    
-                </div> 
-            </a>
-            <a href="" class="perfilf">
-                <div class="containerPerfil">
-                    <div class="opcionesAmigosb">Treking el Chalten</div>
-                    <div class="opcionesAmigose">grupo</div>
-                </div> 
-                <div class="containerPerfil">
-                    <div class="opcionesAmigosb">Kayak Rio Manso</div>
-                    <div class="opcionesAmigose">grupo</div>
-                </div> 
+                <p class="msj-estado mensajes-estado" id="estadoMensaje" role="status" aria-live="polite"></p>
+            </section>
 
+            <section class="msj-seccion" id="seccionContactos" aria-labelledby="tituloContactos">
+                <h2 class="msj-subtitulo" id="tituloContactos">Contactos</h2>
+                <p class="msj-ayuda">Quienes reciban tus mensajes van a ver cuándo iniciás o terminás una actividad.</p>
+                <p class="msj-estado mensajes-estado" id="estadoContactos" role="status" aria-live="polite"></p>
+                <ul class="msj-contactos mensajes-contactos" id="listaContactos"></ul>
 
-        
-        
+                <form class="msj-form" id="formAgregarContacto">
+                    <h3 class="msj-form-titulo">Agregar contacto</h3>
+                    <div class="msj-form-campos">
+                        <label class="msj-campo">
+                            <span>Nombre</span>
+                            <input type="text" id="contactoNombre" name="nombre" required autocomplete="name">
+                        </label>
+                        <label class="msj-campo">
+                            <span>Teléfono</span>
+                            <input type="tel" id="contactoTelefono" name="telefono" required autocomplete="tel" placeholder="+54911 1234 5678">
+                        </label>
+                    </div>
+                    <label class="msj-check mensajes-check">
+                        <input type="checkbox" id="contactoMensajes" name="mensajes" checked>
+                        <span>Quiero que reciba mis mensajes</span>
+                    </label>
+                    <button class="msj-boton msj-boton-agregar" id="botonAgregarContacto" type="submit">Agregar</button>
+                </form>
+            </section>
+        </div>
+    </main>
 
-
-
-    
+    <script src="../JS/config.js"></script>
+    <script src="../JS/mensajes.js"></script>
 </body>
 </html>
