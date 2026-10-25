@@ -519,23 +519,47 @@ a {
 
 .botonIniciar {
   border: none; /* El anillo lo dibuja el SVG .anilloReloj, misma huella visual (310px) */
-  height: 270px;
-  width: 270px;
+  /* 270px de boton con un anillo de 310px: exacto con calc, y escala junto al
+     .reloj cuando el viewport no alcanza */
+  height: calc(100% - 40px);
+  width: calc(100% - 40px);
   color: white;
   font-weight: bold;
-  font-size: 28px;
+  /* 28px desde 350px de viewport (Android y desktop intactos) y se achica recien
+     en pantallas mas angostas, para que el texto no desborde el circulo */
+  font-size: clamp(20px, 8vw, 28px);
   background-color: transparent; /* Fondo transparente */
   border-radius: 50%; /* Hace que el botón sea circular */
   cursor: pointer; /* Cambia el cursor al pasar el ratón por encima */
+  /* display flex explicito: sin el, flex-direction y align-items no hacian nada
+     y el centrado dependia del render del boton de cada navegador (iOS vs Chrome) */
+  display: flex;
   flex-direction: column; /* Apila los elementos verticalmente */
   align-items: center; /* Centra los elementos horizontalmente */
+  justify-content: center;
+  gap: 2px;
+  padding: 0;
+  box-sizing: border-box;
+  /* iOS: sin el chrome nativo del boton ni el flash gris al tocar */
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Reloj: mismo pie que el botón anterior (270px + 20px de anillo = 310px) */
+/* el <br> del markup separa etiqueta y tiempo; con flex ya no hace falta y
+   sumaria una linea vacia como item */
+.botonIniciar br {
+  display: none;
+}
+
+/* Reloj: mismo pie que el botón anterior (270px + 20px de anillo = 310px).
+   Fluido: conserva los 310px en pantallas grandes y se achica solo cuando el
+   viewport no alcanza (descuenta los 8px de margen del body por lado), para que
+   no haya scroll horizontal en iPhone SE ni en iPhone con zoom de texto. */
 .reloj {
   position: relative;
-  width: 310px;
-  height: 310px;
+  width: min(310px, calc(100vw - 32px));
+  height: min(310px, calc(100vw - 32px));
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -569,7 +593,9 @@ a {
 }
 
 .tiempo {
-  font-size: 18px;
+  /* 18px desde 350px de viewport (5.2vw llega a 18 a partir de ~347px) y menos
+     solo en pantallas mas angostas, igual que la etiqueta */
+  font-size: clamp(14px, 5.2vw, 18px);
 }
 
 .contenedor-padre {
