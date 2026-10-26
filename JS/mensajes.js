@@ -15,6 +15,10 @@ const LARGO_MAXIMO_MENSAJE = 1000;
 
 const LARGO_PREVIEW = 70;
 
+const MAX_CONTACTOS_POR_TIPO = 5;
+
+const TEXTO_LIMITE_CONTACTOS = 'Llegaste al máximo de 5 contactos para este mensaje.';
+
 function mensajeDeError(err) {
   if (!err) return 'error desconocido';
   if (err.name === 'AbortError') return 'timeout (abort)';
@@ -290,6 +294,7 @@ function normalizarContactoCargado(contacto) {
     nombre: typeof origen.nombre === 'string' ? origen.nombre : String(origen.nombre ?? ''),
     telefono: typeof origen.telefono === 'string' ? origen.telefono : String(origen.telefono ?? ''),
     mensajes: origen.mensajes === true,
+    mensajesPorTipo: normalizarMensajesPorTipo(origen),
     visibilidad: origen.visibilidad === true,
   };
 }
@@ -333,12 +338,14 @@ async function cargarContactos() {
 
 async function agregarContacto(contacto) {
   const origen = contacto && typeof contacto === 'object' ? contacto : {};
+  const tipo = tipoValido(origen.tipo) || tipoValido(tipoDesdePagina());
   const cuerpo = {
     nombre: String(origen.nombre ?? ''),
     telefono: String(origen.telefono ?? ''),
-    mensajes: origen.mensajes !== false,
     visibilidad: origen.visibilidad !== false,
   };
+  if (tipo) cuerpo.mensajesPorTipo = { [tipo]: origen.mensajes !== false };
+  else cuerpo.mensajes = origen.mensajes !== false;
   const url = `${ROOT_URL}/api/contacts`;
   if (!hayToken()) {
     console.error(`[mensajes] POST contacts sin token: ${url}`);
@@ -355,8 +362,9 @@ async function agregarContacto(contacto) {
       return { ok: false, sesionExpirada: true };
     }
     if (!respuesta.ok) {
-      console.error(`[mensajes] POST contacts falló: ${url} status=${respuesta.status}`);
-      return { ok: false, error: `status ${respuesta.status}` };
+      const error = await leerErrorRespuesta(respuesta, '');
+      console.error(`[mensajes] POST contacts falló: ${url} status=${respuesta.status} — ${error}`);
+      return { ok: false, error };
     }
     return { ok: true };
   } catch (err) {
@@ -367,11 +375,13 @@ async function agregarContacto(contacto) {
 
 async function actualizarContacto(contacto) {
   const origen = contacto && typeof contacto === 'object' ? contacto : {};
+  const tipo = tipoValido(origen.tipo) || tipoValido(tipoDesdePagina());
   const cuerpo = {
     nombre: String(origen.nombre ?? ''),
-    mensajes: origen.mensajes === true,
     visibilidad: origen.visibilidad === true,
   };
+  if (tipo) cuerpo.mensajesPorTipo = { [tipo]: origen.mensajes === true };
+  else cuerpo.mensajes = origen.mensajes === true;
   const url = `${ROOT_URL}/api/contacts`;
   if (!hayToken()) {
     console.error(`[mensajes] PUT contacts sin token: ${url}`);
@@ -388,8 +398,9 @@ async function actualizarContacto(contacto) {
       return { ok: false, sesionExpirada: true };
     }
     if (!respuesta.ok) {
-      console.error(`[mensajes] PUT contacts falló: ${url} status=${respuesta.status}`);
-      return { ok: false, error: `status ${respuesta.status}` };
+      const error = await leerErrorRespuesta(respuesta, '');
+      console.error(`[mensajes] PUT contacts falló: ${url} status=${respuesta.status} — ${error}`);
+      return { ok: false, error };
     }
     return { ok: true };
   } catch (err) {
@@ -469,6 +480,46 @@ function tipoDesdePagina() {
   return typeof cuerpo.dataset.tipo === 'string' ? cuerpo.dataset.tipo : '';
 }
 
+function tipoValido(valor) {
+  return TIPOS_MENSAJE.includes(valor) ? valor : '';
+}
+
+function normalizarMensajesPorTipo(origen) {
+  const datos = origen && typeof origen === 'object' ? origen : {};
+  const fuente =
+    datos.mensajesPorTipo && typeof datos.mensajesPorTipo === 'object' ? datos.mensajesPorTipo : null;
+  const porTipo = {};
+  for (const tipo of TIPOS_MENSAJE) {
+    porTipo[tipo] = fuente ? fuente[tipo] === true : datos.mensajes === true;
+  }
+  return porTipo;
+}
+
+function contactoAsignadoAlTipo(contacto, tipo) {
+  const porTipo = contacto && contacto.mensajesPorTipo;
+  if (tipoValido(tipo)) {
+    return !!(porTipo && porTipo[tipo] === true);
+  }
+  return !!(contacto && contacto.mensajes === true);
+}
+
+function contactosAsignados(contactos, tipo) {
+  const lista = Array.isArray(contactos) ? contactos : [];
+  return lista.filter((contacto) => contactoAsignadoAlTipo(contacto, tipo));
+}
+
+async function leerErrorRespuesta(respuesta, respaldo) {
+  try {
+    const datos = await respuesta.json();
+    if (datos && typeof datos.error === 'string' && datos.error.trim()) {
+      return datos.error.trim();
+    }
+  } catch (err) {
+    console.error(`[mensajes] no se pudo leer el error de la respuesta: ${mensajeDeError(err)}`);
+  }
+  return respaldo;
+}
+
 async function guardarDesdeEditor(tipo, textarea, boton, estado) {
   const texto = typeof textarea.value === 'string' ? textarea.value : '';
   if (!texto.trim()) {
@@ -507,6 +558,7 @@ function crearCheck(texto, marcado) {
 
 function abrirEdicionContacto(fila, contacto) {
   fila.innerHTML = '';
+  const tipo = tipoDesdePagina();
   const editor = document.createElement('div');
   editor.className = 'mensajes-edicion';
 
@@ -520,7 +572,7 @@ function abrirEdicionContacto(fila, contacto) {
   telefono.textContent = contacto.telefono || 'Sin teléfono';
   editor.appendChild(telefono);
 
-  const checkMensajes = crearCheck('Recibe mis mensajes', contacto.mensajes);
+  const checkMensajes = crearCheck('Recibe mis mensajes', contactoAsignadoAlTipo(contacto, tipo));
   const checkVisibilidad = crearCheck('Quiero que me vea', contacto.visibilidad);
   editor.appendChild(checkMensajes.label);
 
@@ -544,6 +596,7 @@ function abrirEdicionContacto(fila, contacto) {
       nombre: contacto.nombre,
       mensajes: checkMensajes.input.checked,
       visibilidad: checkVisibilidad.input.checked,
+      tipo,
     });
     guardar.disabled = false;
     const estado = document.getElementById('estadoContactos');
@@ -552,7 +605,7 @@ function abrirEdicionContacto(fila, contacto) {
         marcarSesionExpirada(estado);
         return;
       }
-      marcarEstado(estado, 'No se pudo actualizar el contacto.', 'error');
+      marcarEstado(estado, resultado.error || 'No se pudo actualizar el contacto.', 'error');
       return;
     }
     await refrescarContactos('Contacto actualizado.');
@@ -589,7 +642,7 @@ function crearFilaContacto(contacto) {
   telefono.textContent = contacto.telefono || 'Sin teléfono';
   datos.appendChild(telefono);
 
-  if (contacto.mensajes) {
+  if (contactoAsignadoAlTipo(contacto, tipoDesdePagina())) {
     const marca = document.createElement('span');
     marca.className = 'mensajes-contacto-marca';
     marca.textContent = 'Recibe mensajes';
@@ -635,13 +688,62 @@ function crearFilaContacto(contacto) {
   return fila;
 }
 
+let contactosDelTipoActuales = 0;
+
+let contactosConocidos = [];
+
+function limiteDeContactosAlcanzado() {
+  return contactosDelTipoActuales >= MAX_CONTACTOS_POR_TIPO;
+}
+
+function actualizarLimiteContactos(cantidad) {
+  contactosDelTipoActuales = Number.isFinite(cantidad) ? cantidad : 0;
+  const alcanzado = limiteDeContactosAlcanzado();
+  const contador = document.getElementById('contadorContactos');
+  if (contador) contador.textContent = `${contactosDelTipoActuales} de ${MAX_CONTACTOS_POR_TIPO}`;
+  const limite = document.getElementById('mensajeLimiteContactos');
+  if (limite) limite.textContent = alcanzado ? TEXTO_LIMITE_CONTACTOS : '';
+  for (const id of [
+    'contactoNombre',
+    'contactoTelefono',
+    'contactoMensajes',
+    'botonAgregarContacto',
+  ]) {
+    const control = document.getElementById(id);
+    if (control) control.disabled = alcanzado;
+  }
+  return alcanzado;
+}
+
+function aplicarContactos(contactos) {
+  contactosConocidos = Array.isArray(contactos) ? contactos.slice() : [];
+  const lista = document.getElementById('listaContactos');
+  const tipo = tipoDesdePagina();
+  const receptores = contactosAsignados(contactosConocidos, tipo);
+  if (lista) {
+    lista.innerHTML = '';
+    for (const contacto of receptores) {
+      lista.appendChild(crearFilaContacto(contacto));
+    }
+  }
+  actualizarLimiteContactos(receptores.length);
+  return receptores;
+}
+
+async function reconciliarContactos() {
+  const resultado = await cargarContactos();
+  if (resultado.sesionExpirada) return { ok: false, sesionExpirada: true };
+  if (!resultado.ok) return { ok: false };
+  aplicarContactos(resultado.contactos);
+  return { ok: true };
+}
+
 async function refrescarContactos(mensajeExito) {
   const lista = document.getElementById('listaContactos');
   const estado = document.getElementById('estadoContactos');
   if (!lista) return false;
   marcarEstado(estado, 'Cargando contactos...', '');
   const resultado = await cargarContactos();
-  lista.innerHTML = '';
   if (resultado.sesionExpirada) {
     marcarSesionExpirada(estado);
     return false;
@@ -650,21 +752,20 @@ async function refrescarContactos(mensajeExito) {
     marcarEstado(estado, 'No se pudieron cargar los contactos. Podés seguir escribiendo tu mensaje.', 'error');
     return false;
   }
-  const receptores = resultado.contactos.filter((contacto) => contacto.mensajes === true);
+  const receptores = aplicarContactos(resultado.contactos);
   if (resultado.contactos.length === 0 || receptores.length === 0) {
     if (mensajeExito) {
       marcarEstado(estado, mensajeExito, 'ok');
     } else if (resultado.contactos.length === 0) {
       marcarEstado(estado, 'Todavía no tenés contactos.', '');
+    } else if (tipoValido(tipoDesdePagina())) {
+      marcarEstado(estado, 'Todavía no tenés contactos para este mensaje.', '');
     } else {
       marcarEstado(estado, 'Todavía no tenés contactos que reciban mensajes.', '');
     }
     return true;
   }
   marcarEstado(estado, mensajeExito || '', mensajeExito ? 'ok' : '');
-  for (const contacto of receptores) {
-    lista.appendChild(crearFilaContacto(contacto));
-  }
   return true;
 }
 
@@ -675,6 +776,11 @@ async function manejarAltaContacto(evento) {
   const telefonoInput = document.getElementById('contactoTelefono');
   const mensajesInput = document.getElementById('contactoMensajes');
   const boton = document.getElementById('botonAgregarContacto');
+  if (limiteDeContactosAlcanzado()) {
+    actualizarLimiteContactos(contactosDelTipoActuales);
+    marcarEstado(estado, TEXTO_LIMITE_CONTACTOS, 'aviso');
+    return;
+  }
   const nombre = nombreInput ? String(nombreInput.value || '').trim() : '';
   const telefono = telefonoInput ? String(telefonoInput.value || '').trim() : '';
   if (!nombre || !telefono) {
@@ -687,6 +793,7 @@ async function manejarAltaContacto(evento) {
     telefono,
     mensajes: mensajesInput ? mensajesInput.checked !== false : true,
     visibilidad: true,
+    tipo: tipoDesdePagina(),
   });
   if (boton) boton.disabled = false;
   if (!resultado.ok) {
@@ -694,13 +801,43 @@ async function manejarAltaContacto(evento) {
       marcarSesionExpirada(estado);
       return;
     }
-    marcarEstado(estado, 'No se pudo agregar el contacto. Intentá de nuevo.', 'error');
+    const mensaje = resultado.error || 'No se pudo agregar el contacto. Intentá de nuevo.';
+    marcarEstado(estado, mensaje, 'error');
+    const reconciliado = await reconciliarContactos();
+    if (reconciliado.sesionExpirada) {
+      marcarSesionExpirada(estado);
+      return;
+    }
+    if (!reconciliado.ok) {
+      aplicarContactos(contactosConocidos);
+      marcarEstado(
+        estado,
+        `${mensaje} No pudimos actualizar la lista; mostrando la última información disponible.`,
+        'error'
+      );
+    }
     return;
   }
   if (nombreInput) nombreInput.value = '';
   if (telefonoInput) telefonoInput.value = '';
   if (mensajesInput) mensajesInput.checked = true;
-  await refrescarContactos('Contacto agregado.');
+  const refrescado = await refrescarContactos('Contacto agregado.');
+  if (refrescado) return;
+  const reconciliado = await reconciliarContactos();
+  if (reconciliado.sesionExpirada) {
+    marcarSesionExpirada(estado);
+    return;
+  }
+  if (reconciliado.ok) {
+    marcarEstado(estado, 'Contacto agregado.', 'ok');
+    return;
+  }
+  aplicarContactos(contactosConocidos);
+  marcarEstado(
+    estado,
+    'Contacto agregado, pero no pudimos actualizar la lista; mostrando la última información disponible.',
+    'aviso'
+  );
 }
 
 async function inicializarContactos() {

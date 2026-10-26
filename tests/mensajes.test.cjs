@@ -137,6 +137,8 @@ function crearNodosBase() {
     contadorMensaje: crearNodo({ textContent: '0/1000' }),
     seccionContactos: crearNodo(),
     listaContactos: crearNodo({ tagName: 'UL' }),
+    contadorContactos: crearNodo({ textContent: '0 de 5' }),
+    mensajeLimiteContactos: crearNodo(),
     formAgregarContacto: crearNodo({ tagName: 'FORM' }),
     contactoNombre: crearNodo({ tagName: 'INPUT' }),
     contactoTelefono: crearNodo({ tagName: 'INPUT' }),
@@ -591,7 +593,13 @@ async function testsAsync() {
     const resultado = await t.ctxTest.cargarContactos();
     assert.equal(resultado.ok, true);
     assert.deepEqual(plano(resultado.contactos), [
-      { nombre: 'Ana', telefono: '123', mensajes: true, visibilidad: false },
+      {
+        nombre: 'Ana',
+        telefono: '123',
+        mensajes: true,
+        mensajesPorTipo: { inicio: true, fin: true, alarma: true, prueba: true },
+        visibilidad: false,
+      },
     ]);
     assert.equal(t.fetchLog[0].url, 'http://back.test/api/contacts');
     assert.equal(t.fetchLog[0].init.method, 'GET');
@@ -962,6 +970,345 @@ async function testsAsync() {
       !textosDe(t.nodos.listaContactos).includes('Beto'),
       'Beto no aparece porque no recibe mensajes'
     );
+  });
+
+  await testAsync('la lista filtra por mensajesPorTipo del tipo de la página', async () => {
+    const contactos = [
+      {
+        nombre: 'Ana',
+        telefono: '111',
+        mensajes: true,
+        mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
+        visibilidad: true,
+      },
+      {
+        nombre: 'Beto',
+        telefono: '222',
+        mensajes: true,
+        mensajesPorTipo: { inicio: false, fin: true, alarma: false, prueba: false },
+        visibilidad: true,
+      },
+      {
+        nombre: 'Carla',
+        telefono: '333',
+        mensajes: false,
+        mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
+        visibilidad: true,
+      },
+    ];
+    const t = crearContexto({
+      dataset: { tipo: 'inicio' },
+      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
+      fetch: async () => respuestaOk({ contactos }),
+    });
+
+    await t.ctxTest.inicializarContactos();
+    assert.equal(t.nodos.listaContactos.hijos.length, 2, 'solo se listan Ana y Carla');
+    const textos = t.nodos.listaContactos.hijos.map((nodo) => textosDe(nodo)).flat();
+    assert.ok(textos.includes('Ana'), 'Ana recibe inicio y se lista');
+    assert.ok(textos.includes('Carla'), 'Carla recibe inicio y se lista');
+    assert.ok(!textos.includes('Beto'), 'Beto recibe fin y no se lista en inicio');
+    assert.equal(t.nodos.contadorContactos.textContent, '2 de 5');
+  });
+
+  await testAsync('un contacto asignado solo a otro tipo no se lista', async () => {
+    const contactos = [
+      {
+        nombre: 'Beto',
+        telefono: '222',
+        mensajes: true,
+        mensajesPorTipo: { inicio: false, fin: true, alarma: false, prueba: false },
+        visibilidad: true,
+      },
+    ];
+    const t = crearContexto({
+      dataset: { tipo: 'inicio' },
+      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
+      fetch: async () => respuestaOk({ contactos }),
+    });
+
+    await t.ctxTest.inicializarContactos();
+    assert.equal(t.nodos.listaContactos.hijos.length, 0, 'el contacto de fin no aparece en inicio');
+    assert.ok(
+      t.nodos.estadoContactos.textContent.includes('para este mensaje'),
+      'el estado vacío habla del mensaje de la página'
+    );
+    assert.equal(t.nodos.contadorContactos.textContent, '0 de 5');
+  });
+
+  await testAsync('el alta envía mensajesPorTipo solo con el tipo de la página', async () => {
+    let contactos = [];
+    const t = crearContexto({
+      dataset: { tipo: 'alarma' },
+      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (metodo === 'GET') return respuestaOk({ contactos });
+        if (metodo === 'POST') {
+          contactos = [...contactos, JSON.parse(init.body)];
+          return respuestaOk({});
+        }
+        throw new Error(`método inesperado: ${metodo}`);
+      },
+    });
+
+    await t.ctxTest.inicializarContactos();
+    t.nodos.contactoNombre.value = 'Beto';
+    t.nodos.contactoTelefono.value = '555';
+    t.nodos.contactoMensajes.checked = true;
+    await t.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
+
+    const post = t.fetchLog.find((llamada) => llamada.init && llamada.init.method === 'POST');
+    assert.ok(post, 'se hizo POST al agregar');
+    assert.deepEqual(JSON.parse(post.init.body), {
+      nombre: 'Beto',
+      telefono: '555',
+      visibilidad: true,
+      mensajesPorTipo: { alarma: true },
+    });
+    const cuerpo = JSON.parse(post.init.body);
+    assert.equal('mensajes' in cuerpo, false, 'el alta no envía el booleano legacy');
+    assert.deepEqual(Object.keys(cuerpo.mensajesPorTipo), ['alarma']);
+    assert.equal(t.nodos.listaContactos.hijos.length, 1, 'el contacto nuevo aparece en la lista');
+  });
+
+  await testAsync('la edición hace PUT con mensajesPorTipo solo del tipo de la página', async () => {
+    const contactos = [
+      {
+        nombre: 'Ana',
+        telefono: '111',
+        mensajes: true,
+        mensajesPorTipo: { inicio: true, fin: true, alarma: false, prueba: false },
+        visibilidad: true,
+      },
+    ];
+    const t = crearContexto({
+      dataset: { tipo: 'inicio' },
+      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (metodo === 'GET') return respuestaOk({ contactos });
+        if (metodo === 'PUT') return respuestaOk({});
+        throw new Error(`método inesperado: ${metodo}`);
+      },
+    });
+
+    await t.ctxTest.inicializarContactos();
+    const fila = t.nodos.listaContactos.hijos[0];
+    await buscarPorTexto(fila, 'Editar').disparar('click');
+    const checks = buscarTodos(fila, (nodo) => nodo.type === 'checkbox');
+    assert.equal(checks.length, 2, 'el editor tiene los dos checks');
+    assert.equal(checks[0].checked, true, 'el check refleja el tipo de la página');
+    checks[0].checked = false;
+
+    await buscarPorTexto(fila, 'Guardar').disparar('click');
+    const put = t.fetchLog.find((llamada) => llamada.init && llamada.init.method === 'PUT');
+    assert.ok(put, 'se hizo PUT al editar');
+    assert.deepEqual(JSON.parse(put.init.body), {
+      nombre: 'Ana',
+      visibilidad: true,
+      mensajesPorTipo: { inicio: false },
+    });
+    const cuerpo = JSON.parse(put.init.body);
+    assert.equal('mensajes' in cuerpo, false, 'la edición no envía el booleano legacy');
+    assert.deepEqual(Object.keys(cuerpo.mensajesPorTipo), ['inicio']);
+  });
+
+  await testAsync('con 5 contactos el alta se deshabilita y el contador marca 5 de 5', async () => {
+    const contactos = Array.from({ length: 5 }, (_, indice) => ({
+      nombre: `Contacto ${indice}`,
+      telefono: `555${indice}`,
+      mensajes: true,
+      mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
+      visibilidad: true,
+    }));
+    const t = crearContexto({
+      dataset: { tipo: 'inicio' },
+      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
+      fetch: async () => respuestaOk({ contactos }),
+    });
+
+    await t.ctxTest.inicializarContactos();
+    assert.equal(t.nodos.listaContactos.hijos.length, 5, 'se listan los 5 contactos');
+    assert.equal(t.nodos.contadorContactos.textContent, '5 de 5');
+    assert.equal(
+      t.nodos.mensajeLimiteContactos.textContent,
+      'Llegaste al máximo de 5 contactos para este mensaje.'
+    );
+    assert.equal(t.nodos.contactoNombre.disabled, true);
+    assert.equal(t.nodos.contactoTelefono.disabled, true);
+    assert.equal(t.nodos.contactoMensajes.disabled, true);
+    assert.equal(t.nodos.botonAgregarContacto.disabled, true);
+
+    t.nodos.contactoNombre.value = 'Beto';
+    t.nodos.contactoTelefono.value = '999';
+    await t.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
+    assert.equal(
+      t.fetchLog.filter((llamada) => llamada.init && llamada.init.method === 'POST').length,
+      0,
+      'no se puede agregar un sexto contacto'
+    );
+  });
+
+  await testAsync('un 400 del backend muestra el mensaje del servidor', async () => {
+    const contactos = [
+      {
+        nombre: 'Ana',
+        telefono: '111',
+        mensajes: true,
+        mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
+        visibilidad: true,
+      },
+    ];
+    const mensajeServidor = 'Ya hay 5 contactos para este mensaje.';
+    const t = crearContexto({
+      dataset: { tipo: 'inicio' },
+      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (metodo === 'GET') return respuestaOk({ contactos });
+        if (metodo === 'POST') {
+          return { ok: false, status: 400, json: async () => ({ error: mensajeServidor }) };
+        }
+        throw new Error(`método inesperado: ${metodo}`);
+      },
+    });
+
+    await t.ctxTest.inicializarContactos();
+    t.nodos.contactoNombre.value = 'Beto';
+    t.nodos.contactoTelefono.value = '555';
+    await t.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
+
+    assert.equal(t.nodos.estadoContactos.textContent, mensajeServidor);
+    assert.ok(t.nodos.estadoContactos.classList.contains('mensajes-estado-error'));
+  });
+
+  await testAsync('un GET fallido conserva las filas y el contador ya renderizados', async () => {
+    const contactos = [
+      {
+        nombre: 'Ana',
+        telefono: '111',
+        mensajes: true,
+        mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
+        visibilidad: true,
+      },
+      {
+        nombre: 'Carla',
+        telefono: '333',
+        mensajes: true,
+        mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
+        visibilidad: true,
+      },
+    ];
+    let intentos = 0;
+    const t = crearContexto({
+      dataset: { tipo: 'inicio' },
+      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
+      fetch: async () => {
+        intentos += 1;
+        if (intentos === 1) return respuestaOk({ contactos });
+        throw new Error('red caída');
+      },
+    });
+
+    await t.ctxTest.inicializarContactos();
+    assert.equal(t.nodos.listaContactos.hijos.length, 2, 'arranca con dos filas');
+    assert.equal(t.nodos.contadorContactos.textContent, '2 de 5');
+
+    const ok = await t.ctxTest.refrescarContactos();
+    assert.equal(ok, false, 'el refresh falla');
+    assert.equal(t.nodos.listaContactos.hijos.length, 2, 'las filas siguen en pantalla');
+    assert.equal(t.nodos.contadorContactos.textContent, '2 de 5', 'el contador no se toca');
+    assert.equal(t.nodos.contactoNombre.disabled, false, 'el formulario sigue habilitado con filas');
+    assert.ok(
+      t.nodos.estadoContactos.textContent.includes('No se pudieron cargar los contactos'),
+      'el error se informa en el estado'
+    );
+  });
+
+  await testAsync('un 400 por límite reconcilia contador y formulario con el servidor', async () => {
+    const crearContacto = (indice) => ({
+      nombre: `Contacto ${indice}`,
+      telefono: `555${indice}`,
+      mensajes: true,
+      mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
+      visibilidad: true,
+    });
+    const cuatro = Array.from({ length: 4 }, (_, indice) => crearContacto(indice));
+    const cinco = Array.from({ length: 5 }, (_, indice) => crearContacto(indice));
+    const mensajeServidor = 'Ya hay 5 contactos para este mensaje.';
+    let contactos = cuatro;
+    const t = crearContexto({
+      dataset: { tipo: 'inicio' },
+      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (metodo === 'GET') return respuestaOk({ contactos });
+        if (metodo === 'POST') {
+          contactos = cinco;
+          return { ok: false, status: 400, json: async () => ({ error: mensajeServidor }) };
+        }
+        throw new Error(`método inesperado: ${metodo}`);
+      },
+    });
+
+    await t.ctxTest.inicializarContactos();
+    assert.equal(t.nodos.contadorContactos.textContent, '4 de 5');
+    assert.equal(t.nodos.botonAgregarContacto.disabled, false);
+
+    t.nodos.contactoNombre.value = 'Beto';
+    t.nodos.contactoTelefono.value = '999';
+    await t.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
+
+    assert.equal(t.nodos.listaContactos.hijos.length, 5, 'la lista converge a los 5 del servidor');
+    assert.equal(t.nodos.contadorContactos.textContent, '5 de 5');
+    assert.equal(t.nodos.botonAgregarContacto.disabled, true);
+    assert.equal(t.nodos.contactoNombre.disabled, true);
+    assert.equal(t.nodos.contactoTelefono.disabled, true);
+    assert.equal(t.nodos.estadoContactos.textContent, mensajeServidor);
+  });
+
+  await testAsync('un alta exitosa con refresh fallido reintenta y no contradice filas y contador', async () => {
+    const inicial = [
+      {
+        nombre: 'Ana',
+        telefono: '111',
+        mensajes: true,
+        mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
+        visibilidad: true,
+      },
+    ];
+    let contactos = inicial;
+    let gets = 0;
+    const t = crearContexto({
+      dataset: { tipo: 'inicio' },
+      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (metodo === 'POST') {
+          contactos = [...contactos, JSON.parse(init.body)];
+          return respuestaOk({});
+        }
+        gets += 1;
+        if (gets === 1) return respuestaOk({ contactos });
+        if (gets === 2) throw new Error('red caída');
+        return respuestaOk({ contactos });
+      },
+    });
+
+    await t.ctxTest.inicializarContactos();
+    assert.equal(t.nodos.listaContactos.hijos.length, 1);
+    assert.equal(t.nodos.contadorContactos.textContent, '1 de 5');
+
+    t.nodos.contactoNombre.value = 'Beto';
+    t.nodos.contactoTelefono.value = '555';
+    await t.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
+
+    assert.equal(gets, 3, 'el refresh falla una vez y hay un único reintento');
+    assert.equal(t.nodos.listaContactos.hijos.length, 2, 'las filas reflejan el alta exitosa');
+    assert.equal(t.nodos.contadorContactos.textContent, '2 de 5');
+    assert.equal(t.nodos.estadoContactos.textContent, 'Contacto agregado.');
+    assert.ok(t.nodos.estadoContactos.classList.contains('mensajes-estado-ok'));
   });
 
   await testAsync('RES-001/REL-002: un guardado degradado sobrevive a un GET exitoso', async () => {

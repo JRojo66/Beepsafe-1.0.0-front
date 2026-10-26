@@ -3220,6 +3220,43 @@ margin: 10px 0;
   line-height: 1.25;
 }
 
+.msj-seccion-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 4px;
+}
+
+.msj-seccion-titulo .msj-subtitulo {
+  margin: 0;
+}
+
+.msj-contador-contactos {
+  color: var(--msj-texto-suave);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.msj-limite {
+  margin: 0 0 12px;
+  color: var(--msj-texto-suave);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.msj-limite:empty {
+  display: none;
+}
+
+.msj-form input:disabled,
+.msj-form button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .msj-ayuda {
   margin: 0 0 12px;
   color: var(--msj-texto-suave);
@@ -3539,4 +3576,514 @@ margin: 10px 0;
   align-items: center;
   gap: 6px;
   width: 100%;
+}
+
+/* ================================================================
+   Mis Grupos — mismo lenguaje visual que "Mis mensajes" y
+   "Mis contactos": shell púrpura, tarjetas navy sin bordes duros,
+   tipografía blanca y texto secundario atenuado.
+
+   Todo va scopeado bajo .grp-configuracion (el modificador que
+   pages/misGrupos.html agrega a .configuracion) para no tocar las
+   clases legadas compartidas con otras pantallas.
+
+   IMPORTANTE: JS/misGrupos.js abre y cierra
+   #lista-mis-grupos-existentes, #contenedor-formulario-crear-grupo,
+   #lista-contactos-para-grupo, #lista-invitaciones-pendientes y
+   .invitacion-detalle escribiendo `style.display` inline y leyendo
+   `style.display === "block"`. Por eso acá NO se declara
+   display / max-height / opacity / grid-template sobre esos nodos:
+   lo que necesita layout propio se estiliza en un wrapper interno.
+   ================================================================ */
+
+.grp-configuracion {
+  --grp-superficie: #0c243c;
+  --grp-inset: #0a1e33;
+  --grp-texto: #ffffff;
+  --grp-texto-suave: rgba(255, 255, 255, 0.72);
+  --grp-sombra: 0 10px 20px rgba(0, 0, 0, 0.35);
+  --grp-radio: 15px;
+  --grp-acento: var(--color-principal);
+  --grp-acento-hover: var(--color-principal-hover);
+  box-sizing: border-box;
+  width: min(380px, calc(100vw - 16px));
+  padding-bottom: 16px;
+  gap: 8px;
+}
+
+/* Las listas son flex items del shell: sin ancho explícito se ajustan
+   al contenido. No se toca su display porque lo maneja el JS. */
+.grp-configuracion .grupos-lista {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* El contenedor legado de la tabla trae padding lateral propio; acá el
+   aire lo define la tarjeta interna. Tampoco se toca su display. */
+.grp-configuracion .contactos-lista {
+  box-sizing: border-box;
+  max-width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* --- Cabeceras de acordeón --- */
+.grp-configuracion .accordion-header-activity {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: calc(100% - 16px);
+  min-height: 44px;
+  height: auto;
+  margin: 8px auto;
+  padding: 14px 16px;
+  border: none;
+  border-radius: var(--grp-radio);
+  background-color: var(--grp-superficie);
+  box-shadow: var(--grp-sombra);
+  color: var(--grp-texto);
+  font-size: 16px;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.grp-configuracion .accordion-header-activity:hover {
+  background-color: #0f2c48;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
+}
+
+.grp-configuracion .accordion-header-activity:focus-visible {
+  outline: 2px solid var(--grp-acento);
+  outline-offset: 2px;
+}
+
+.grp-configuracion .accordion-header-activity .toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.grp-configuracion .accordion-header-activity .toggle-icon i {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* --- Tarjetas de grupo (Mis Grupos e Invitaciones pendientes) --- */
+.grp-configuracion .invitacion-grupo-wrapper {
+  box-sizing: border-box;
+  width: calc(100% - 16px);
+  margin: 8px auto;
+  padding: 0;
+  border: none;
+  border-radius: var(--grp-radio);
+  background-color: var(--grp-superficie);
+  box-shadow: var(--grp-sombra);
+  overflow: hidden;
+  text-align: left;
+}
+
+.grp-configuracion .invitacion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+  padding: 14px 16px;
+  color: var(--grp-texto);
+  cursor: pointer;
+}
+
+.grp-configuracion .invitacion-header > div:first-child {
+  min-width: 0;
+}
+
+.grp-configuracion .invitacion-header strong {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.grp-configuracion .invitacion-header i {
+  flex: none;
+  color: var(--grp-texto-suave);
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 0.3s ease;
+}
+
+.grp-configuracion .invitacion-nombre {
+  display: block;
+  color: var(--grp-texto);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.grp-configuracion .invitacion-actividad,
+.grp-configuracion .invitacion-meta {
+  margin: 2px 0 0;
+  color: var(--grp-texto-suave);
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: 1;
+  overflow-wrap: anywhere;
+}
+
+/* Sin display: el script lo abre y cierra con estilo inline. */
+.grp-configuracion .invitacion-detalle {
+  margin: 0;
+  padding: 0 16px 16px;
+  border-top: none;
+  color: var(--grp-texto);
+}
+
+.grp-configuracion .invitacion-miembros {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.grp-configuracion .invitacion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0 16px 16px;
+}
+
+/* --- Filas de integrantes --- */
+.grp-configuracion .invitacion-miembro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 10px 0;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background-color: transparent;
+  text-align: left;
+}
+
+.grp-configuracion .invitacion-miembros .invitacion-miembro:first-child {
+  border-top: none;
+}
+
+.grp-configuracion .miembro-nombre {
+  flex: 2 1 120px;
+  min-width: 0;
+  color: var(--grp-texto);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.grp-configuracion .miembro-rol,
+.grp-configuracion .miembro-cuenta {
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--grp-texto-suave);
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.grp-configuracion .miembro-estado {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 3px 10px;
+  border: none;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Un color por estado; el glifo emoji que inyecta el JS queda visible. */
+.grp-configuracion .miembro-estado.estado-pendiente {
+  background-color: rgba(255, 200, 87, 0.16);
+  color: #ffc857;
+}
+
+.grp-configuracion .miembro-estado.estado-aceptada {
+  background-color: rgba(76, 175, 80, 0.16);
+  color: #7ee08a;
+}
+
+.grp-configuracion .miembro-estado.estado-rechazada {
+  background-color: rgba(244, 67, 54, 0.16);
+  color: #ff9b93;
+}
+
+.grp-configuracion .miembro-cuenta.miembro-cuenta-ok {
+  border: none;
+  background-color: transparent;
+  color: rgba(144, 255, 239, 0.85);
+}
+
+.grp-configuracion .miembro-cuenta.miembro-cuenta-no {
+  border: none;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* --- Botones --- */
+.grp-configuracion .btn-guardar-contacto,
+.grp-configuracion .btn-crear-grupo {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  min-height: 40px !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 999px;
+  background-color: var(--grp-acento) !important;
+  color: var(--grp-superficie) !important;
+  font-family: inherit;
+  font-size: 13px !important;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.grp-configuracion .btn-crear-grupo {
+  flex: none;
+}
+
+.grp-configuracion .btn-guardar-contacto:hover,
+.grp-configuracion .btn-crear-grupo:hover,
+.grp-configuracion .btn-guardar-contacto:focus-visible,
+.grp-configuracion .btn-crear-grupo:focus-visible {
+  background-color: var(--grp-acento-hover) !important;
+  color: var(--grp-superficie) !important;
+  outline: none;
+}
+
+.grp-configuracion .btn-cancelar-contacto,
+.grp-configuracion .btn-invitar-miembro {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  min-height: 40px !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--grp-texto) !important;
+  font-family: inherit;
+  font-size: 13px !important;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.grp-configuracion .btn-invitar-miembro {
+  flex: 0 0 auto;
+  font-size: 12px !important;
+}
+
+.grp-configuracion .btn-cancelar-contacto:hover,
+.grp-configuracion .btn-cancelar-contacto:focus-visible,
+.grp-configuracion .btn-invitar-miembro:hover,
+.grp-configuracion .btn-invitar-miembro:focus-visible {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  color: var(--grp-texto) !important;
+  outline: none;
+}
+
+.grp-configuracion .btn-quitar-miembro {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  min-height: 40px;
+  margin: 0;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background-color: rgba(244, 67, 54, 0.18);
+  color: #ffb3ad;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.grp-configuracion .btn-quitar-miembro:hover,
+.grp-configuracion .btn-quitar-miembro:focus-visible {
+  background-color: rgba(244, 67, 54, 0.3);
+  outline: none;
+}
+
+.grp-configuracion .btn-guardar-contacto:disabled,
+.grp-configuracion .btn-cancelar-contacto:disabled,
+.grp-configuracion .btn-crear-grupo:disabled,
+.grp-configuracion .btn-invitar-miembro:disabled,
+.grp-configuracion .btn-quitar-miembro:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Formulario "Crear Grupo" --- */
+.grp-configuracion #form-agregar-contacto {
+  box-sizing: border-box;
+  align-items: stretch;
+  justify-content: flex-start;
+  width: calc(100% - 16px);
+  margin: 8px auto;
+  padding: 16px;
+  border-radius: var(--grp-radio);
+  background-color: var(--grp-superficie);
+  box-shadow: var(--grp-sombra);
+  gap: 12px;
+}
+
+.grp-configuracion .group-name-section,
+.grp-configuracion .contact-selection-section {
+  width: 100%;
+  margin: 0 0 14px;
+}
+
+.grp-configuracion .contact-selection-section {
+  margin-bottom: 0;
+}
+
+.grp-configuracion .section-title {
+  margin: 0 0 10px;
+  color: var(--grp-texto-suave);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.grp-configuracion .group-name-input-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+}
+
+.grp-configuracion .stacked-inputs-container {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.grp-configuracion .input-activity,
+.grp-configuracion #form-agregar-contacto .input-activity {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  height: auto;
+  margin: 0;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 12px;
+  outline: none;
+  background-color: var(--grp-inset);
+  color: var(--grp-texto);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.grp-configuracion .input-activity:focus,
+.grp-configuracion #form-agregar-contacto .input-activity:focus {
+  box-shadow: 0 0 0 2px var(--grp-acento);
+}
+
+.grp-configuracion .input-activity::placeholder,
+.grp-configuracion #form-agregar-contacto .input-activity::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+  font-family: inherit;
+  font-size: 15px;
+  opacity: 1;
+}
+
+/* --- Panel de invitación (contactos para sumar al grupo) --- */
+.grp-configuracion .invitacion-panel {
+  margin-top: 12px;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  background-color: var(--grp-inset);
+}
+
+.grp-configuracion .invitacion-panel-barra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+/* --- Estados vacíos / de carga --- */
+.grp-configuracion .grupos-message {
+  margin: 0;
+  padding: 16px;
+  color: var(--grp-texto-suave);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+@media (max-width: 360px) {
+  .grp-configuracion .accordion-header-activity {
+    font-size: 15px;
+    padding: 12px 14px;
+  }
+
+  .grp-configuracion .invitacion-header {
+    padding: 12px 14px;
+  }
+
+  .grp-configuracion .invitacion-detalle,
+  .grp-configuracion .invitacion-actions {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .grp-configuracion #form-agregar-contacto {
+    padding: 14px;
+  }
+
+  .grp-configuracion .group-name-input-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .grp-configuracion .btn-crear-grupo {
+    width: 100%;
+  }
+
+  .grp-configuracion .invitacion-actions > button {
+    flex: 1 1 100%;
+  }
 }

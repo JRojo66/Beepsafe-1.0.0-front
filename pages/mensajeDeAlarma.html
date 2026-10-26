@@ -54,10 +54,14 @@
             </section>
 
             <section class="msj-seccion" id="seccionContactos" aria-labelledby="tituloContactos">
-                <h2 class="msj-subtitulo" id="tituloContactos">Contactos</h2>
+                <div class="msj-seccion-titulo">
+                    <h2 class="msj-subtitulo" id="tituloContactos">Contactos</h2>
+                    <span class="msj-contador-contactos" id="contadorContactos">0 de 5</span>
+                </div>
                 <p class="msj-ayuda">Estos son los contactos que reciben tus mensajes. <a class="msj-enlace-contactos" href="../pages/misContactos.html">Gestionar todos mis contactos</a></p>
                 <p class="msj-estado mensajes-estado" id="estadoContactos" role="status" aria-live="polite"></p>
                 <ul class="msj-contactos mensajes-contactos" id="listaContactos"></ul>
+                <p class="msj-limite" id="mensajeLimiteContactos" role="status" aria-live="polite"></p>
 
                 <form class="msj-form" id="formAgregarContacto">
                     <h3 class="msj-form-titulo">Agregar contacto</h3>
