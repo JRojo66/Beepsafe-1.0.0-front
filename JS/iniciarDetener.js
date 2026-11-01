@@ -46,6 +46,12 @@ const TEXTO_ERROR_ACTIVIDADES = 'No se pudieron cargar las actividades';
 // límite (RES-002 / RES-003)
 const TIMEOUT_PETICION_MS = 8000;
 const MAX_INTENTOS_PETICION = 2;
+// Tope de espera al DETENER cuando el POST de creación de sesión sigue en vuelo:
+// acota cuánto puede demorar el stop sin dejar la UI colgada (REL-002)
+const TIMEOUT_ESPERA_SESION_MS = 10000;
+// Aviso visible cuando la sesión no se pudo registrar en el backend (REL-001)
+const TEXTO_SESION_NO_REGISTRADA =
+  'El contador va a correr, pero no se enviará la alarma automática porque no se pudo registrar la sesión.';
 
 // Mapa actividad -> imagen de imagenes/. Las claves están normalizadas:
 // minúsculas, sin acentos y sin espacios extra.
@@ -136,6 +142,13 @@ let etiquetaBoton = null;
 let etiquetaTiempo = null;
 let iconoActividad = null;
 let anilloProgreso = null;
+
+// Id de la sesión registrada en el backend, para poder detenerla al DETENER.
+// Vacío cuando la creación falló o el backend no lo devolvió: no se dispara stop.
+let sessionIdEnCurso = '';
+// Promesa del POST de creación de sesión en vuelo. Si el usuario DETIENE antes
+// de que resuelva, se espera (con tope) para no perder el stop (REL-002).
+let promesaSesionEnCurso = null;
 
 // Estado del contador
 let circunferenciaAnillo = 0;
@@ -665,18 +678,19 @@ function leerUltimaSesion() {
   return leerObjetoReconciliado(CLAVE_ULTIMA_SESION);
 }
 
-// Persiste la sesión en curso para poder reanudarla tras un reload (REL-105)
+// Persiste la sesión en curso para poder reanudarla tras un reload (REL-105).
+// Incluye el sessionId del backend solo cuando ya se conoce; los payloads
+// viejos sin ese campo siguen siendo válidos (no disparan stop).
 function guardarSesionEnCurso() {
   try {
-    localStorage.setItem(
-      claveConUsuario(CLAVE_SESION_EN_CURSO),
-      JSON.stringify({
-        actividad: estadoSesion.actividad,
-        equipo: estadoSesion.equipo,
-        tiempoSegundos: estadoSesion.tiempoSegundos,
-        inicioContadorMs,
-      })
-    );
+    const payload = {
+      actividad: estadoSesion.actividad,
+      equipo: estadoSesion.equipo,
+      tiempoSegundos: estadoSesion.tiempoSegundos,
+      inicioContadorMs,
+    };
+    if (sessionIdEnCurso) payload.sessionId = sessionIdEnCurso;
+    localStorage.setItem(claveConUsuario(CLAVE_SESION_EN_CURSO), JSON.stringify(payload));
   } catch (err) {
     // localStorage bloqueado: la sesión no sobrevive al reload pero sigue corriendo
     console.error(
@@ -691,6 +705,15 @@ function quitarSesionEnCurso() {
   } catch (err) {
     console.error(`[iniciarDetener] no se pudo quitar la sesión en curso: ${mensajeDeError(err)}`);
   }
+}
+
+// Id de la sesión persistida (si existe). Un payload viejo sin `sessionId` es
+// válido: devuelve cadena vacía y DETENER no envía nada.
+function leerSessionIdEnCurso() {
+  const guardada = leerObjetoReconciliado(CLAVE_SESION_EN_CURSO);
+  return guardada && typeof guardada.sessionId === 'string' && guardada.sessionId
+    ? guardada.sessionId
+    : '';
 }
 
 // Restaura una sesión en curso que quedó guardada al recargar la página (REL-105).
@@ -716,6 +739,9 @@ function reanudarSesionEnCurso() {
   totalContador = guardada.tiempoSegundos;
   segundosRestantes = restantes;
   inicioContadorMs = guardada.inicioContadorMs;
+  // recupera el id si la sesión ya se había registrado (payloads viejos: vacío)
+  sessionIdEnCurso =
+    typeof guardada.sessionId === 'string' && guardada.sessionId ? guardada.sessionId : '';
   estadoContador = 'corriendo';
   etiquetaBoton.textContent = 'DETENER';
   fijarTriggersBloqueados(true);
@@ -809,12 +835,15 @@ function iniciarContador() {
 
   guardarUltimaSesion();
 
+  sessionIdEnCurso = ''; // sesión nueva: el id anterior ya no aplica
+  promesaSesionEnCurso = null;
   segundosRestantes = totalContador;
   inicioContadorMs = Date.now();
   estadoContador = 'corriendo';
   etiquetaBoton.textContent = 'DETENER';
   fijarTriggersBloqueados(true); // triggers inmutables durante la cuenta (REL-103)
   guardarSesionEnCurso(); // sobrevive a un reload (REL-105)
+  enviarInicioSesionEnBackend(); // registra la sesión y dispara el "inicio" (fire-and-forget)
   actualizarVisualizacion();
 
   if (temporizador) clearInterval(temporizador);
@@ -822,16 +851,34 @@ function iniciarContador() {
 }
 
 function detenerContador() {
+  // REL-002: si el POST de creación sigue en vuelo, no se pierde el stop.
+  // REL-004: el id en memoria manda; localStorage es solo un respaldo.
+  const promesaCreacion = promesaSesionEnCurso;
+  promesaSesionEnCurso = null;
+  const sessionIdConocido = sessionIdEnCurso || leerSessionIdEnCurso();
+
+  // La UI y el localStorage se resetean YA: DETENER es inmediato para el usuario
   if (temporizador) {
     clearInterval(temporizador);
     temporizador = null;
   }
   quitarSesionEnCurso(); // DETENER resetea: no queda nada que reanudar (REL-105)
+  sessionIdEnCurso = '';
   inicioContadorMs = 0;
   estadoContador = 'detenido';
   etiquetaBoton.textContent = 'INICIAR';
   fijarTriggersBloqueados(false);
   actualizarVisualizacion();
+
+  // El stop corre detrás: espera acotada al registro pendiente y luego cierra
+  return (async () => {
+    let sessionId = sessionIdConocido;
+    if (!sessionId && promesaCreacion) {
+      sessionId = await esperarConTiempoLimite(promesaCreacion, TIMEOUT_ESPERA_SESION_MS);
+    }
+    if (!sessionId) return false;
+    return enviarStopSesionEnBackend(sessionId);
+  })();
 }
 
 function contarSegundo() {
@@ -987,6 +1034,182 @@ function fetchConTimeout(url, init = {}) {
   return fetch(url, { ...init, signal: controlador.signal }).finally(() => {
     clearTimeout(reloj);
   });
+}
+
+// La pantalla de Iniciar/Detener no trae #toast-container en su HTML. Se crea
+// al vuelo para que el helper real de utils.js pueda mostrar el aviso.
+function asegurarContenedorToasts() {
+  try {
+    if (document.getElementById('toast-container')) return true;
+    if (!document.body) return false;
+    const contenedor = document.createElement('div');
+    contenedor.id = 'toast-container';
+    document.body.appendChild(contenedor);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+// Aviso visible (toast) de que la sesión no quedó registrada. En el navegador
+// utils.js es un módulo ES y esta página carga scripts clásicos: se importa
+// dinámicamente. Si el helper ya está expuesto como global (tests), se usa ese.
+function mostrarToastSesionNoRegistrada(mensaje) {
+  try {
+    asegurarContenedorToasts();
+    if (
+      typeof window !== 'undefined' &&
+      window.utils &&
+      typeof window.utils.showToast === 'function'
+    ) {
+      window.utils.showToast(mensaje, 'error');
+      return;
+    }
+    if (typeof showToast === 'function') {
+      showToast(mensaje, 'error');
+      return;
+    }
+    import('../JS/utils.js')
+      .then((modulo) => {
+        if (modulo && typeof modulo.showToast === 'function') {
+          modulo.showToast(mensaje, 'error');
+        }
+      })
+      .catch(() => {});
+  } catch (err) {
+    // sin toast disponible: el log de error ya dejó el rastro
+  }
+}
+
+// POST de creación de sesión con un reintento (mismo tope que activities).
+// Resuelve con el sessionId devuelto o '' si ambos intentos fallaron.
+async function crearSesionEnBackend(cuerpo) {
+  const url = `${ROOT_URL}/api/message-events/session`;
+  for (let intento = 1; intento <= MAX_INTENTOS_PETICION; intento++) {
+    try {
+      const respuesta = await fetchConTimeout(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`, // iOS
+        },
+        body: JSON.stringify(cuerpo),
+      });
+      if (!respuesta.ok) {
+        console.error(
+          `[iniciarDetener] POST message-events/session falló (intento ${intento}/${MAX_INTENTOS_PETICION}): ${url} status=${respuesta.status}`
+        );
+        continue;
+      }
+      let datos = null;
+      try {
+        datos = await respuesta.json();
+      } catch (err) {
+        console.error(
+          `[iniciarDetener] message-events/session devolvió JSON ilegible (intento ${intento}/${MAX_INTENTOS_PETICION}): ${url} — ${mensajeDeError(err)}`
+        );
+        continue;
+      }
+      const sessionId = datos && typeof datos.sessionId === 'string' ? datos.sessionId : '';
+      if (!sessionId) {
+        console.error(
+          `[iniciarDetener] message-events/session no devolvió sessionId (intento ${intento}/${MAX_INTENTOS_PETICION}): ${url}`
+        );
+        continue;
+      }
+      return sessionId;
+    } catch (err) {
+      console.error(
+        `[iniciarDetener] POST message-events/session falló (intento ${intento}/${MAX_INTENTOS_PETICION}): ${url} — ${mensajeDeError(err)}`
+      );
+    }
+  }
+  return '';
+}
+
+// Espera una promesa con tope de tiempo; resuelve '' si vence (DETENER nunca
+// queda colgado esperando al backend, REL-002)
+function esperarConTiempoLimite(promesa, ms) {
+  return new Promise((resolver) => {
+    let resuelto = false;
+    const reloj = setTimeout(() => {
+      if (resuelto) return;
+      resuelto = true;
+      resolver('');
+    }, ms);
+    Promise.resolve(promesa)
+      .then((valor) => {
+        if (resuelto) return;
+        resuelto = true;
+        clearTimeout(reloj);
+        resolver(valor || '');
+      })
+      .catch(() => {
+        if (resuelto) return;
+        resuelto = true;
+        clearTimeout(reloj);
+        resolver('');
+      });
+  });
+}
+
+// Registra la sesión en el backend al INICIAR (el backend manda el WhatsApp de
+// "inicio"). Fire-and-forget: nunca bloquea el contador ni rompe la UI si falla.
+// Devuelve (y deja en promesaSesionEnCurso) la promesa que resuelve el sessionId
+// para que DETENER pueda esperarla si llega antes de que termine (REL-002).
+function enviarInicioSesionEnBackend() {
+  const cuerpo = {
+    actividad: estadoSesion.actividad,
+    duracionSegundos: estadoSesion.tiempoSegundos,
+  };
+  const inicioEnviado = inicioContadorMs;
+  const promesa = (async () => {
+    const sessionId = await crearSesionEnBackend(cuerpo);
+    if (sessionId) {
+      // Si mientras tanto la sesión se detuvo o reinició, no pisar el estado
+      if (estadoContador === 'corriendo' && inicioContadorMs === inicioEnviado) {
+        sessionIdEnCurso = sessionId;
+        guardarSesionEnCurso(); // el id persiste: un reload todavía puede detenerla
+      }
+      return sessionId;
+    }
+    // Falló tras el reintento: el contador sigue, pero nadie recibirá la alarma
+    // automática. El aviso es visible además del log (REL-001)
+    console.error(
+      `[iniciarDetener] no se pudo registrar la sesión: el contador sigue pero no habrá alarma automática`
+    );
+    mostrarToastSesionNoRegistrada(TEXTO_SESION_NO_REGISTRADA);
+    return '';
+  })();
+  promesaSesionEnCurso = promesa;
+  if (promesa && typeof promesa.catch === 'function') promesa.catch(() => '');
+  return promesa;
+}
+
+// Cierra la sesión en el backend al DETENER (el backend manda el WhatsApp de
+// "fin"). Reintenta una vez con el mismo id si el primer intento falla.
+// Fire-and-forget con las mismas reglas de logging que el INICIAR.
+async function enviarStopSesionEnBackend(sessionId) {
+  const url = `${ROOT_URL}/api/message-events/session/${encodeURIComponent(sessionId)}/stop`;
+  for (let intento = 1; intento <= MAX_INTENTOS_PETICION; intento++) {
+    try {
+      const respuesta = await fetchConTimeout(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`, // iOS
+        },
+      });
+      if (respuesta.ok) return true;
+      console.error(
+        `[iniciarDetener] POST message-events/session stop falló (intento ${intento}/${MAX_INTENTOS_PETICION}): ${url} status=${respuesta.status}`
+      );
+    } catch (err) {
+      console.error(
+        `[iniciarDetener] POST message-events/session stop falló (intento ${intento}/${MAX_INTENTOS_PETICION}): ${url} — ${mensajeDeError(err)}`
+      );
+    }
+  }
+  return false;
 }
 
 // Descarga /api/activities con timeout y un reintento como máximo (RES-002).

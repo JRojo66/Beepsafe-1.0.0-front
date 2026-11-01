@@ -12,7 +12,8 @@ const EXPORTS = `;globalThis.__test = {
   emailDesdeToken, guardarDesdeEditor, inicializarEditorMensaje,
   inicializarListaMensajes, inicializarContactos, refrescarContactos,
   crearFilaContacto, manejarAltaContacto, abrirEdicionContacto,
-  actualizarContador, marcarSesionExpirada,
+  actualizarContador, marcarSesionExpirada, enviarMensajeDePrueba,
+  inicializarBotonPrueba,
 };`;
 
 let pasados = 0;
@@ -133,6 +134,7 @@ function crearNodosBase() {
   return {
     mensaje: crearNodo({ tagName: 'TEXTAREA' }),
     botonGrabar: crearNodo({ tagName: 'BUTTON' }),
+    botonEnviarPrueba: crearNodo({ tagName: 'BUTTON', textContent: 'Enviar prueba' }),
     estadoMensaje: crearNodo(),
     contadorMensaje: crearNodo({ textContent: '0/1000' }),
     seccionContactos: crearNodo(),
@@ -1507,6 +1509,126 @@ async function testsAsync() {
     assert.ok(enlace, 'el estado de contactos incluye el enlace');
     assert.equal(enlace.href, 'iniciarSesion.html');
     assert.equal(t.nodos.listaContactos.hijos.length, 0);
+  });
+
+  await testAsync('Enviar prueba hace POST /api/message-events con {tipo:"prueba"} y muestra el total', async () => {
+    const token = crearToken({ email: 'ana@test.com' });
+    const t = crearContexto({
+      dataset: { tipo: 'prueba' },
+      store: new Map([['token', token]]),
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (url.endsWith('/api/message-templates') && metodo === 'GET') {
+          return respuestaOk({ mensajes: {} });
+        }
+        if (url.includes('/api/contacts') && metodo === 'GET') {
+          return respuestaOk({ contactos: [] });
+        }
+        if (url.endsWith('/api/message-events') && metodo === 'POST') {
+          return respuestaOk({ total: 4, enviados: 4 });
+        }
+        throw new Error(`URL inesperada: ${url} ${metodo}`);
+      },
+    });
+
+    await t.ctxTest.inicializarEditorMensaje('prueba');
+    await t.nodos.botonEnviarPrueba.disparar('click');
+
+    const post = t.fetchLog.find(
+      (llamada) => llamada.url === 'http://back.test/api/message-events'
+    );
+    assert.ok(post, 'se hizo POST de prueba');
+    assert.equal(post.init.method, 'POST');
+    assert.equal(post.init.headers.Authorization, `Bearer ${token}`);
+    assert.equal(post.init.headers['Content-Type'], 'application/json');
+    assert.deepEqual(JSON.parse(post.init.body), { tipo: 'prueba' });
+    assert.equal(t.nodos.estadoMensaje.textContent, 'Mensaje de prueba enviado a 4 contactos.');
+    assert.ok(t.nodos.estadoMensaje.classList.contains('mensajes-estado-ok'));
+    assert.equal(t.nodos.botonEnviarPrueba.disabled, false, 'el botón vuelve a habilitarse');
+  });
+
+  await testAsync('Enviar prueba con total 0 avisa que no hay contactos receptores', async () => {
+    const token = crearToken({ email: 'ana@test.com' });
+    const t = crearContexto({
+      dataset: { tipo: 'prueba' },
+      store: new Map([['token', token]]),
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (url.endsWith('/api/message-templates') && metodo === 'GET') {
+          return respuestaOk({ mensajes: {} });
+        }
+        if (url.includes('/api/contacts') && metodo === 'GET') {
+          return respuestaOk({ contactos: [] });
+        }
+        if (url.endsWith('/api/message-events') && metodo === 'POST') {
+          return respuestaOk({ total: 0, enviados: 0 });
+        }
+        throw new Error(`URL inesperada: ${url} ${metodo}`);
+      },
+    });
+
+    await t.ctxTest.inicializarEditorMensaje('prueba');
+    await t.nodos.botonEnviarPrueba.disparar('click');
+
+    assert.equal(
+      t.nodos.estadoMensaje.textContent,
+      'No tenés contactos que reciban el mensaje de prueba.'
+    );
+    assert.ok(t.nodos.estadoMensaje.classList.contains('mensajes-estado-aviso'));
+  });
+
+  await testAsync('un 401 al enviar la prueba muestra la sesión expirada y no escribe nada local', async () => {
+    const token = crearToken({ email: 'ana@test.com' });
+    const store = new Map([['token', token]]);
+    const t = crearContexto({
+      dataset: { tipo: 'prueba' },
+      store,
+      fetch: async () => respuestaFail(401),
+    });
+    const clavesAntes = [...store.keys()].sort();
+
+    const resultado = await t.ctxTest.enviarMensajeDePrueba();
+
+    assert.deepEqual(plano(resultado), { ok: false, sesionExpirada: true });
+    assert.ok(t.nodos.estadoMensaje.textContent.startsWith('Tu sesión expiró.'));
+    const enlace = buscarPorTexto(t.nodos.estadoMensaje, 'Iniciá sesión de nuevo');
+    assert.ok(enlace, 'el estado incluye el enlace de login');
+    assert.equal(enlace.href, 'iniciarSesion.html');
+    assert.deepEqual([...store.keys()].sort(), clavesAntes, 'no se escribe nada local');
+
+    assert.equal(t.fetchLog.length, 1, 'un solo POST');
+    assert.equal(t.fetchLog[0].url, 'http://back.test/api/message-events');
+    assert.equal(t.fetchLog[0].init.method, 'POST');
+    assert.deepEqual(JSON.parse(t.fetchLog[0].init.body), { tipo: 'prueba' });
+    assert.ok(
+      t.consola.errores.some((mensaje) => mensaje.includes('[mensajes]') && mensaje.includes('message-events')),
+      'el fallo se loguea con el prefijo [mensajes]'
+    );
+  });
+
+  await testAsync('el botón de prueba queda deshabilitado mientras el request está en vuelo', async () => {
+    const token = crearToken({ email: 'ana@test.com' });
+    let liberar;
+    const espera = new Promise((resolver) => {
+      liberar = resolver;
+    });
+    const t = crearContexto({
+      store: new Map([['token', token]]),
+      fetch: async () => {
+        await espera;
+        return respuestaOk({ total: 2, enviados: 2 });
+      },
+    });
+
+    const promesa = t.ctxTest.enviarMensajeDePrueba();
+    assert.equal(t.nodos.botonEnviarPrueba.disabled, true, 'deshabilitado durante el envío');
+
+    liberar();
+    const resultado = await promesa;
+
+    assert.deepEqual(plano(resultado), { ok: true, total: 2 });
+    assert.equal(t.nodos.botonEnviarPrueba.disabled, false, 'rehabilitado al terminar');
+    assert.equal(t.nodos.estadoMensaje.textContent, 'Mensaje de prueba enviado a 2 contactos.');
   });
 }
 

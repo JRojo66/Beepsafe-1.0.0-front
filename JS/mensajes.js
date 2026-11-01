@@ -288,6 +288,70 @@ async function guardarMensaje(tipo, texto) {
   }
 }
 
+// Dispara ahora el mensaje de prueba desde el backend. Solo se usa en la
+// pantalla de prueba (`data-tipo="prueba"`); no escribe nada en localStorage.
+async function enviarMensajeDePrueba() {
+  const url = `${ROOT_URL}/api/message-events`;
+  const estado = document.getElementById('estadoMensaje');
+  const boton = document.getElementById('botonEnviarPrueba');
+  if (!hayToken()) {
+    console.error(`[mensajes] POST message-events sin token: ${url}`);
+    marcarSesionExpirada(estado);
+    return { ok: false, sesionExpirada: true };
+  }
+  if (boton) boton.disabled = true;
+  try {
+    const respuesta = await fetchConTimeout(url, {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ tipo: 'prueba' }),
+    });
+    if (esSesionExpirada(respuesta)) {
+      console.error(`[mensajes] POST message-events sesión expirada: ${url} status=${respuesta.status}`);
+      marcarSesionExpirada(estado);
+      return { ok: false, sesionExpirada: true };
+    }
+    if (!respuesta.ok) {
+      console.error(`[mensajes] POST message-events falló: ${url} status=${respuesta.status}`);
+      marcarEstado(estado, 'No se pudo enviar el mensaje de prueba. Intentá de nuevo.', 'aviso');
+      return { ok: false };
+    }
+    let datos = null;
+    try {
+      datos = await respuesta.json();
+    } catch (err) {
+      console.error(
+        `[mensajes] message-events devolvió JSON ilegible: ${url} — ${mensajeDeError(err)}`
+      );
+      marcarEstado(estado, 'No se pudo enviar el mensaje de prueba. Intentá de nuevo.', 'aviso');
+      return { ok: false };
+    }
+    const total = datos && Number.isFinite(datos.total) ? datos.total : 0;
+    if (total > 0) {
+      marcarEstado(estado, `Mensaje de prueba enviado a ${total} contactos.`, 'ok');
+    } else {
+      marcarEstado(estado, 'No tenés contactos que reciban el mensaje de prueba.', 'aviso');
+    }
+    return { ok: true, total };
+  } catch (err) {
+    console.error(`[mensajes] POST message-events falló: ${url} — ${mensajeDeError(err)}`);
+    marcarEstado(estado, 'No se pudo enviar el mensaje de prueba. Intentá de nuevo.', 'aviso');
+    return { ok: false };
+  } finally {
+    if (boton) boton.disabled = false;
+  }
+}
+
+// Cablea el botón "Enviar prueba" solo en la pantalla de prueba. Devuelve la
+// promesa del envío para que se pueda esperar (y testear el estado en vuelo).
+function inicializarBotonPrueba(tipo) {
+  if (tipo !== 'prueba') return false;
+  const boton = document.getElementById('botonEnviarPrueba');
+  if (!boton) return false;
+  boton.addEventListener('click', () => enviarMensajeDePrueba());
+  return true;
+}
+
 function normalizarContactoCargado(contacto) {
   const origen = contacto && typeof contacto === 'object' ? contacto : {};
   return {
@@ -895,6 +959,7 @@ async function inicializarEditorMensaje(tipo) {
   boton.addEventListener('click', () => {
     guardarDesdeEditor(tipo, textarea, boton, estado);
   });
+  inicializarBotonPrueba(tipo);
 
   boton.disabled = true;
   marcarEstado(estado, 'Cargando mensaje...', '');

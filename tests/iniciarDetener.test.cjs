@@ -197,8 +197,15 @@ function crearContexto(opciones = {}) {
   };
 
   const windowHandlers = {};
+  const toasts = [];
   const window = {
     location: { href: '' },
+    // stub del helper real (utils.js es un módulo ES): captura los avisos
+    utils: {
+      showToast: (mensaje, tipo) => {
+        toasts.push({ mensaje: String(mensaje), tipo: tipo || 'info' });
+      },
+    },
     addEventListener(tipo, fn) {
       (windowHandlers[tipo] ||= []).push(fn);
     },
@@ -290,6 +297,7 @@ function crearContexto(opciones = {}) {
     reloj,
     timers,
     consola,
+    toasts,
     timeoutsAgendados,
     // dispara todos los setTimeout pendientes del contexto (el abort de los
     // fetch con timeout, RES-002); los callbacks agendan los próximos después
@@ -1821,6 +1829,292 @@ await testAsync('RES-004: con la auth caída, las claves namespaceadas se reconc
       (mensaje) => mensaje.includes('/api/sessions/current') && mensaje.includes('intento 2/2')
     )
   );
+});
+
+// ------------------------- message-events: inicio / stop contra el backend
+
+await testAsync('INICIAR: un POST /api/message-events/session con actividad y duración; el contador sigue si falla', async () => {
+  const TOKEN = 'token-events-1';
+  const t = crearContexto({
+    store: new Map([['token', TOKEN]]),
+    fetch: async (url) => {
+      if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
+      if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+      if (url.includes('/api/message-events/session')) throw new Error('sin red');
+      throw new Error(`URL inesperada: ${url}`);
+    },
+  });
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'DETENER', 'el contador arranca igual');
+  await esperar(() => t.toasts.length > 0);
+
+  const llamadas = t.fetchLog.filter(
+    (l) =>
+      l.url === 'http://back.test/api/message-events/session' &&
+      l.init &&
+      l.init.method === 'POST'
+  );
+  assert.equal(llamadas.length, 2, 'un intento y un reintento del registro de sesión');
+  assert.equal(llamadas[0].init.headers.Authorization, `Bearer ${TOKEN}`);
+  assert.equal(llamadas[0].init.headers['Content-Type'], 'application/json');
+  assert.deepEqual(JSON.parse(llamadas[0].init.body), {
+    actividad: 'Windsurf',
+    duracionSegundos: 180 * 60,
+  });
+  assert.deepEqual(JSON.parse(llamadas[1].init.body), {
+    actividad: 'Windsurf',
+    duracionSegundos: 180 * 60,
+  });
+  assert.ok(
+    t.consola.errores.some(
+      (m) => m.includes('[iniciarDetener]') && m.includes('message-events/session') && m.includes('sin red')
+    ),
+    'el fallo se loguea con el prefijo estable'
+  );
+
+  // la cuenta sigue con reloj de pared pese al fallo del POST
+  t.reloj.ahora += 60 * 1000;
+  t.tick();
+  assert.equal(t.nodos.etiquetaTiempo.textContent, '02:59:00');
+});
+
+await testAsync('INICIAR persiste el sessionId devuelto en beepsafe_sesion_en_curso', async () => {
+  const clave = 'beepsafe_sesion_en_curso:marcelo@test.com';
+  const t = crearContexto({
+    fetch: async (url) => {
+      if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
+      if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+      if (url.endsWith('/api/message-events/session')) return respuestaOk({ sessionId: 'sess-42' });
+      throw new Error(`URL inesperada: ${url}`);
+    },
+  });
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => {
+    const crudo = t.store.get(clave);
+    if (!crudo) return false;
+    try {
+      return JSON.parse(crudo).sessionId === 'sess-42';
+    } catch (err) {
+      return false;
+    }
+  });
+
+  const guardada = JSON.parse(t.store.get(clave));
+  assert.equal(guardada.sessionId, 'sess-42');
+  assert.equal(guardada.actividad, 'Windsurf');
+  assert.equal(guardada.tiempoSegundos, 180 * 60);
+  assert.equal(guardada.inicioContadorMs, t.reloj.ahora);
+});
+
+await testAsync('DETENER: POST /session/<id>/stop y limpia el id persistido', async () => {
+  const clave = 'beepsafe_sesion_en_curso:marcelo@test.com';
+  const TOKEN = 'token-events-2';
+  const t = crearContexto({
+    store: new Map([['token', TOKEN]]),
+    fetch: async (url) => {
+      if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
+      if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+      if (url.endsWith('/api/message-events/session')) return respuestaOk({ sessionId: 'sess-7' });
+      if (url.includes('/api/message-events/session/')) {
+        return respuestaOk({ sessionId: 'sess-7', estado: 'detenido', total: 1, enviados: 1 });
+      }
+      throw new Error(`URL inesperada: ${url}`);
+    },
+  });
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => {
+    const crudo = t.store.get(clave);
+    return Boolean(crudo && JSON.parse(crudo).sessionId === 'sess-7');
+  });
+
+  t.nodos.botonIniciar.disparar('click'); // DETENER
+  await esperar(() => t.fetchLog.some((l) => l.url.endsWith('/session/sess-7/stop')));
+
+  const stop = t.fetchLog.find((l) => l.url.endsWith('/session/sess-7/stop'));
+  assert.equal(stop.url, 'http://back.test/api/message-events/session/sess-7/stop');
+  assert.equal(stop.init.method, 'POST');
+  assert.equal(stop.init.headers.Authorization, `Bearer ${TOKEN}`);
+  assert.equal(t.store.has(clave), false, 'la sesión en curso (y su id) se limpia');
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'INICIAR');
+});
+
+await testAsync('FINALIZADO: no envía stop ni ningún request extra (la alarma la maneja el backend)', async () => {
+  const t = crearContexto({
+    store: new Map([['token', 'token-events-3']]),
+    fetch: async (url) => {
+      if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
+      if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+      if (url.endsWith('/api/message-events/session')) return respuestaOk({ sessionId: 'sess-9' });
+      throw new Error(`URL inesperada: ${url}`);
+    },
+  });
+  await t.domListo();
+  fijarTiempo(t, { minutos: 15 });
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.fetchLog.some((l) => l.url.endsWith('/api/message-events/session')));
+  const antes = t.fetchLog.length;
+
+  t.reloj.ahora += 15 * 60 * 1000;
+  t.tick();
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'FINALIZADO');
+
+  await new Promise((resolver) => setTimeout(resolver, 20));
+  assert.equal(t.fetchLog.filter((l) => l.url.includes('/stop')).length, 0, 'sin stop al finalizar');
+  assert.equal(t.fetchLog.length, antes, 'ningún request nuevo al finalizar');
+});
+
+await testAsync('REL-002: DETENER antes de que resuelva el registro espera y envía el stop al id resuelto', async () => {
+  let liberarCreacion;
+  const creacionPendiente = new Promise((resolver) => {
+    liberarCreacion = resolver;
+  });
+  let createCalls = 0;
+  const t = crearContexto({
+    store: new Map([['token', 'tok-pending']]),
+    fetch: async (url) => {
+      if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
+      if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+      if (url.endsWith('/api/message-events/session')) {
+        createCalls += 1;
+        await creacionPendiente;
+        return respuestaOk({ sessionId: 'sess-pending' });
+      }
+      if (url.includes('/api/message-events/session/')) return respuestaOk({});
+      throw new Error(`URL inesperada: ${url}`);
+    },
+  });
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => createCalls === 1); // el POST de registro sigue en vuelo
+  t.nodos.botonIniciar.disparar('click'); // DETENER inmediato
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'INICIAR', 'la UI se detiene al instante');
+
+  liberarCreacion();
+  await esperar(() => t.fetchLog.some((l) => l.url.endsWith('/session/sess-pending/stop')));
+
+  const stops = t.fetchLog.filter((l) => l.url.includes('/stop'));
+  assert.equal(stops.length, 1, 'exactamente un stop, con el id resuelto');
+  assert.equal(stops[0].url, 'http://back.test/api/message-events/session/sess-pending/stop');
+  assert.equal(stops[0].init.method, 'POST');
+});
+
+await testAsync('REL-001: si el registro falla, muestra un toast visible y el contador sigue', async () => {
+  const t = crearContexto({
+    store: new Map([['token', 'tok-fail']]),
+    fetch: async (url) => {
+      if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
+      if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+      if (url.includes('/api/message-events/session')) throw new Error('sin red');
+      throw new Error(`URL inesperada: ${url}`);
+    },
+  });
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.toasts.length > 0);
+
+  assert.equal(t.toasts.length, 1, 'un único aviso visible');
+  assert.equal(t.toasts[0].tipo, 'error');
+  assert.ok(
+    t.toasts[0].mensaje.includes('no se enviará la alarma automática'),
+    t.toasts[0].mensaje
+  );
+  assert.ok(
+    t.consola.errores.some(
+      (m) => m.includes('[iniciarDetener]') && m.includes('no se pudo registrar la sesión')
+    ),
+    'el fallo se loguea con el prefijo estable'
+  );
+
+  // el contador sigue pese al fallo del registro
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'DETENER');
+  t.reloj.ahora += 60 * 1000;
+  t.tick();
+  assert.equal(t.nodos.etiquetaTiempo.textContent, '02:59:00');
+});
+
+await testAsync('el stop fallido se reintenta una vez con el mismo id', async () => {
+  const clave = 'beepsafe_sesion_en_curso:marcelo@test.com';
+  let stopCalls = 0;
+  const t = crearContexto({
+    store: new Map([['token', 'tok-retry']]),
+    fetch: async (url) => {
+      if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
+      if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+      if (url.endsWith('/api/message-events/session')) {
+        return respuestaOk({ sessionId: 'sess-retry' });
+      }
+      if (url.includes('/api/message-events/session/')) {
+        stopCalls += 1;
+        if (stopCalls === 1) throw new Error('sin red');
+        return respuestaOk({ sessionId: 'sess-retry', estado: 'detenido' });
+      }
+      throw new Error(`URL inesperada: ${url}`);
+    },
+  });
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => {
+    const crudo = t.store.get(clave);
+    return Boolean(crudo && JSON.parse(crudo).sessionId === 'sess-retry');
+  });
+
+  t.nodos.botonIniciar.disparar('click'); // DETENER
+  await esperar(() => stopCalls === 2);
+
+  const stops = t.fetchLog.filter((l) => l.url.endsWith('/session/sess-retry/stop'));
+  assert.equal(stops.length, 2, 'un intento y un reintento del stop');
+  assert.ok(
+    t.consola.errores.some(
+      (m) => m.includes('[iniciarDetener]') && m.includes('stop falló') && m.includes('intento 1/2')
+    ),
+    'el primer fallo del stop queda logueado'
+  );
+});
+
+await testAsync('REL-004: el stop usa el sessionId en memoria, no el valor viejo de localStorage', async () => {
+  const clave = 'beepsafe_sesion_en_curso:marcelo@test.com';
+  const t = crearContexto({
+    store: new Map([['token', 'tok-mem']]),
+    fetch: async (url) => {
+      if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
+      if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+      if (url.endsWith('/api/message-events/session')) {
+        return respuestaOk({ sessionId: 'id-memoria' });
+      }
+      if (url.includes('/api/message-events/session/')) return respuestaOk({});
+      throw new Error(`URL inesperada: ${url}`);
+    },
+  });
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => {
+    const crudo = t.store.get(clave);
+    return Boolean(crudo && JSON.parse(crudo).sessionId === 'id-memoria');
+  });
+
+  // pisa la clave persistida con un id viejo: el stop debe preferir la memoria
+  const payload = JSON.parse(t.store.get(clave));
+  payload.sessionId = 'id-viejo';
+  t.store.set(clave, JSON.stringify(payload));
+
+  t.nodos.botonIniciar.disparar('click'); // DETENER
+  await esperar(() => t.fetchLog.some((l) => l.url.includes('/stop')));
+
+  const stops = t.fetchLog.filter((l) => l.url.includes('/stop'));
+  assert.equal(stops.length, 1);
+  assert.ok(stops[0].url.endsWith('/session/id-memoria/stop'), stops[0].url);
+  assert.equal(stops.filter((l) => l.url.includes('id-viejo')).length, 0);
 });
 }
 
