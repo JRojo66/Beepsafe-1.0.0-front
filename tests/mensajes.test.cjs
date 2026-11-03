@@ -1525,7 +1525,16 @@ async function testsAsync() {
           return respuestaOk({ contactos: [] });
         }
         if (url.endsWith('/api/message-events') && metodo === 'POST') {
-          return respuestaOk({ total: 4, enviados: 4 });
+          return respuestaOk({
+            total: 4,
+            enviados: [
+              { telefono: '1', ok: true },
+              { telefono: '2', ok: true },
+              { telefono: '3', ok: true },
+              { telefono: '4', ok: true },
+            ],
+            driver: 'whatsapp',
+          });
         }
         throw new Error(`URL inesperada: ${url} ${metodo}`);
       },
@@ -1561,7 +1570,7 @@ async function testsAsync() {
           return respuestaOk({ contactos: [] });
         }
         if (url.endsWith('/api/message-events') && metodo === 'POST') {
-          return respuestaOk({ total: 0, enviados: 0 });
+          return respuestaOk({ total: 0, enviados: [] });
         }
         throw new Error(`URL inesperada: ${url} ${metodo}`);
       },
@@ -1616,7 +1625,13 @@ async function testsAsync() {
       store: new Map([['token', token]]),
       fetch: async () => {
         await espera;
-        return respuestaOk({ total: 2, enviados: 2 });
+        return respuestaOk({
+          total: 2,
+          enviados: [
+            { telefono: '1', ok: true },
+            { telefono: '2', ok: true },
+          ],
+        });
       },
     });
 
@@ -1629,6 +1644,85 @@ async function testsAsync() {
     assert.deepEqual(plano(resultado), { ok: true, total: 2 });
     assert.equal(t.nodos.botonEnviarPrueba.disabled, false, 'rehabilitado al terminar');
     assert.equal(t.nodos.estadoMensaje.textContent, 'Mensaje de prueba enviado a 2 contactos.');
+  });
+
+  await testAsync('Enviar prueba con resultados mixtos muestra "X de N" y el primer error', async () => {
+    const token = crearToken({ email: 'ana@test.com' });
+    const t = crearContexto({
+      dataset: { tipo: 'prueba' },
+      store: new Map([['token', token]]),
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (url.endsWith('/api/message-templates') && metodo === 'GET') {
+          return respuestaOk({ mensajes: {} });
+        }
+        if (url.includes('/api/contacts') && metodo === 'GET') {
+          return respuestaOk({ contactos: [] });
+        }
+        if (url.endsWith('/api/message-events') && metodo === 'POST') {
+          return respuestaOk({
+            total: 4,
+            enviados: [
+              { telefono: '1', ok: true },
+              { telefono: '2', ok: false, error: 'HTTP 400' },
+              { telefono: '3', ok: true },
+              { telefono: '4', ok: false, error: 'HTTP 500' },
+            ],
+            driver: 'whatsapp',
+          });
+        }
+        throw new Error(`URL inesperada: ${url} ${metodo}`);
+      },
+    });
+
+    await t.ctxTest.inicializarEditorMensaje('prueba');
+    const resultado = await t.ctxTest.enviarMensajeDePrueba();
+
+    assert.deepEqual(plano(resultado), { ok: true, total: 2 });
+    assert.equal(
+      t.nodos.estadoMensaje.textContent,
+      'Mensaje enviado a 2 de 4. Falló en 2: HTTP 400'
+    );
+    assert.ok(t.nodos.estadoMensaje.classList.contains('mensajes-estado-aviso'));
+    assert.equal(t.nodos.botonEnviarPrueba.disabled, false, 'rehabilitado al terminar');
+  });
+
+  await testAsync('Enviar prueba con todos los envíos fallidos muestra el error', async () => {
+    const token = crearToken({ email: 'ana@test.com' });
+    const t = crearContexto({
+      dataset: { tipo: 'prueba' },
+      store: new Map([['token', token]]),
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (url.endsWith('/api/message-templates') && metodo === 'GET') {
+          return respuestaOk({ mensajes: {} });
+        }
+        if (url.includes('/api/contacts') && metodo === 'GET') {
+          return respuestaOk({ contactos: [] });
+        }
+        if (url.endsWith('/api/message-events') && metodo === 'POST') {
+          return respuestaOk({
+            total: 2,
+            enviados: [
+              { telefono: '1', ok: false, error: 'HTTP 400' },
+              { telefono: '2', ok: false, error: 'HTTP 500' },
+            ],
+            driver: 'whatsapp',
+          });
+        }
+        throw new Error(`URL inesperada: ${url} ${metodo}`);
+      },
+    });
+
+    await t.ctxTest.inicializarEditorMensaje('prueba');
+    const resultado = await t.ctxTest.enviarMensajeDePrueba();
+
+    assert.deepEqual(plano(resultado), { ok: false, total: 0 });
+    assert.equal(
+      t.nodos.estadoMensaje.textContent,
+      'No se pudo enviar el mensaje de prueba: HTTP 400'
+    );
+    assert.ok(t.nodos.estadoMensaje.classList.contains('mensajes-estado-error'));
   });
 }
 

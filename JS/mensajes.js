@@ -19,6 +19,8 @@ const MAX_CONTACTOS_POR_TIPO = 5;
 
 const TEXTO_LIMITE_CONTACTOS = 'Llegaste al máximo de 5 contactos para este mensaje.';
 
+const TEXTO_ERROR_ENVIO_GENERICO = 'error desconocido';
+
 function mensajeDeError(err) {
   if (!err) return 'error desconocido';
   if (err.name === 'AbortError') return 'timeout (abort)';
@@ -327,12 +329,35 @@ async function enviarMensajeDePrueba() {
       return { ok: false };
     }
     const total = datos && Number.isFinite(datos.total) ? datos.total : 0;
-    if (total > 0) {
-      marcarEstado(estado, `Mensaje de prueba enviado a ${total} contactos.`, 'ok');
-    } else {
+    if (total === 0) {
       marcarEstado(estado, 'No tenés contactos que reciban el mensaje de prueba.', 'aviso');
+      return { ok: false, total: 0 };
     }
-    return { ok: true, total };
+    // `total` es la cantidad INTENTADA; el resultado real está en `enviados`
+    const enviados = datos && Array.isArray(datos.enviados) ? datos.enviados : [];
+    const exitosos = enviados.filter((envio) => envio && envio.ok === true).length;
+    const fallidos = enviados.filter((envio) => !envio || envio.ok !== true);
+    const primerError =
+      fallidos.length > 0 &&
+      typeof (fallidos[0] && fallidos[0].error) === 'string' &&
+      (fallidos[0] && fallidos[0].error).trim()
+        ? (fallidos[0] && fallidos[0].error).trim()
+        : TEXTO_ERROR_ENVIO_GENERICO;
+
+    if (fallidos.length === 0 && exitosos > 0) {
+      marcarEstado(estado, `Mensaje de prueba enviado a ${exitosos} contactos.`, 'ok');
+      return { ok: true, total: exitosos };
+    }
+    if (exitosos === 0) {
+      marcarEstado(estado, `No se pudo enviar el mensaje de prueba: ${primerError}`, 'error');
+      return { ok: false, total: 0 };
+    }
+    marcarEstado(
+      estado,
+      `Mensaje enviado a ${exitosos} de ${total}. Falló en ${fallidos.length}: ${primerError}`,
+      'aviso'
+    );
+    return { ok: exitosos > 0, total: exitosos };
   } catch (err) {
     console.error(`[mensajes] POST message-events falló: ${url} — ${mensajeDeError(err)}`);
     marcarEstado(estado, 'No se pudo enviar el mensaje de prueba. Intentá de nuevo.', 'aviso');
