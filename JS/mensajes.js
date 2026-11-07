@@ -15,6 +15,33 @@ const LARGO_MAXIMO_MENSAJE = 1000;
 
 const LARGO_PREVIEW = 70;
 
+const CLAVE_ULTIMA_SESION = 'beepsafe_ultima_sesion';
+
+const ZONA_HORARIA_PREVIEW = 'America/Argentina/Buenos_Aires';
+
+const PLANTILLAS_PREVIEW = {
+  inicio: {
+    antes: 'Aviso de BeepSafe para {contacto}: {usuario} comenzó una sesión de {actividad}.',
+    despues: 'Tiene previsto finalizarla el {hora}. - Enviado desde BeepSafe.',
+  },
+  fin: {
+    antes: 'Aviso de BeepSafe para {contacto}: {usuario} finalizó su sesión de {actividad}.',
+    despues: '- Enviado desde BeepSafe.',
+  },
+  alarma: {
+    antes:
+      'Aviso de BeepSafe para {contacto}: {usuario} no detuvo su sesión de {actividad} en el tiempo previsto.',
+    despues: '- Enviado desde BeepSafe.',
+  },
+};
+
+const VALORES_PREVIEW_RESPALDO = {
+  contacto: 'María',
+  usuario: 'Marcelo',
+  actividad: 'windsurf',
+  hora: '19:00',
+};
+
 const MAX_CONTACTOS_POR_TIPO = 5;
 
 const TEXTO_LIMITE_CONTACTOS = 'Llegaste al máximo de 5 contactos para este mensaje.';
@@ -56,9 +83,159 @@ function emailDesdeToken() {
   return '';
 }
 
+function nombreDesdeToken() {
+  const token = leerToken();
+  if (!token || typeof token !== 'string') return '';
+  const partes = token.split('.');
+  if (partes.length < 2 || !partes[1]) return '';
+  try {
+    const base64 = partes[1].replace(/-/g, '+').replace(/_/g, '/');
+    const relleno = (4 - (base64.length % 4)) % 4;
+    const payload = JSON.parse(atob(base64.padEnd(base64.length + relleno, '=')));
+    if (payload && typeof payload.name === 'string' && payload.name.trim()) {
+      return payload.name.trim();
+    }
+  } catch (err) {
+    console.error(`[mensajes] no se pudo decodificar el JWT para el nombre: ${mensajeDeError(err)}`);
+  }
+  return '';
+}
+
 function claveConUsuario(base) {
   const email = emailDesdeToken();
   return email ? `${base}:${email}` : base;
+}
+
+function leerCrudoLocal(clave) {
+  try {
+    return localStorage.getItem(clave);
+  } catch (err) {
+    console.error(`[mensajes] localStorage ilegible en ${clave}: ${mensajeDeError(err)}`);
+    return null;
+  }
+}
+
+function leerUltimaSesionPreview() {
+  const claves = [claveConUsuario(CLAVE_ULTIMA_SESION), CLAVE_ULTIMA_SESION];
+  for (const clave of claves) {
+    if (!clave) continue;
+    const crudo = leerCrudoLocal(clave);
+    if (!crudo) continue;
+    try {
+      const datos = JSON.parse(crudo);
+      if (datos && typeof datos === 'object') return datos;
+      console.error(`[mensajes] última sesión inválida en ${clave}: no es un objeto JSON`);
+    } catch (err) {
+      console.error(`[mensajes] última sesión ilegible en ${clave}: ${mensajeDeError(err)}`);
+    }
+  }
+  return null;
+}
+
+function actividadPreview() {
+  const sesion = leerUltimaSesionPreview();
+  if (sesion && typeof sesion.actividad === 'string' && sesion.actividad.trim()) {
+    return sesion.actividad.trim();
+  }
+  return VALORES_PREVIEW_RESPALDO.actividad;
+}
+
+function diaAbreviadoPreview(fecha) {
+  const formato = new Intl.DateTimeFormat('es-AR', {
+    timeZone: ZONA_HORARIA_PREVIEW,
+    weekday: 'short',
+  });
+  return formato.format(fecha).replace(/\./g, '').trim().toLowerCase();
+}
+
+// Fallback de la hora prevista: día de HOY en Buenos Aires a las 19:00, con
+// el mismo formato que la hora calculada (abreviatura + HH:mm, sin "hs").
+function formatearHoraFallbackPreview() {
+  try {
+    const dia = diaAbreviadoPreview(new Date());
+    if (dia) return `${dia} 19:00`;
+  } catch (err) {
+    console.error(
+      `[mensajes] no se pudo calcular el día de la hora prevista: ${mensajeDeError(err)}`
+    );
+  }
+  return VALORES_PREVIEW_RESPALDO.hora;
+}
+
+function formatearHoraPreview(fecha) {
+  try {
+    const formato = new Intl.DateTimeFormat('es-AR', {
+      timeZone: ZONA_HORARIA_PREVIEW,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    const partes = formato.formatToParts(fecha);
+    const buscar = (tipo) => {
+      const parte = partes.find((item) => item.type === tipo);
+      return parte ? parte.value : '';
+    };
+    const dia = diaAbreviadoPreview(fecha);
+    let hora = buscar('hour');
+    const minuto = buscar('minute');
+    if (hora === '24') hora = '00';
+    if (dia && hora && minuto) return `${dia} ${hora}:${minuto}`;
+  } catch (err) {
+    console.error(`[mensajes] no se pudo formatear la hora prevista: ${mensajeDeError(err)}`);
+  }
+  return formatearHoraFallbackPreview();
+}
+
+function horaPreview() {
+  const sesion = leerUltimaSesionPreview();
+  const duracion =
+    sesion && Number.isFinite(sesion.tiempoSegundos) && sesion.tiempoSegundos > 0
+      ? sesion.tiempoSegundos
+      : 0;
+  if (!duracion) return formatearHoraFallbackPreview();
+  return formatearHoraPreview(new Date(Date.now() + duracion * 1000));
+}
+
+function contactoPreview(tipo) {
+  const receptores = contactosAsignados(contactosConocidos, tipo);
+  const primero = receptores.find(
+    (contacto) => contacto && typeof contacto.nombre === 'string' && contacto.nombre.trim()
+  );
+  return primero ? primero.nombre.trim() : VALORES_PREVIEW_RESPALDO.contacto;
+}
+
+function interpolarPlantilla(plantilla, valores) {
+  return String(plantilla ?? '').replace(/\{(\w+)\}/g, (coincidencia, clave) =>
+    Object.prototype.hasOwnProperty.call(valores, clave) ? String(valores[clave]) : coincidencia
+  );
+}
+
+function renderizarPreview(tipo) {
+  const plantilla = PLANTILLAS_PREVIEW[tipo];
+  if (!plantilla) return false;
+  const valores = {
+    contacto: contactoPreview(tipo),
+    usuario: nombreDesdeToken() || VALORES_PREVIEW_RESPALDO.usuario,
+    actividad: actividadPreview(),
+    hora: horaPreview(),
+  };
+  const antes = document.getElementById('mensajeFijoAntes');
+  const despues = document.getElementById('mensajeFijoDespues');
+  if (antes) antes.textContent = interpolarPlantilla(plantilla.antes, valores);
+  if (despues) despues.textContent = interpolarPlantilla(plantilla.despues, valores);
+  return true;
+}
+
+function observarCambiosSesion(tipo) {
+  if (typeof window === 'undefined' || !window || typeof window.addEventListener !== 'function') {
+    return;
+  }
+  window.addEventListener('storage', (evento) => {
+    const clave = evento && typeof evento.key === 'string' ? evento.key : '';
+    if (!clave || clave === CLAVE_ULTIMA_SESION || clave.startsWith(`${CLAVE_ULTIMA_SESION}:`)) {
+      renderizarPreview(tipo);
+    }
+  });
 }
 
 function normalizarMensajes(origen) {
@@ -816,6 +993,7 @@ function aplicarContactos(contactos) {
     }
   }
   actualizarLimiteContactos(receptores.length);
+  renderizarPreview(tipo);
   return receptores;
 }
 
@@ -976,6 +1154,9 @@ async function inicializarEditorMensaje(tipo) {
     console.error('[mensajes] faltan nodos del editor de mensajes');
     return;
   }
+
+  renderizarPreview(tipo);
+  observarCambiosSesion(tipo);
 
   actualizarContador(textarea, contador);
   textarea.addEventListener('input', () => {

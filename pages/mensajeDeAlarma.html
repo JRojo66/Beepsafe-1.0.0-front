@@ -38,14 +38,18 @@
         <div class="msj-contenido">
             <section class="msj-tarjeta" aria-labelledby="tituloEditor">
                 <label class="msj-etiqueta" id="tituloEditor" for="mensaje">Tu mensaje</label>
-                <textarea
-                    class="msj-textarea"
-                    id="mensaje"
-                    name="mensaje"
-                    rows="6"
-                    maxlength="1000"
-                    placeholder="Escribí el mensaje que van a recibir tus contactos."
-                ></textarea>
+                <div class="msj-preview">
+                    <p class="msj-preview-fijo" id="mensajeFijoAntes">Aviso de BeepSafe para María: Marcelo no detuvo su sesión de windsurf en el tiempo previsto.</p>
+                    <textarea
+                        class="msj-textarea"
+                        id="mensaje"
+                        name="mensaje"
+                        rows="6"
+                        maxlength="1000"
+                        placeholder="Escribí tu mensaje personal."
+                    ></textarea>
+                    <p class="msj-preview-fijo" id="mensajeFijoDespues">- Enviado desde BeepSafe.</p>
+                </div>
                 <div class="msj-editor-pie">
                     <span class="msj-contador" id="contadorMensaje">0/1000</span>
                     <button class="msj-boton" id="botonGrabar" type="button">Grabar Mensaje</button>

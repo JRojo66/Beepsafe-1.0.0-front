@@ -13,7 +13,10 @@ const EXPORTS = `;globalThis.__test = {
   inicializarListaMensajes, inicializarContactos, refrescarContactos,
   crearFilaContacto, manejarAltaContacto, abrirEdicionContacto,
   actualizarContador, marcarSesionExpirada, enviarMensajeDePrueba,
-  inicializarBotonPrueba,
+  inicializarBotonPrueba, nombreDesdeToken, leerUltimaSesionPreview,
+  actividadPreview, formatearHoraPreview, horaPreview, contactoPreview,
+  interpolarPlantilla, renderizarPreview, observarCambiosSesion,
+  PLANTILLAS_PREVIEW, VALORES_PREVIEW_RESPALDO, CLAVE_ULTIMA_SESION,
 };`;
 
 let pasados = 0;
@@ -52,6 +55,49 @@ function crearToken(payload) {
     .replace(/\//g, '_')
     .replace(/=+$/, '');
   return `header.${base64}.signature`;
+}
+
+const ZONA_HORARIA_TEST = 'America/Argentina/Buenos_Aires';
+
+function diaAbreviado(fecha) {
+  return new Intl.DateTimeFormat('es-AR', {
+    timeZone: ZONA_HORARIA_TEST,
+    weekday: 'short',
+  })
+    .format(fecha)
+    .replace(/\./g, '')
+    .trim()
+    .toLowerCase();
+}
+
+function horaFormateada(epochMs) {
+  const partes = new Intl.DateTimeFormat('es-AR', {
+    timeZone: ZONA_HORARIA_TEST,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(epochMs));
+  const buscar = (tipo) => {
+    const parte = partes.find((item) => item.type === tipo);
+    return parte ? parte.value : '';
+  };
+  let hora = buscar('hour');
+  if (hora === '24') hora = '00';
+  return `${diaAbreviado(new Date(epochMs))} ${hora}:${buscar('minute')}`;
+}
+
+// Congela `Date` dentro del contexto VM para que la hora calculada sea
+// determinista sin tocar el reloj real del test.
+function conFechaFija(ctx, epochMs) {
+  const DateReal = Date;
+  ctx.Date = class extends DateReal {
+    constructor(...args) {
+      super(...(args.length ? args : [epochMs]));
+    }
+    static now() {
+      return epochMs;
+    }
+  };
 }
 
 function respuestaOk(json) {
@@ -133,6 +179,8 @@ function crearNodo(extra = {}) {
 function crearNodosBase() {
   return {
     mensaje: crearNodo({ tagName: 'TEXTAREA' }),
+    mensajeFijoAntes: crearNodo({ tagName: 'P' }),
+    mensajeFijoDespues: crearNodo({ tagName: 'P' }),
     botonGrabar: crearNodo({ tagName: 'BUTTON' }),
     botonEnviarPrueba: crearNodo({ tagName: 'BUTTON', textContent: 'Enviar prueba' }),
     estadoMensaje: crearNodo(),
@@ -401,6 +449,43 @@ test('las cuatro páginas de mensaje cumplen el contrato de HTML', () => {
     for (const prohibido of prohibidos) {
       assert.ok(!html.includes(prohibido), `${archivo}: no debe contener "${prohibido}"`);
     }
+  }
+});
+
+test('las tres páginas declaran el preview fijo antes y después del textarea (REL-004)', () => {
+  const paginas = [
+    [
+      'mensajeDeInicio.html',
+      'Aviso de BeepSafe para María: Marcelo comenzó una sesión de windsurf.',
+      /^Tiene previsto finalizarla el .+ - Enviado desde BeepSafe\.$/,
+    ],
+    [
+      'mensajeDeFin.html',
+      'Aviso de BeepSafe para María: Marcelo finalizó su sesión de windsurf.',
+      /^- Enviado desde BeepSafe\.$/,
+    ],
+    [
+      'mensajeDeAlarma.html',
+      'Aviso de BeepSafe para María: Marcelo no detuvo su sesión de windsurf en el tiempo previsto.',
+      /^- Enviado desde BeepSafe\.$/,
+    ],
+  ];
+
+  const contenidoFijo = (html, id) => {
+    const coincidencia = html.match(new RegExp(`<p[^>]*id="${id}"[^>]*>([^<]*)</p>`));
+    return coincidencia ? coincidencia[1].trim() : null;
+  };
+
+  for (const [archivo, antes, despuesPatron] of paginas) {
+    const html = fs.readFileSync(path.join(__dirname, '..', 'pages', archivo), 'utf8');
+    assert.equal(
+      contenidoFijo(html, 'mensajeFijoAntes'),
+      antes,
+      `${archivo}: copy fijo de #mensajeFijoAntes`
+    );
+    const despues = contenidoFijo(html, 'mensajeFijoDespues');
+    assert.ok(despues !== null, `${archivo}: falta #mensajeFijoDespues`);
+    assert.match(despues, despuesPatron, `${archivo}: copy fijo de #mensajeFijoDespues`);
   }
 });
 
@@ -1723,6 +1808,161 @@ async function testsAsync() {
       'No se pudo enviar el mensaje de prueba: HTTP 400'
     );
     assert.ok(t.nodos.estadoMensaje.classList.contains('mensajes-estado-error'));
+  });
+
+  await testAsync('el preview interpola contacto, usuario, actividad y hora reales y guarda solo el mensaje personal', async () => {
+    const token = crearToken({ email: 'ana@test.com', name: 'Ana' });
+    const store = new Map([
+      ['token', token],
+      [
+        'beepsafe_ultima_sesion:ana@test.com',
+        JSON.stringify({ actividad: 'Kayak', tiempoSegundos: 3600 }),
+      ],
+    ]);
+    const contactos = [
+      {
+        nombre: 'Beto',
+        telefono: '1',
+        mensajes: true,
+        mensajesPorTipo: { inicio: false, fin: false, alarma: false, prueba: false },
+        visibilidad: true,
+      },
+      {
+        nombre: 'Carla',
+        telefono: '2',
+        mensajes: true,
+        mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
+        visibilidad: true,
+      },
+    ];
+    const t = crearContexto({
+      dataset: { tipo: 'inicio' },
+      store,
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (url.endsWith('/api/message-templates') && metodo === 'GET') {
+          return respuestaOk({ mensajes: { inicio: 'Llevo casco', fin: '', alarma: '', prueba: '' } });
+        }
+        if (url.endsWith('/api/message-templates') && metodo === 'PUT') return respuestaOk({});
+        if (url.includes('/api/contacts') && metodo === 'GET') return respuestaOk({ contactos });
+        throw new Error(`URL inesperada: ${url} ${metodo}`);
+      },
+    });
+
+    const epochFijo = Date.UTC(2026, 4, 18, 20, 30);
+    conFechaFija(t.ctx, epochFijo);
+    await t.ctxTest.inicializarEditorMensaje('inicio');
+
+    assert.equal(
+      t.nodos.mensajeFijoAntes.textContent,
+      'Aviso de BeepSafe para Carla: Ana comenzó una sesión de Kayak.',
+      'usa el primer contacto asignado al tipo y el nombre real del JWT'
+    );
+    const horaEsperada = horaFormateada(epochFijo + 3600 * 1000);
+    assert.equal(horaEsperada, 'lun 18:30', 'la hora calculada del ejemplo es lun 18:30');
+    assert.equal(
+      t.nodos.mensajeFijoDespues.textContent,
+      `Tiene previsto finalizarla el ${horaEsperada}. - Enviado desde BeepSafe.`,
+      'la hora calculada usa el mismo formato que el fallback'
+    );
+    assert.ok(
+      !t.nodos.mensajeFijoDespues.textContent.includes('hs'),
+      'la hora calculada no lleva el sufijo "hs"'
+    );
+    assert.equal(t.nodos.mensaje.value, 'Llevo casco', 'el textarea solo muestra el mensaje personal');
+    assert.equal(t.nodos.contadorMensaje.textContent, '11/1000');
+
+    await t.nodos.botonGrabar.disparar('click');
+    const put = t.fetchLog.find((llamada) => llamada.init && llamada.init.method === 'PUT');
+    assert.ok(put, 'se guarda el mensaje personal');
+    assert.deepEqual(JSON.parse(put.init.body), { mensajes: { inicio: 'Llevo casco' } });
+  });
+
+  await testAsync('el preview cae a María/Marcelo/windsurf y al día de hoy 19:00, y la hora solo aparece en inicio', async () => {
+    const horaFallback = `${diaAbreviado(new Date())} 19:00`;
+    const inicio = crearContexto({ dataset: { tipo: 'inicio' } });
+    inicio.ctxTest.renderizarPreview('inicio');
+    assert.equal(
+      inicio.nodos.mensajeFijoAntes.textContent,
+      'Aviso de BeepSafe para María: Marcelo comenzó una sesión de windsurf.'
+    );
+    assert.equal(
+      inicio.nodos.mensajeFijoDespues.textContent,
+      `Tiene previsto finalizarla el ${horaFallback}. - Enviado desde BeepSafe.`,
+      'el fallback usa la abreviatura del día de hoy + HH:mm'
+    );
+    assert.ok(
+      !inicio.nodos.mensajeFijoDespues.textContent.includes('hs'),
+      'el fallback tampoco lleva el sufijo "hs"'
+    );
+
+    const fin = crearContexto({ dataset: { tipo: 'fin' } });
+    fin.ctxTest.renderizarPreview('fin');
+    assert.equal(
+      fin.nodos.mensajeFijoAntes.textContent,
+      'Aviso de BeepSafe para María: Marcelo finalizó su sesión de windsurf.'
+    );
+    assert.equal(fin.nodos.mensajeFijoDespues.textContent, '- Enviado desde BeepSafe.');
+    assert.ok(!fin.nodos.mensajeFijoDespues.textContent.includes('Tiene previsto'));
+
+    const alarma = crearContexto({ dataset: { tipo: 'alarma' } });
+    alarma.ctxTest.renderizarPreview('alarma');
+    assert.equal(
+      alarma.nodos.mensajeFijoAntes.textContent,
+      'Aviso de BeepSafe para María: Marcelo no detuvo su sesión de windsurf en el tiempo previsto.'
+    );
+    assert.equal(alarma.nodos.mensajeFijoDespues.textContent, '- Enviado desde BeepSafe.');
+
+    const roto = crearContexto({
+      dataset: { tipo: 'alarma' },
+      store: new Map([['beepsafe_ultima_sesion', 'no-es-json']]),
+    });
+    roto.ctxTest.renderizarPreview('alarma');
+    assert.ok(roto.nodos.mensajeFijoAntes.textContent.includes('windsurf'));
+    assert.ok(
+      roto.consola.errores.some(
+        (mensaje) => mensaje.includes('[mensajes]') && mensaje.includes('última sesión')
+      ),
+      'una sesión ilegible se loguea y cae al fallback'
+    );
+  });
+
+  await testAsync('el preview se refresca cuando cambia la sesión guardada', async () => {
+    const token = crearToken({ email: 'ana@test.com', name: 'Ana' });
+    const store = new Map([['token', token]]);
+    const t = crearContexto({
+      dataset: { tipo: 'fin' },
+      store,
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (url.endsWith('/api/message-templates') && metodo === 'GET') {
+          return respuestaOk({ mensajes: {} });
+        }
+        if (url.includes('/api/contacts') && metodo === 'GET') {
+          return respuestaOk({ contactos: [] });
+        }
+        throw new Error(`URL inesperada: ${url} ${metodo}`);
+      },
+    });
+
+    await t.ctxTest.inicializarEditorMensaje('fin');
+    assert.equal(
+      t.nodos.mensajeFijoAntes.textContent,
+      'Aviso de BeepSafe para María: Ana finalizó su sesión de windsurf.'
+    );
+
+    store.set(
+      'beepsafe_ultima_sesion:ana@test.com',
+      JSON.stringify({ actividad: 'Escalada', tiempoSegundos: 600 })
+    );
+    const oyentes = t.ctx.window.listeners.storage || [];
+    assert.equal(oyentes.length, 1, 'se registra un único oyente de storage');
+    oyentes[0]({ key: 'beepsafe_ultima_sesion:ana@test.com' });
+
+    assert.equal(
+      t.nodos.mensajeFijoAntes.textContent,
+      'Aviso de BeepSafe para María: Ana finalizó su sesión de Escalada.'
+    );
   });
 }
 
