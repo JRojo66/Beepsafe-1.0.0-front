@@ -25,9 +25,19 @@ const EXPORTS = `;globalThis.__test = {
   manejarClickTriggerActividad, manejarClickTriggerEquipo,
   manejarClickTriggerTiempo,
   TEXTO_SIN_ACTIVIDADES, TEXTO_ERROR_ACTIVIDADES,
+  VALORES_AVISO_RESPALDO, CLAVE_MENSAJES_AVISOS,
+  componerTextoAviso, normalizarContactoAviso, contactosParaAviso,
+  soloDigitos, construirUrlWhatsapp, renderizarPanelAvisos,
+  cargarContactosAvisos, manejarCompartirAviso, copiarTextoAlPortapapeles,
+  formatearHoraAviso, horaAvisoFallback, horaPrevistaAviso,
+  mensajeGuardadoAviso,
   get equiposSeleccionados() { return equiposSeleccionados.slice(); },
   get cargaCompleta() { return cargaCompleta; },
   get cargaActividadesFallida() { return cargaActividadesFallida; },
+  get contactosAvisos() { return contactosAvisos.slice(); },
+  get tipoAvisoActual() { return tipoAvisoActual; },
+  get textoCompartirActual() { return textoCompartirActual; },
+  get nombreUsuarioAvisos() { return nombreUsuarioAvisos; },
 };`;
 
 let pasados = 0;
@@ -112,8 +122,15 @@ function crearNodo(extra = {}) {
 
 function crearContexto(opciones = {}) {
   const reloj = { ahora: opciones.ahora ?? 1_700_000_000_000 };
-  function FechaFalsa() {}
-  FechaFalsa.now = () => reloj.ahora;
+  const DateReal = Date;
+  class FechaFalsa extends DateReal {
+    constructor(...args) {
+      super(...(args.length ? args : [reloj.ahora]));
+    }
+    static now() {
+      return reloj.ahora;
+    }
+  }
 
   const timers = new Map();
   let proximoTimerId = 0;
@@ -164,6 +181,9 @@ function crearContexto(opciones = {}) {
     iconoActividad: crearNodo({ src: '', alt: '' }),
     anilloProgreso: crearNodo({ getAttribute: () => '145' }),
     nombre: crearNodo(),
+    panelAvisos: crearNodo({ hidden: true }),
+    listaAvisos: crearNodo(),
+    botonCompartirAviso: crearNodo({ textContent: 'Compartir…' }),
   };
   if (opciones.sinNodos) {
     for (const clave of opciones.sinNodos) delete nodos[clave];
@@ -198,6 +218,16 @@ function crearContexto(opciones = {}) {
 
   const windowHandlers = {};
   const toasts = [];
+  const ventanas = [];
+  const portapapeles = [];
+  const navigator = {
+    clipboard: {
+      writeText: async (texto) => {
+        portapapeles.push(String(texto));
+      },
+    },
+  };
+  if (opciones.navigator) Object.assign(navigator, opciones.navigator);
   const window = {
     location: { href: '' },
     // stub del helper real (utils.js es un módulo ES): captura los avisos
@@ -205,6 +235,10 @@ function crearContexto(opciones = {}) {
       showToast: (mensaje, tipo) => {
         toasts.push({ mensaje: String(mensaje), tipo: tipo || 'info' });
       },
+    },
+    open: (...args) => {
+      ventanas.push(args);
+      return null;
     },
     addEventListener(tipo, fn) {
       (windowHandlers[tipo] ||= []).push(fn);
@@ -235,6 +269,7 @@ function crearContexto(opciones = {}) {
   const ctx = {
     ROOT_URL: 'http://back.test',
     window,
+    navigator,
     document,
     localStorage,
     fetch,
@@ -298,6 +333,9 @@ function crearContexto(opciones = {}) {
     timers,
     consola,
     toasts,
+    ventanas,
+    portapapeles,
+    navigator,
     timeoutsAgendados,
     // dispara todos los setTimeout pendientes del contexto (el abort de los
     // fetch con timeout, RES-002); los callbacks agendan los próximos después
@@ -457,6 +495,7 @@ function fetchNormal(rutas = {}) {
   return async (url) => {
     if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
     if (url.includes('/api/activities/')) return respuestaOk(rutas.actividades ?? ACTIVIDADES);
+    if (url.includes('/api/contacts')) return respuestaOk({ contactos: rutas.contactos ?? [] });
     throw new Error(`URL inesperada: ${url}`);
   };
 }
@@ -617,9 +656,15 @@ test('el HTML tiene los tres triggers con su título, paneles y stepper; sin sel
     'valorDias',
     'valorHoras',
     'valorMinutos',
+    'panelAvisos',
+    'listaAvisos',
+    'botonCompartirAviso',
   ]) {
     assert.ok(html.includes(`id="${id}"`), `falta el nodo #${id}`);
   }
+  assert.ok(html.includes('Avisar a mis contactos'), 'falta el título del panel de avisos');
+  assert.ok(html.includes('Compartir…'), 'falta el botón Compartir…');
+  assert.ok(html.includes('id="panelAvisos" hidden'), 'el panel de avisos arranca oculto');
   assert.ok(!html.includes('<select'), 'ya no hay <select> nativos en la pantalla');
   assert.ok(!html.includes('class="tituloSelect"'), 'los títulos sueltos fueron eliminados');
   assert.ok(!html.includes('class="elegidos"'), 'la repetición .elegidos fue eliminada');
@@ -657,6 +702,37 @@ test('el HTML tiene los tres triggers con su título, paneles y stepper; sin sel
     assert.ok(html.includes(`id="${id}"`), `falta la fila de valor #${id}`);
     assert.ok(html.includes(`>${placeholder}</button>`), `#${id} arranca con "${placeholder}"`);
   }
+});
+
+test('componerTextoAviso usa María/Marcelo/windsurf y la hora prevista', () => {
+  const t = crearContexto({ ahora: Date.UTC(2026, 4, 18, 18, 30) });
+  assert.equal(
+    t.ctxTest.componerTextoAviso('inicio', '', ''),
+    'Aviso de BeepSafe para María: Marcelo comenzó una sesión de windsurf. Tiene previsto finalizarla el lun 18:30.'
+  );
+  assert.equal(
+    t.ctxTest.componerTextoAviso('fin', '', ''),
+    'Aviso de BeepSafe para María: Marcelo finalizó su sesión de windsurf.'
+  );
+  assert.equal(t.ctxTest.horaAvisoFallback(), 'lun 19:00');
+});
+
+test('componerTextoAviso incluye el mensaje personal y no usa "Enviado desde BeepSafe"', () => {
+  const t = crearContexto({ ahora: Date.UTC(2026, 4, 18, 18, 30) });
+  assert.equal(
+    t.ctxTest.componerTextoAviso('inicio', 'Ana', 'Llevo casco'),
+    'Aviso de BeepSafe para Ana: Marcelo comenzó una sesión de windsurf. Llevo casco Tiene previsto finalizarla el lun 18:30.'
+  );
+  const fin = t.ctxTest.componerTextoAviso('fin', 'Ana', 'Listo');
+  assert.equal(fin, 'Aviso de BeepSafe para Ana: Marcelo finalizó su sesión de windsurf. Listo');
+  assert.ok(!fin.includes('Enviado desde BeepSafe'));
+});
+
+test('construirUrlWhatsapp deja solo dígitos y codifica el texto', () => {
+  const t = crearContexto();
+  const href = t.ctxTest.construirUrlWhatsapp('+54 9 11 1234-5678', 'Hola & chau');
+  assert.equal(href, `https://wa.me/5491112345678?text=${encodeURIComponent('Hola & chau')}`);
+  assert.ok(!href.split('?')[0].includes('+'));
 });
 
 console.log('# iniciarDetener.js — UI');
@@ -2115,6 +2191,169 @@ await testAsync('REL-004: el stop usa el sessionId en memoria, no el valor viejo
   assert.equal(stops.length, 1);
   assert.ok(stops[0].url.endsWith('/session/id-memoria/stop'), stops[0].url);
   assert.equal(stops.filter((l) => l.url.includes('id-viejo')).length, 0);
+});
+
+// ------------------------- avisos manuales de inicio/fin (wa.me)
+
+const CONTACTOS_AVISOS = [
+  {
+    nombre: 'Ana',
+    telefono: '+54 9 11 1234-5678',
+    mensajes: true,
+    mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
+    visibilidad: true,
+  },
+  {
+    nombre: 'Beto',
+    telefono: '+54 11 0000-0000',
+    mensajes: true,
+    mensajesPorTipo: { inicio: false, fin: true, alarma: false, prueba: false },
+    visibilidad: true,
+  },
+  {
+    nombre: 'Carla',
+    telefono: '+54 11 2222-3333',
+    mensajes: true,
+    mensajesPorTipo: { inicio: true, fin: true, alarma: false, prueba: false },
+    visibilidad: true,
+  },
+];
+
+function textoDesdeWa(href) {
+  return decodeURIComponent(href.split('?text=')[1]);
+}
+
+function contextoConAvisos(opciones = {}) {
+  return crearContexto({
+    ahora: Date.UTC(2026, 4, 18, 18, 30), // lun 15:30 en Buenos Aires
+    store: new Map([
+      ['token', 'tok-avisos'],
+      [
+        'beepsafe_mensajes:marcelo@test.com',
+        JSON.stringify({ mensajes: { inicio: 'Llevo casco', fin: 'Listo', alarma: '', prueba: '' } }),
+      ],
+    ]),
+    fetch: async (url, init) => {
+      const metodo = (init && init.method) || 'GET';
+      if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
+      if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+      if (url.includes('/api/contacts') && metodo === 'GET') {
+        return respuestaOk({ contactos: opciones.contactos ?? CONTACTOS_AVISOS });
+      }
+      if (url.endsWith('/api/message-events/session') && metodo === 'POST') {
+        return respuestaOk({ sessionId: 'sess-avisos' });
+      }
+      if (url.includes('/stop')) return respuestaOk({});
+      throw new Error(`URL inesperada: ${url}`);
+    },
+  });
+}
+
+await testAsync('INICIAR exitoso muestra un botón wa.me por contacto de inicio con el texto codificado', async () => {
+  const t = contextoConAvisos();
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+
+  assert.equal(t.nodos.panelAvisos.hidden, false, 'el panel se hace visible');
+  assert.equal(t.ctxTest.tipoAvisoActual, 'inicio');
+  assert.deepEqual(
+    t.nodos.listaAvisos.hijos.map((boton) => boton.textContent),
+    ['Abrir WhatsApp — Ana', 'Abrir WhatsApp — Carla'],
+    'solo los contactos asignados a inicio'
+  );
+
+  t.nodos.listaAvisos.hijos[0].disparar('click');
+  assert.equal(t.ventanas.length, 1, 'se abre una ventana');
+  const [href, destino, features] = t.ventanas[0];
+  assert.equal(destino, '_blank');
+  assert.equal(features, 'noopener');
+  assert.ok(href.startsWith('https://wa.me/5491112345678?text='), href);
+  assert.equal(
+    textoDesdeWa(href),
+    'Aviso de BeepSafe para Ana: Marcelo comenzó una sesión de Windsurf. Llevo casco Tiene previsto finalizarla el lun 18:30.'
+  );
+
+  const registros = t.fetchLog.filter(
+    (l) => l.url === 'http://back.test/api/message-events/session' && l.init.method === 'POST'
+  );
+  assert.equal(registros.length, 1, 'la sesión se sigue registrando en el backend');
+  assert.deepEqual(JSON.parse(registros[0].init.body), {
+    actividad: 'Windsurf',
+    duracionSegundos: 180 * 60,
+  });
+});
+
+await testAsync('DETENER muestra el panel con el texto de fin y sigue cerrando la sesión en el backend', async () => {
+  const t = contextoConAvisos();
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+
+  t.nodos.botonIniciar.disparar('click'); // DETENER
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'INICIAR');
+  assert.equal(t.ctxTest.tipoAvisoActual, 'fin');
+  assert.deepEqual(
+    t.nodos.listaAvisos.hijos.map((boton) => boton.textContent),
+    ['Abrir WhatsApp — Beto', 'Abrir WhatsApp — Carla'],
+    'los contactos asignados a fin'
+  );
+
+  t.nodos.listaAvisos.hijos[0].disparar('click');
+  const [, , features] = t.ventanas[t.ventanas.length - 1];
+  assert.equal(features, 'noopener');
+  const href = t.ventanas[t.ventanas.length - 1][0];
+  const texto = textoDesdeWa(href);
+  assert.equal(texto, 'Aviso de BeepSafe para Beto: Marcelo finalizó su sesión de Windsurf. Listo');
+  assert.ok(!texto.includes('Enviado desde BeepSafe'));
+  assert.ok(!texto.includes('Tiene previsto'));
+
+  await esperar(() =>
+    t.fetchLog.some((l) => l.url.endsWith('/session/sess-avisos/stop'))
+  );
+  const stop = t.fetchLog.find((l) => l.url.endsWith('/session/sess-avisos/stop'));
+  assert.equal(stop.init.method, 'POST');
+});
+
+await testAsync('Compartir… sin navigator.share copia el texto al portapapeles y avisa con un toast', async () => {
+  const t = contextoConAvisos({ contactos: [CONTACTOS_AVISOS[0]] });
+  await t.domListo();
+  t.ctxTest.renderizarPanelAvisos('inicio');
+
+  t.nodos.botonCompartirAviso.disparar('click');
+  await esperar(() => t.portapapeles.length === 1 && t.toasts.length > 0);
+
+  assert.equal(
+    t.portapapeles[0],
+    'Aviso de BeepSafe para Ana: Marcelo comenzó una sesión de Windsurf. Llevo casco Tiene previsto finalizarla el lun 18:30.'
+  );
+  assert.ok(
+    t.toasts.some((toast) => toast.mensaje.includes('copiado')),
+    'el toast confirma la copia'
+  );
+});
+
+await testAsync('Compartir… usa navigator.share con {text} cuando está disponible', async () => {
+  const compartidos = [];
+  const t = contextoConAvisos();
+  t.ctx.navigator.share = (datos) => {
+    compartidos.push(datos);
+    return Promise.resolve();
+  };
+  await t.domListo();
+  t.ctxTest.renderizarPanelAvisos('fin');
+
+  t.nodos.botonCompartirAviso.disparar('click');
+  await esperar(() => compartidos.length === 1);
+
+  assert.deepEqual(Object.keys(compartidos[0]), ['text'], 'solo texto, sin title/url');
+  assert.equal(
+    compartidos[0].text,
+    'Aviso de BeepSafe para Beto: Marcelo finalizó su sesión de Windsurf. Listo'
+  );
+  assert.equal(t.portapapeles.length, 0, 'no copia cuando hay share');
 });
 }
 

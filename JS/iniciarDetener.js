@@ -53,6 +53,17 @@ const TIMEOUT_ESPERA_SESION_MS = 10000;
 const TEXTO_SESION_NO_REGISTRADA =
   'El contador va a correr, pero no se enviará la alarma automática porque no se pudo registrar la sesión.';
 
+// Textos manuales de inicio/fin. Ya no los manda la API: el usuario los
+// comparte desde su propio WhatsApp con el panel "Avisar a mis contactos".
+const ZONA_HORARIA_AVISOS = 'America/Argentina/Buenos_Aires';
+const CLAVE_MENSAJES_AVISOS = 'beepsafe_mensajes';
+const VALORES_AVISO_RESPALDO = {
+  contacto: 'María',
+  usuario: 'Marcelo',
+  actividad: 'windsurf',
+  hora: '19:00',
+};
+
 // Mapa actividad -> imagen de imagenes/. Las claves están normalizadas:
 // minúsculas, sin acentos y sin espacios extra.
 const IMAGEN_POR_ACTIVIDAD = {
@@ -114,6 +125,16 @@ let cargaActividadesFallida = false;
 // para no mezclar sesiones de usuarios distintos en el mismo navegador (REL-106)
 let emailSesion = '';
 
+// Nombre visible del usuario para los textos de WhatsApp (fallback: Marcelo)
+let nombreUsuarioAvisos = '';
+
+// Contactos que pueden recibir los avisos manuales de inicio/fin
+let contactosAvisos = [];
+
+// Panel "Avisar a mis contactos": tipo visible y texto actual de "Compartir…"
+let tipoAvisoActual = '';
+let textoCompartirActual = '';
+
 // Referencias del DOM
 let triggerActividad = null;
 let filaValorActividad = null;
@@ -142,6 +163,9 @@ let etiquetaBoton = null;
 let etiquetaTiempo = null;
 let iconoActividad = null;
 let anilloProgreso = null;
+let panelAvisos = null;
+let listaAvisos = null;
+let botonCompartirAviso = null;
 
 // Id de la sesión registrada en el backend, para poder detenerla al DETENER.
 // Vacío cuando la creación falló o el backend no lo devolvió: no se dispara stop.
@@ -823,6 +847,284 @@ function fijarTriggersBloqueados(bloqueados) {
   actualizarDisponibilidadTriggers();
 }
 
+// ------------------------------------------------- avisos manuales (wa.me)
+// Los textos de inicio/fin ya no salen por la API: se componen acá con la
+// misma interpolación/fallbacks que usa el preview del editor de mensajes.
+
+function diaAbreviadoAviso(fecha) {
+  const formato = new Intl.DateTimeFormat('es-AR', {
+    timeZone: ZONA_HORARIA_AVISOS,
+    weekday: 'short',
+  });
+  return formato.format(fecha).replace(/\./g, '').trim().toLowerCase();
+}
+
+function formatearHoraAviso(fecha) {
+  try {
+    const formato = new Intl.DateTimeFormat('es-AR', {
+      timeZone: ZONA_HORARIA_AVISOS,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    const partes = formato.formatToParts(fecha);
+    const buscar = (tipo) => {
+      const parte = partes.find((item) => item.type === tipo);
+      return parte ? parte.value : '';
+    };
+    const dia = diaAbreviadoAviso(fecha);
+    let hora = buscar('hour');
+    const minuto = buscar('minute');
+    if (hora === '24') hora = '00';
+    if (dia && hora && minuto) return `${dia} ${hora}:${minuto}`;
+  } catch (err) {
+    console.error(`[iniciarDetener] no se pudo formatear la hora del aviso: ${mensajeDeError(err)}`);
+  }
+  return horaAvisoFallback();
+}
+
+// Mismo fallback que el preview: día de HOY en Buenos Aires a las 19:00
+function horaAvisoFallback() {
+  try {
+    const dia = diaAbreviadoAviso(new Date());
+    if (dia) return `${dia} 19:00`;
+  } catch (err) {
+    console.error(
+      `[iniciarDetener] no se pudo calcular el día del aviso: ${mensajeDeError(err)}`
+    );
+  }
+  return VALORES_AVISO_RESPALDO.hora;
+}
+
+function horaPrevistaAviso() {
+  const duracion = estadoSesion.tiempoSegundos;
+  if (!Number.isFinite(duracion) || duracion <= 0) return horaAvisoFallback();
+  const base = inicioContadorMs > 0 ? inicioContadorMs : Date.now();
+  return formatearHoraAviso(new Date(base + duracion * 1000));
+}
+
+function leerMensajesAvisos() {
+  for (const clave of [claveConUsuario(CLAVE_MENSAJES_AVISOS), CLAVE_MENSAJES_AVISOS]) {
+    const crudo = obtenerCrudo(clave);
+    if (!crudo) continue;
+    try {
+      const datos = JSON.parse(crudo);
+      if (!datos || typeof datos !== 'object') continue;
+      if (datos.mensajes && typeof datos.mensajes === 'object') return datos.mensajes;
+      return datos;
+    } catch (err) {
+      console.error(`[iniciarDetener] mensajes ilegibles en ${clave}: ${mensajeDeError(err)}`);
+    }
+  }
+  return {};
+}
+
+function mensajeGuardadoAviso(tipo) {
+  const mensajes = leerMensajesAvisos();
+  return typeof mensajes[tipo] === 'string' ? mensajes[tipo] : '';
+}
+
+function componerTextoAviso(tipo, contactoNombre, mensaje) {
+  const contacto =
+    typeof contactoNombre === 'string' && contactoNombre.trim()
+      ? contactoNombre.trim()
+      : VALORES_AVISO_RESPALDO.contacto;
+  const usuario = nombreUsuarioAvisos.trim() || VALORES_AVISO_RESPALDO.usuario;
+  const actividad =
+    estadoSesion.actividad && estadoSesion.actividad.trim()
+      ? estadoSesion.actividad.trim()
+      : VALORES_AVISO_RESPALDO.actividad;
+  const partes = [];
+  if (tipo === 'inicio') {
+    partes.push(`Aviso de BeepSafe para ${contacto}: ${usuario} comenzó una sesión de ${actividad}.`);
+  } else if (tipo === 'fin') {
+    partes.push(`Aviso de BeepSafe para ${contacto}: ${usuario} finalizó su sesión de ${actividad}.`);
+  } else {
+    return '';
+  }
+  const limpio = typeof mensaje === 'string' ? mensaje.trim() : '';
+  if (limpio) partes.push(limpio);
+  if (tipo === 'inicio') partes.push(`Tiene previsto finalizarla el ${horaPrevistaAviso()}.`);
+  return partes.join(' ');
+}
+
+function normalizarContactoAviso(contacto) {
+  const origen = contacto && typeof contacto === 'object' ? contacto : {};
+  const fuente =
+    origen.mensajesPorTipo && typeof origen.mensajesPorTipo === 'object'
+      ? origen.mensajesPorTipo
+      : null;
+  const asignado = (tipo) => (fuente ? fuente[tipo] === true : origen.mensajes === true);
+  return {
+    nombre: typeof origen.nombre === 'string' ? origen.nombre : String(origen.nombre ?? ''),
+    telefono: typeof origen.telefono === 'string' ? origen.telefono : String(origen.telefono ?? ''),
+    inicio: asignado('inicio'),
+    fin: asignado('fin'),
+  };
+}
+
+function contactosParaAviso(tipo) {
+  if (tipo !== 'inicio' && tipo !== 'fin') return [];
+  return contactosAvisos.filter(
+    (contacto) => contacto[tipo] === true && contacto.nombre.trim() !== ''
+  );
+}
+
+function soloDigitos(telefono) {
+  return String(telefono ?? '').replace(/\D/g, '');
+}
+
+function construirUrlWhatsapp(telefono, texto) {
+  return `https://wa.me/${soloDigitos(telefono)}?text=${encodeURIComponent(texto)}`;
+}
+
+function abrirWhatsapp(href) {
+  try {
+    if (typeof window !== 'undefined' && window && typeof window.open === 'function') {
+      window.open(href, '_blank', 'noopener');
+      return true;
+    }
+  } catch (err) {
+    console.error(`[iniciarDetener] no se pudo abrir WhatsApp: ${mensajeDeError(err)}`);
+  }
+  return false;
+}
+
+function mostrarToastAviso(mensaje, tipo) {
+  try {
+    asegurarContenedorToasts();
+    if (
+      typeof window !== 'undefined' &&
+      window.utils &&
+      typeof window.utils.showToast === 'function'
+    ) {
+      window.utils.showToast(mensaje, tipo || 'info');
+      return;
+    }
+    if (typeof showToast === 'function') {
+      showToast(mensaje, tipo || 'info');
+      return;
+    }
+    import('../JS/utils.js')
+      .then((modulo) => {
+        if (modulo && typeof modulo.showToast === 'function') {
+          modulo.showToast(mensaje, tipo || 'info');
+        }
+      })
+      .catch(() => {});
+  } catch (err) {
+    // sin toast disponible: el log de error ya dejó el rastro
+  }
+}
+
+function copiarTextoAlPortapapeles(texto) {
+  const confirmado = () => mostrarToastAviso('Mensaje copiado al portapapeles.', 'success');
+  const fallido = () => mostrarToastAviso('No se pudo copiar el mensaje.', 'error');
+  try {
+    if (
+      typeof navigator !== 'undefined' &&
+      navigator &&
+      navigator.clipboard &&
+      typeof navigator.clipboard.writeText === 'function'
+    ) {
+      const resultado = navigator.clipboard.writeText(texto);
+      if (resultado && typeof resultado.then === 'function') {
+        resultado.then(confirmado).catch(fallido);
+      } else {
+        confirmado();
+      }
+      return true;
+    }
+  } catch (err) {
+    console.error(`[iniciarDetener] no se pudo copiar el mensaje: ${mensajeDeError(err)}`);
+  }
+  fallido();
+  return false;
+}
+
+function manejarCompartirAviso() {
+  const texto = textoCompartirActual;
+  if (!texto) return false;
+  if (typeof navigator !== 'undefined' && navigator && typeof navigator.share === 'function') {
+    try {
+      const resultado = navigator.share({ text: texto });
+      if (resultado && typeof resultado.catch === 'function') resultado.catch(() => {});
+      return true;
+    } catch (err) {
+      console.error(`[iniciarDetener] navigator.share falló: ${mensajeDeError(err)}`);
+    }
+  }
+  return copiarTextoAlPortapapeles(texto);
+}
+
+function renderizarPanelAvisos(tipo) {
+  if (tipo !== 'inicio' && tipo !== 'fin') return false;
+  if (!panelAvisos || !listaAvisos) return false;
+  const contactos = contactosParaAviso(tipo);
+  const mensaje = mensajeGuardadoAviso(tipo);
+  listaAvisos.innerHTML = '';
+  for (const contacto of contactos) {
+    const texto = componerTextoAviso(tipo, contacto.nombre, mensaje);
+    const href = construirUrlWhatsapp(contacto.telefono, texto);
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'panelAvisosBoton';
+    boton.textContent = `Abrir WhatsApp — ${contacto.nombre}`;
+    boton.addEventListener('click', () => abrirWhatsapp(href));
+    listaAvisos.appendChild(boton);
+  }
+  const contactoCompartir =
+    contactos.length > 0 ? contactos[0].nombre : VALORES_AVISO_RESPALDO.contacto;
+  textoCompartirActual = componerTextoAviso(tipo, contactoCompartir, mensaje);
+  tipoAvisoActual = tipo;
+  panelAvisos.hidden = false;
+  return true;
+}
+
+async function cargarContactosAvisos() {
+  const url = `${ROOT_URL}/api/contacts`;
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.error(`[iniciarDetener] GET contacts sin token: ${url}`);
+    contactosAvisos = [];
+    return contactosAvisos;
+  }
+  try {
+    const respuesta = await fetchConTimeout(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!respuesta.ok) {
+      console.error(`[iniciarDetener] GET contacts falló: ${url} status=${respuesta.status}`);
+      contactosAvisos = [];
+      return contactosAvisos;
+    }
+    let datos = null;
+    try {
+      datos = await respuesta.json();
+    } catch (err) {
+      console.error(
+        `[iniciarDetener] contacts devolvió JSON ilegible: ${url} — ${mensajeDeError(err)}`
+      );
+      contactosAvisos = [];
+      return contactosAvisos;
+    }
+    const lista = datos && Array.isArray(datos.contactos) ? datos.contactos : [];
+    contactosAvisos = lista
+      .filter(
+        (contacto) =>
+          contacto && typeof contacto === 'object' && typeof contacto.nombre === 'string'
+      )
+      .map(normalizarContactoAviso);
+    if (tipoAvisoActual) renderizarPanelAvisos(tipoAvisoActual);
+    return contactosAvisos;
+  } catch (err) {
+    console.error(`[iniciarDetener] GET contacts falló: ${url} — ${mensajeDeError(err)}`);
+    contactosAvisos = [];
+    return contactosAvisos;
+  }
+}
+
 function iniciarContador() {
   if (!cargaCompleta) return; // carga pendiente: no arrancar ni persistir (REL-101)
   sincronizarEstadoSesion();
@@ -853,6 +1155,7 @@ function iniciarContador() {
 function detenerContador() {
   // REL-002: si el POST de creación sigue en vuelo, no se pierde el stop.
   // REL-004: el id en memoria manda; localStorage es solo un respaldo.
+  const veniaCorriendo = estadoContador === 'corriendo';
   const promesaCreacion = promesaSesionEnCurso;
   promesaSesionEnCurso = null;
   const sessionIdConocido = sessionIdEnCurso || leerSessionIdEnCurso();
@@ -869,6 +1172,10 @@ function detenerContador() {
   etiquetaBoton.textContent = 'INICIAR';
   fijarTriggersBloqueados(false);
   actualizarVisualizacion();
+
+  // El fin ya no lo manda la API: el panel ofrece compartirlo por WhatsApp.
+  // Se muestra al instante, sin esperar el stop del backend.
+  if (veniaCorriendo) renderizarPanelAvisos('fin');
 
   // El stop corre detrás: espera acotada al registro pendiente y luego cierra
   return (async () => {
@@ -947,6 +1254,9 @@ function inicializarUI() {
   etiquetaTiempo = document.querySelector('.botonIniciar .tiempo');
   iconoActividad = document.getElementById('iconoActividad');
   anilloProgreso = document.getElementById('anilloProgreso');
+  panelAvisos = document.getElementById('panelAvisos');
+  listaAvisos = document.getElementById('listaAvisos');
+  botonCompartirAviso = document.getElementById('botonCompartirAviso');
 
   const nodosRequeridos = {
     triggerActividad,
@@ -974,6 +1284,9 @@ function inicializarUI() {
     etiquetaTiempo,
     iconoActividad,
     anilloProgreso,
+    panelAvisos,
+    listaAvisos,
+    botonCompartirAviso,
   };
   const faltantes = Object.keys(nodosRequeridos).filter((nombre) => !nodosRequeridos[nombre]);
   if (faltantes.length > 0) {
@@ -1001,6 +1314,7 @@ function inicializarUI() {
   botonMinutosMas.addEventListener('click', () => manejarPasoTiempo('minutos', 1));
   botonMinutosMenos.addEventListener('click', () => manejarPasoTiempo('minutos', -1));
   botonIniciar.addEventListener('click', alternarContador);
+  botonCompartirAviso.addEventListener('click', manejarCompartirAviso);
 
   // Click fuera de cualquier desplegable -> cerrar el panel abierto. El click
   // sobre el propio trigger o su panel es "adentro" (closest('.desplegable'))
@@ -1055,30 +1369,7 @@ function asegurarContenedorToasts() {
 // utils.js es un módulo ES y esta página carga scripts clásicos: se importa
 // dinámicamente. Si el helper ya está expuesto como global (tests), se usa ese.
 function mostrarToastSesionNoRegistrada(mensaje) {
-  try {
-    asegurarContenedorToasts();
-    if (
-      typeof window !== 'undefined' &&
-      window.utils &&
-      typeof window.utils.showToast === 'function'
-    ) {
-      window.utils.showToast(mensaje, 'error');
-      return;
-    }
-    if (typeof showToast === 'function') {
-      showToast(mensaje, 'error');
-      return;
-    }
-    import('../JS/utils.js')
-      .then((modulo) => {
-        if (modulo && typeof modulo.showToast === 'function') {
-          modulo.showToast(mensaje, 'error');
-        }
-      })
-      .catch(() => {});
-  } catch (err) {
-    // sin toast disponible: el log de error ya dejó el rastro
-  }
+  mostrarToastAviso(mensaje, 'error');
 }
 
 // POST de creación de sesión con un reintento (mismo tope que activities).
@@ -1170,6 +1461,8 @@ function enviarInicioSesionEnBackend() {
       if (estadoContador === 'corriendo' && inicioContadorMs === inicioEnviado) {
         sessionIdEnCurso = sessionId;
         guardarSesionEnCurso(); // el id persiste: un reload todavía puede detenerla
+        // Sesión registrada: recién ahora el inicio puede compartirse a mano
+        renderizarPanelAvisos('inicio');
       }
       return sessionId;
     }
@@ -1358,10 +1651,13 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (usuarioJWT && typeof usuarioJWT.email === 'string') {
     emailSesion = usuarioJWT.email; // namespace de claves de localStorage (REL-106)
   }
+  if (usuarioJWT && typeof usuarioJWT.name === 'string') {
+    nombreUsuarioAvisos = usuarioJWT.name;
+  }
 
   if (!uiLista) return; // la UI no se inicializó: no tocar nodos inexistentes
   // Las actividades se piden por el email disponible, no por el éxito del call
   // de auth: un fallo de sesión no debe starvear un /api/activities sano (RES-003)
-  await cargarActividades(emailSesion);
+  await Promise.all([cargarActividades(emailSesion), cargarContactosAvisos()]);
 });
 
