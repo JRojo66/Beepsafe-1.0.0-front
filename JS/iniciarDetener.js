@@ -924,6 +924,15 @@ function mensajeGuardadoAviso(tipo) {
   return typeof mensajes[tipo] === 'string' ? mensajes[tipo] : '';
 }
 
+// Cierra la frase del mensaje personal antes de encadenar la parte fija:
+// trim, agrega "." si falta puntuación final y devuelve "" si está vacío
+// (así no quedan puntos sueltos ni dobles espacios).
+function cerrarFrase(texto) {
+  const limpio = typeof texto === 'string' ? texto.trim() : '';
+  if (!limpio) return '';
+  return /[.!?…]$/.test(limpio) ? limpio : `${limpio}.`;
+}
+
 function componerTextoAviso(tipo, contactoNombre, mensaje) {
   const contacto =
     typeof contactoNombre === 'string' && contactoNombre.trim()
@@ -942,7 +951,7 @@ function componerTextoAviso(tipo, contactoNombre, mensaje) {
   } else {
     return '';
   }
-  const limpio = typeof mensaje === 'string' ? mensaje.trim() : '';
+  const limpio = cerrarFrase(mensaje);
   if (limpio) partes.push(limpio);
   if (tipo === 'inicio') partes.push(`Tiene previsto finalizarla el ${horaPrevistaAviso()}.`);
   return partes.join(' ');

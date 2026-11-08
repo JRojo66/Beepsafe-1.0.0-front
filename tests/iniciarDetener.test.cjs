@@ -26,7 +26,7 @@ const EXPORTS = `;globalThis.__test = {
   manejarClickTriggerTiempo,
   TEXTO_SIN_ACTIVIDADES, TEXTO_ERROR_ACTIVIDADES,
   VALORES_AVISO_RESPALDO, CLAVE_MENSAJES_AVISOS,
-  componerTextoAviso, normalizarContactoAviso, contactosParaAviso,
+  componerTextoAviso, cerrarFrase, normalizarContactoAviso, contactosParaAviso,
   soloDigitos, construirUrlWhatsapp, renderizarPanelAvisos,
   cargarContactosAvisos, manejarCompartirAviso, copiarTextoAlPortapapeles,
   formatearHoraAviso, horaAvisoFallback, horaPrevistaAviso,
@@ -717,15 +717,50 @@ test('componerTextoAviso usa María/Marcelo/windsurf y la hora prevista', () => 
   assert.equal(t.ctxTest.horaAvisoFallback(), 'lun 19:00');
 });
 
+test('cerrarFrase cierra el mensaje sin duplicar puntuación', () => {
+  const t = crearContexto();
+  assert.equal(t.ctxTest.cerrarFrase('  Llevo casco  '), 'Llevo casco.');
+  assert.equal(t.ctxTest.cerrarFrase('¡Listo!'), '¡Listo!');
+  assert.equal(t.ctxTest.cerrarFrase('¿Vas?'), '¿Vas?');
+  assert.equal(t.ctxTest.cerrarFrase('Sigo…'), 'Sigo…');
+  assert.equal(t.ctxTest.cerrarFrase('Terminé.'), 'Terminé.');
+  assert.equal(t.ctxTest.cerrarFrase(''), '');
+  assert.equal(t.ctxTest.cerrarFrase('   '), '');
+  assert.equal(t.ctxTest.cerrarFrase(null), '');
+});
+
 test('componerTextoAviso incluye el mensaje personal y no usa "Enviado desde BeepSafe"', () => {
   const t = crearContexto({ ahora: Date.UTC(2026, 4, 18, 18, 30) });
   assert.equal(
     t.ctxTest.componerTextoAviso('inicio', 'Ana', 'Llevo casco'),
-    'Aviso de BeepSafe para Ana: Marcelo comenzó una sesión de windsurf. Llevo casco Tiene previsto finalizarla el lun 18:30.'
+    'Aviso de BeepSafe para Ana: Marcelo comenzó una sesión de windsurf. Llevo casco. Tiene previsto finalizarla el lun 18:30.'
+  );
+  assert.equal(
+    t.ctxTest.componerTextoAviso('inicio', 'Ana', '¡Llevo casco!'),
+    'Aviso de BeepSafe para Ana: Marcelo comenzó una sesión de windsurf. ¡Llevo casco! Tiene previsto finalizarla el lun 18:30.',
+    'si ya cierra con "!" no agrega punto'
+  );
+  assert.equal(
+    t.ctxTest.componerTextoAviso('inicio', 'Ana', '¿Llevo casco?'),
+    'Aviso de BeepSafe para Ana: Marcelo comenzó una sesión de windsurf. ¿Llevo casco? Tiene previsto finalizarla el lun 18:30.',
+    'si ya cierra con "?" no agrega punto'
   );
   const fin = t.ctxTest.componerTextoAviso('fin', 'Ana', 'Listo');
-  assert.equal(fin, 'Aviso de BeepSafe para Ana: Marcelo finalizó su sesión de windsurf. Listo');
+  assert.equal(fin, 'Aviso de BeepSafe para Ana: Marcelo finalizó su sesión de windsurf. Listo.');
   assert.ok(!fin.includes('Enviado desde BeepSafe'));
+});
+
+test('componerTextoAviso sin mensaje deja un solo espacio y ninguna puntuación doble', () => {
+  const t = crearContexto({ ahora: Date.UTC(2026, 4, 18, 18, 30) });
+  const inicio = t.ctxTest.componerTextoAviso('inicio', 'Ana', '');
+  assert.equal(
+    inicio,
+    'Aviso de BeepSafe para Ana: Marcelo comenzó una sesión de windsurf. Tiene previsto finalizarla el lun 18:30.'
+  );
+  assert.ok(!inicio.includes('  '), 'sin doble espacio');
+  assert.ok(!inicio.includes('..'), 'sin doble punto');
+  const fin = t.ctxTest.componerTextoAviso('fin', 'Ana', '   ');
+  assert.equal(fin, 'Aviso de BeepSafe para Ana: Marcelo finalizó su sesión de windsurf.');
 });
 
 test('construirUrlWhatsapp deja solo dígitos y codifica el texto', () => {
@@ -2272,7 +2307,7 @@ await testAsync('INICIAR exitoso muestra un botón wa.me por contacto de inicio 
   assert.ok(href.startsWith('https://wa.me/5491112345678?text='), href);
   assert.equal(
     textoDesdeWa(href),
-    'Aviso de BeepSafe para Ana: Marcelo comenzó una sesión de Windsurf. Llevo casco Tiene previsto finalizarla el lun 18:30.'
+    'Aviso de BeepSafe para Ana: Marcelo comenzó una sesión de Windsurf. Llevo casco. Tiene previsto finalizarla el lun 18:30.'
   );
 
   const registros = t.fetchLog.filter(
@@ -2306,7 +2341,7 @@ await testAsync('DETENER muestra el panel con el texto de fin y sigue cerrando l
   assert.equal(features, 'noopener');
   const href = t.ventanas[t.ventanas.length - 1][0];
   const texto = textoDesdeWa(href);
-  assert.equal(texto, 'Aviso de BeepSafe para Beto: Marcelo finalizó su sesión de Windsurf. Listo');
+  assert.equal(texto, 'Aviso de BeepSafe para Beto: Marcelo finalizó su sesión de Windsurf. Listo.');
   assert.ok(!texto.includes('Enviado desde BeepSafe'));
   assert.ok(!texto.includes('Tiene previsto'));
 
@@ -2327,7 +2362,7 @@ await testAsync('Compartir… sin navigator.share copia el texto al portapapeles
 
   assert.equal(
     t.portapapeles[0],
-    'Aviso de BeepSafe para Ana: Marcelo comenzó una sesión de Windsurf. Llevo casco Tiene previsto finalizarla el lun 18:30.'
+    'Aviso de BeepSafe para Ana: Marcelo comenzó una sesión de Windsurf. Llevo casco. Tiene previsto finalizarla el lun 18:30.'
   );
   assert.ok(
     t.toasts.some((toast) => toast.mensaje.includes('copiado')),
@@ -2351,7 +2386,7 @@ await testAsync('Compartir… usa navigator.share con {text} cuando está dispon
   assert.deepEqual(Object.keys(compartidos[0]), ['text'], 'solo texto, sin title/url');
   assert.equal(
     compartidos[0].text,
-    'Aviso de BeepSafe para Beto: Marcelo finalizó su sesión de Windsurf. Listo'
+    'Aviso de BeepSafe para Beto: Marcelo finalizó su sesión de Windsurf. Listo.'
   );
   assert.equal(t.portapapeles.length, 0, 'no copia cuando hay share');
 });
