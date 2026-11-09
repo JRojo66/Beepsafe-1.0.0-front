@@ -711,6 +711,46 @@ a {
   color: var(--color-principal);
 }
 
+/* Pre-aviso del temporizador y confirmación de alarma enviada */
+.parpadeando {
+  animation: parpadeoAviso 1s ease-in-out infinite alternate;
+}
+
+@keyframes parpadeoAviso {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parpadeando {
+    animation: none;
+  }
+}
+
+.avisoAlarmaEnviada {
+  box-sizing: border-box;
+  width: 80%;
+  max-width: 400px;
+  margin: 12px auto;
+  padding: 12px 16px;
+  border: 2px solid #ff5a5a;
+  border-radius: 20px;
+  background-color: rgba(244, 67, 54, 0.18);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: bold;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.avisoAlarmaEnviada[hidden] {
+  display: none;
+}
+
 /* Desplegables personalizados de Iniciar/Detener (reemplazan a los <select
    class="menu"> nativos): cada caja visible tiene dos filas — la cabecera
    estática (título + flecha) y, debajo, la fila con el valor elegido — y el

@@ -34,8 +34,16 @@ const EXPORTS = `;globalThis.__test = {
   mensajeGuardadoAviso, obtenerUbicacionActual, normalizarUbicacion,
   iniciarRefrescoUbicacion, detenerRefrescoUbicacion, refrescarUbicacion,
   urlUbicacionAviso, OPCIONES_UBICACION, INTERVALO_UBICACION_MS,
+  umbralPreaviso, prepararAudio, emitirBeep, iniciarBeep, detenerBeep,
+  activarAlertaPrevia, detenerAlertaPrevia, detenerPollAlarma,
+  confirmarAlarmaEnviada, consultarAlarma, iniciarPollAlarma, reiniciarAvisoAlarma,
+  UMBRAL_PREAVISO_MAXIMO_SEGUNDOS, INTERVALO_BEEP_MS, INTERVALO_POLL_ALARMA_MS,
   get ultimaUbicacion() { return ultimaUbicacion ? { ...ultimaUbicacion } : null; },
   get temporizadorUbicacion() { return temporizadorUbicacion; },
+  get contextoAudio() { return contextoAudio; },
+  get temporizadorBeep() { return temporizadorBeep; },
+  get temporizadorAlarma() { return temporizadorAlarma; },
+  get alarmaConfirmada() { return alarmaConfirmada; },
   get equiposSeleccionados() { return equiposSeleccionados.slice(); },
   get cargaCompleta() { return cargaCompleta; },
   get cargaActividadesFallida() { return cargaActividadesFallida; },
@@ -185,6 +193,10 @@ function crearContexto(opciones = {}) {
     etiquetaTiempo: crearNodo(),
     iconoActividad: crearNodo({ src: '', alt: '' }),
     anilloProgreso: crearNodo({ getAttribute: () => '145' }),
+    avisoAlarmaEnviada: crearNodo({
+      hidden: true,
+      textContent: 'Mensaje de alarma enviado. Avise su situación a sus contactos.',
+    }),
     nombre: crearNodo(),
     panelAvisos: crearNodo({ hidden: true }),
     tituloAvisos: crearNodo({ textContent: 'Mandar WhatsApp de inicio' }),
@@ -796,6 +808,20 @@ test('construirUrlWhatsapp deja solo dígitos y codifica el texto', () => {
   const href = t.ctxTest.construirUrlWhatsapp('+54 9 11 1234-5678', 'Hola & chau');
   assert.equal(href, `https://wa.me/5491112345678?text=${encodeURIComponent('Hola & chau')}`);
   assert.ok(!href.split('?')[0].includes('+'));
+});
+
+test('HTML y CSS declaran el pre-aviso y el aviso de alarma enviada', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'pages', 'iniciarDetener.html'), 'utf8');
+  assert.ok(html.includes('id="avisoAlarmaEnviada"'), 'falta el nodo de aviso de alarma');
+  assert.ok(
+    html.includes('Mensaje de alarma enviado. Avise su situación a sus contactos.'),
+    'falta el texto exacto del aviso'
+  );
+  assert.ok(html.includes('id="avisoAlarmaEnviada"') && html.includes('hidden'), 'arranca oculto');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'styles', 'styles.css'), 'utf8');
+  assert.ok(css.includes('.parpadeando'), 'falta la clase de parpadeo');
+  assert.ok(css.includes('prefers-reduced-motion'), 'falta la regla de reduced motion');
+  assert.ok(css.includes('.avisoAlarmaEnviada'), 'falta el estilo de la caja roja');
 });
 
 console.log('# iniciarDetener.js — UI');
@@ -2083,7 +2109,7 @@ await testAsync('DETENER: POST /session/<id>/stop y limpia el id persistido', as
   assert.equal(t.nodos.etiquetaBoton.textContent, 'INICIAR');
 });
 
-await testAsync('FINALIZADO: no envía stop ni ningún request extra (la alarma la maneja el backend)', async () => {
+await testAsync('FINALIZADO: no envía stop y solo consulta la confirmación de alarma', async () => {
   const t = crearContexto({
     store: new Map([['token', 'token-events-3']]),
     fetch: async (url) => {
@@ -2105,8 +2131,23 @@ await testAsync('FINALIZADO: no envía stop ni ningún request extra (la alarma 
   assert.equal(t.nodos.etiquetaBoton.textContent, 'FINALIZADO');
 
   await new Promise((resolver) => setTimeout(resolver, 20));
-  assert.equal(t.fetchLog.filter((l) => l.url.includes('/stop')).length, 0, 'sin stop al finalizar');
-  assert.equal(t.fetchLog.length, antes, 'ningún request nuevo al finalizar');
+  const nuevos = t.fetchLog.slice(antes);
+  assert.equal(nuevos.filter((l) => l.url.includes('/stop')).length, 0, 'sin stop al finalizar');
+  assert.ok(nuevos.length >= 1, 'consulta la confirmación de la alarma al finalizar');
+  assert.ok(
+    nuevos.every(
+      (l) =>
+        l.url === 'http://back.test/api/message-events/session/sess-9' &&
+        l.init &&
+        l.init.method === 'GET'
+    ),
+    'el único request nuevo es el GET de confirmación de alarma'
+  );
+  assert.equal(
+    t.nodos.avisoAlarmaEnviada.hidden,
+    true,
+    'sin caja roja mientras la alarma está pendiente'
+  );
 });
 
 await testAsync('REL-002: DETENER antes de que resuelva el registro espera y envía el stop al id resuelto', async () => {
@@ -2308,6 +2349,13 @@ function contextoConAvisos(opciones = {}) {
       if (url.endsWith('/api/message-events/session') && metodo === 'POST') {
         return respuestaOk({ sessionId: 'sess-avisos' });
       }
+      if (/\/api\/message-events\/session\/[^/]+$/.test(url) && metodo === 'GET') {
+        const valor =
+          typeof opciones.alarmaEnviada === 'function'
+            ? opciones.alarmaEnviada()
+            : opciones.alarmaEnviada;
+        return respuestaOk({ alarmaEnviada: valor === true });
+      }
       if (url.includes('/ubicacion') && metodo === 'PATCH') return respuestaOk({});
       if (url.includes('/stop')) return respuestaOk({});
       throw new Error(`URL inesperada: ${url}`);
@@ -2350,6 +2398,44 @@ function geolocationSecuencia(posiciones) {
       else error({ code: 1, message: 'denied' });
     },
   };
+}
+
+function crearAudioFalso() {
+  const registro = { contextos: 0, reanudados: 0, osciladores: [], ganancias: [] };
+  class AudioContextFalso {
+    constructor() {
+      registro.contextos += 1;
+      this.state = 'suspended';
+      this.currentTime = 0;
+      this.destination = {};
+    }
+    resume() {
+      registro.reanudados += 1;
+      this.state = 'running';
+      return Promise.resolve();
+    }
+    createOscillator() {
+      const oscilador = {
+        type: '',
+        frequency: { value: 0 },
+        connect() {},
+        start(ahora) {
+          this.inicio = ahora;
+        },
+        stop(ahora) {
+          this.fin = ahora;
+        },
+      };
+      registro.osciladores.push(oscilador);
+      return oscilador;
+    }
+    createGain() {
+      const ganancia = { gain: { value: 1 }, connect() {} };
+      registro.ganancias.push(ganancia);
+      return ganancia;
+    }
+  }
+  return { AudioContextFalso, registro };
 }
 
 await testAsync('INICIAR exitoso muestra un botón wa.me por contacto de inicio con el texto codificado', async () => {
@@ -2692,6 +2778,122 @@ await testAsync('al reanudar una sesión se reutiliza la ubicación persistida',
       .componerTextoAviso('inicio', 'Ana', '')
       .includes('Ubicación: https://www.google.com/maps?q=-34.6037,-58.3816')
   );
+});
+
+// ------------------------------- pre-aviso y alarma enviada
+
+await testAsync('el pre-aviso parpadea y hace beep en el umbral y se corta al DETENER', async () => {
+  const audio = crearAudioFalso();
+  const t = crearContexto({ fetch: fetchNormal(), ahora: Date.UTC(2026, 4, 18, 12, 0) });
+  t.ctx.window.AudioContext = audio.AudioContextFalso;
+  await t.domListo();
+  fijarTiempo(t, { minutos: 2 });
+
+  assert.equal(t.ctxTest.umbralPreaviso(120), 12, '2 min -> 12 s');
+  assert.equal(t.ctxTest.umbralPreaviso(600), 60, '10 min -> 60 s');
+  assert.equal(t.ctxTest.umbralPreaviso(7200), 300, '2 h -> 300 s');
+
+  t.nodos.botonIniciar.disparar('click');
+  assert.equal(audio.registro.contextos, 1, 'AudioContext creado en el gesto de INICIAR');
+  assert.ok(audio.registro.reanudados >= 1, 'AudioContext reanudado en el gesto');
+
+  // 108 s transcurridos: quedan 12 s (umbral exacto)
+  t.reloj.ahora += 108000;
+  t.tick();
+  assert.equal(
+    t.nodos.etiquetaTiempo.classList.contains('parpadeando'),
+    true,
+    'el temporizador parpadea'
+  );
+  assert.equal(audio.registro.osciladores.length, 1, 'el primer beep suena al entrar al umbral');
+  const oscilador = audio.registro.osciladores[0];
+  assert.equal(oscilador.frequency.value, 880, 'tono de 880 Hz');
+  assert.equal(audio.registro.ganancias[0].gain.value, 0.2, 'ganancia <= 0.2');
+  assert.ok(
+    Math.abs(oscilador.fin - oscilador.inicio - 0.2) < 1e-9,
+    'el tono dura 200 ms'
+  );
+  assert.equal(t.ctxTest.temporizadorBeep !== null, true, 'beep cada 2 s');
+
+  // 2 s más: segundo beep del intervalo
+  t.reloj.ahora += 2000;
+  t.tick();
+  assert.equal(audio.registro.osciladores.length, 2, 'beep intermitente cada 2 s');
+
+  t.nodos.botonIniciar.disparar('click'); // DETENER
+  assert.equal(t.nodos.etiquetaTiempo.classList.contains('parpadeando'), false);
+  assert.equal(t.ctxTest.temporizadorBeep, null, 'DETENER corta el beep');
+
+  t.reloj.ahora += 2000;
+  t.tick();
+  assert.equal(audio.registro.osciladores.length, 2, 'no suenan más beeps tras DETENER');
+});
+
+await testAsync('al llegar a 0 consulta la alarma y solo muestra la caja roja al confirmarse', async () => {
+  let enviada = false;
+  const t = contextoConAvisos({ alarmaEnviada: () => enviada });
+  await t.domListo();
+  fijarTiempo(t, { minutos: 2 });
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+
+  t.reloj.ahora += 120000;
+  t.tick();
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'FINALIZADO');
+  assert.equal(
+    t.nodos.etiquetaTiempo.classList.contains('parpadeando'),
+    false,
+    'al llegar a 0 se corta el parpadeo del timer'
+  );
+  assert.equal(t.ctxTest.temporizadorBeep, null, 'al llegar a 0 se corta el beep');
+
+  await esperar(() =>
+    t.fetchLog.some(
+      (l) =>
+        /\/api\/message-events\/session\/sess-avisos$/.test(l.url) && l.init.method === 'GET'
+    )
+  );
+  assert.equal(
+    t.nodos.avisoAlarmaEnviada.hidden,
+    true,
+    'no se muestra la caja roja mientras está pendiente'
+  );
+  assert.equal(t.ctxTest.temporizadorAlarma !== null, true, 'polling activo cada 10 s');
+
+  enviada = true;
+  t.reloj.ahora += t.ctxTest.INTERVALO_POLL_ALARMA_MS;
+  t.tick();
+  await esperar(() => t.nodos.avisoAlarmaEnviada.hidden === false);
+
+  assert.equal(
+    t.nodos.avisoAlarmaEnviada.textContent,
+    'Mensaje de alarma enviado. Avise su situación a sus contactos.'
+  );
+  assert.equal(
+    t.nodos.etiquetaBoton.classList.contains('parpadeando'),
+    true,
+    'el estado FINALIZADO parpadea al confirmar'
+  );
+  assert.equal(t.ctxTest.temporizadorAlarma, null, 'el polling se corta al confirmar');
+  assert.equal(t.ctxTest.alarmaConfirmada, true);
+});
+
+await testAsync('el polling de alarma se detiene al ocultar la página', async () => {
+  const t = contextoConAvisos({ alarmaEnviada: () => false });
+  await t.domListo();
+  fijarTiempo(t, { minutos: 2 });
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+
+  t.reloj.ahora += 120000;
+  t.tick();
+  await esperar(() => t.ctxTest.temporizadorAlarma !== null);
+
+  t.ctx.document.visibilityState = 'hidden';
+  t.dispararDocumento('visibilitychange', {});
+  assert.equal(t.ctxTest.temporizadorAlarma, null, 'page hide corta el polling');
 });
 }
 

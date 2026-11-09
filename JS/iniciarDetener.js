@@ -62,6 +62,14 @@ const OPCIONES_UBICACION = {
   maximumAge: 60000,
 };
 
+// Pre-aviso (blink + beep) y polling de confirmación de la alarma
+const UMBRAL_PREAVISO_MAXIMO_SEGUNDOS = 300;
+const FRECUENCIA_BEEP_HZ = 880;
+const DURACION_BEEP_SEGUNDOS = 0.2;
+const INTERVALO_BEEP_MS = 2000;
+const GANANCIA_BEEP = 0.2;
+const INTERVALO_POLL_ALARMA_MS = 10000;
+
 // Textos manuales de inicio/fin. Ya no los manda la API: el usuario los
 // comparte desde su propio WhatsApp con el panel "Avisar a mis contactos".
 const ZONA_HORARIA_AVISOS = 'America/Argentina/Buenos_Aires';
@@ -172,6 +180,7 @@ let botonMinutosMenos = null;
 let botonIniciar = null;
 let etiquetaBoton = null;
 let etiquetaTiempo = null;
+let avisoAlarmaEnviada = null;
 let iconoActividad = null;
 let anilloProgreso = null;
 let panelAvisos = null;
@@ -198,6 +207,12 @@ let segundosRestantes = estadoSesion.tiempoSegundos;
 let totalContador = 0;
 let inicioContadorMs = 0; // marca de tiempo del inicio (REL-002)
 let estadoContador = 'detenido'; // 'detenido' | 'corriendo' | 'finalizado'
+
+// Audio del pre-aviso y polling post-alarma
+let contextoAudio = null;
+let temporizadorBeep = null;
+let temporizadorAlarma = null;
+let alarmaConfirmada = false;
 
 // Normaliza un nombre: minúsculas, sin diacríticos y con espacios simples
 function normalizarNombre(texto) {
@@ -1287,8 +1302,159 @@ function urlUbicacionAviso() {
   return `Ubicación: https://www.google.com/maps?q=${ultimaUbicacion.lat},${ultimaUbicacion.lng}`;
 }
 
+// ------------------------------------------- pre-aviso y alarma enviada
+
+function umbralPreaviso(duracionSegundos) {
+  const duracion = Number(duracionSegundos);
+  if (!Number.isFinite(duracion) || duracion <= 0) return 0;
+  return Math.min(UMBRAL_PREAVISO_MAXIMO_SEGUNDOS, duracion * 0.10);
+}
+
+// El AudioContext debe crearse/reanudarse dentro del gesto de INICIAR:
+// los navegadores bloquean audio creado fuera de un click del usuario.
+function prepararAudio() {
+  if (typeof window === 'undefined' || !window) return null;
+  const Ctor = window.AudioContext || window.webkitAudioContext;
+  if (!Ctor) return contextoAudio; // sin Web Audio: skip silencioso
+  if (!contextoAudio) {
+    try {
+      contextoAudio = new Ctor();
+    } catch (err) {
+      console.error(`[iniciarDetener] no se pudo crear AudioContext: ${mensajeDeError(err)}`);
+      return null;
+    }
+  }
+  if (
+    contextoAudio &&
+    contextoAudio.state === 'suspended' &&
+    typeof contextoAudio.resume === 'function'
+  ) {
+    try {
+      const reanudado = contextoAudio.resume();
+      if (reanudado && typeof reanudado.catch === 'function') reanudado.catch(() => {});
+    } catch (err) {
+      console.error(`[iniciarDetener] no se pudo reanudar AudioContext: ${mensajeDeError(err)}`);
+    }
+  }
+  return contextoAudio;
+}
+
+function emitirBeep() {
+  if (!contextoAudio || typeof contextoAudio.createOscillator !== 'function') return;
+  try {
+    const oscilador = contextoAudio.createOscillator();
+    const ganancia = contextoAudio.createGain();
+    oscilador.type = 'sine';
+    oscilador.frequency.value = FRECUENCIA_BEEP_HZ;
+    ganancia.gain.value = GANANCIA_BEEP;
+    oscilador.connect(ganancia);
+    ganancia.connect(contextoAudio.destination);
+    const ahora = contextoAudio.currentTime || 0;
+    oscilador.start(ahora);
+    oscilador.stop(ahora + DURACION_BEEP_SEGUNDOS);
+  } catch (err) {
+    console.error(`[iniciarDetener] no se pudo emitir el beep: ${mensajeDeError(err)}`);
+  }
+}
+
+function iniciarBeep() {
+  if (!contextoAudio || temporizadorBeep) return;
+  emitirBeep();
+  temporizadorBeep = setInterval(emitirBeep, INTERVALO_BEEP_MS);
+}
+
+function detenerBeep() {
+  if (temporizadorBeep) {
+    clearInterval(temporizadorBeep);
+    temporizadorBeep = null;
+  }
+}
+
+function activarAlertaPrevia() {
+  if (etiquetaTiempo) etiquetaTiempo.classList.add('parpadeando');
+  iniciarBeep();
+}
+
+function detenerAlertaPrevia() {
+  if (etiquetaTiempo) etiquetaTiempo.classList.remove('parpadeando');
+  if (etiquetaBoton) etiquetaBoton.classList.remove('parpadeando');
+  detenerBeep();
+}
+
+function detenerPollAlarma() {
+  if (temporizadorAlarma) {
+    clearInterval(temporizadorAlarma);
+    temporizadorAlarma = null;
+  }
+}
+
+function confirmarAlarmaEnviada() {
+  if (alarmaConfirmada) return;
+  alarmaConfirmada = true;
+  detenerPollAlarma();
+  detenerAlertaPrevia();
+  if (etiquetaBoton) etiquetaBoton.classList.add('parpadeando');
+  if (avisoAlarmaEnviada) avisoAlarmaEnviada.hidden = false;
+}
+
+async function consultarAlarma(sessionId) {
+  const url = `${ROOT_URL}/api/message-events/session/${encodeURIComponent(sessionId)}`;
+  try {
+    const respuesta = await fetchConTimeout(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    });
+    if (!respuesta.ok) {
+      console.error(`[iniciarDetener] GET sesión falló: ${url} status=${respuesta.status}`);
+      return;
+    }
+    let datos = null;
+    try {
+      datos = await respuesta.json();
+    } catch (err) {
+      console.error(
+        `[iniciarDetener] sesión devolvió JSON ilegible: ${url} — ${mensajeDeError(err)}`
+      );
+      return;
+    }
+    if (datos && datos.alarmaEnviada === true) confirmarAlarmaEnviada();
+  } catch (err) {
+    console.error(`[iniciarDetener] GET sesión falló: ${url} — ${mensajeDeError(err)}`);
+  }
+}
+
+function iniciarPollAlarma() {
+  if (temporizadorAlarma || alarmaConfirmada) return;
+  const lanzar = (sessionId) => {
+    if (!sessionId || alarmaConfirmada) return;
+    consultarAlarma(sessionId);
+    temporizadorAlarma = setInterval(() => consultarAlarma(sessionId), INTERVALO_POLL_ALARMA_MS);
+  };
+  const sessionId = sessionIdEnCurso || leerSessionIdEnCurso();
+  if (sessionId) {
+    lanzar(sessionId);
+    return;
+  }
+  const pendiente = promesaSesionEnCurso;
+  if (pendiente && typeof pendiente.then === 'function') {
+    pendiente
+      .then((id) => {
+        if (estadoContador === 'finalizado' && !alarmaConfirmada) lanzar(id);
+      })
+      .catch(() => {});
+  }
+}
+
+function reiniciarAvisoAlarma() {
+  detenerPollAlarma();
+  detenerAlertaPrevia();
+  alarmaConfirmada = false;
+  if (avisoAlarmaEnviada) avisoAlarmaEnviada.hidden = true;
+}
+
 function iniciarContador() {
   if (!cargaCompleta) return; // carga pendiente: no arrancar ni persistir (REL-101)
+  prepararAudio(); // dentro del gesto del click de INICIAR
   sincronizarEstadoSesion();
 
   totalContador = estadoSesion.tiempoSegundos;
@@ -1298,6 +1464,7 @@ function iniciarContador() {
   }
 
   guardarUltimaSesion();
+  reiniciarAvisoAlarma(); // sesión nueva: sin blink, beep, polling ni caja roja
 
   sessionIdEnCurso = ''; // sesión nueva: el id anterior ya no aplica
   promesaSesionEnCurso = null;
@@ -1330,6 +1497,7 @@ function detenerContador() {
     temporizador = null;
   }
   detenerRefrescoUbicacion(); // el GPS deja de refrescarse al cerrar la sesión
+  reiniciarAvisoAlarma(); // DETENER corta blink, beep y polling de alarma
   quitarSesionEnCurso(); // DETENER resetea: no queda nada que reanudar (REL-105)
   sessionIdEnCurso = '';
   ultimaUbicacion = null;
@@ -1366,8 +1534,15 @@ function contarSegundo() {
     }
     estadoContador = 'finalizado';
     etiquetaBoton.textContent = 'FINALIZADO';
+    detenerAlertaPrevia(); // llegó a 0: se corta blink y beep
     quitarSesionEnCurso(); // terminó: no hay sesión en curso que reanudar (REL-105)
     fijarTriggersBloqueados(false); // habilitar para que un cambio reinicie (REL-001)
+    iniciarPollAlarma(); // consulta la confirmación real enviada por el backend
+  } else if (
+    estadoContador === 'corriendo' &&
+    segundosRestantes <= umbralPreaviso(totalContador)
+  ) {
+    activarAlertaPrevia(); // últimos segundos: blink + beep intermitente
   }
   actualizarVisualizacion();
 }
@@ -1392,6 +1567,7 @@ function reiniciarSiFinalizado() {
   estadoContador = 'detenido';
   etiquetaBoton.textContent = 'INICIAR';
   fijarTriggersBloqueados(false);
+  reiniciarAvisoAlarma(); // al reiniciar se limpia la caja roja y el polling
 }
 
 function inicializarUI() {
@@ -1418,6 +1594,7 @@ function inicializarUI() {
   botonIniciar = document.getElementById('botonIniciar');
   etiquetaBoton = document.getElementById('etiquetaBoton');
   etiquetaTiempo = document.querySelector('.botonIniciar .tiempo');
+  avisoAlarmaEnviada = document.getElementById('avisoAlarmaEnviada');
   iconoActividad = document.getElementById('iconoActividad');
   anilloProgreso = document.getElementById('anilloProgreso');
   panelAvisos = document.getElementById('panelAvisos');
@@ -1450,6 +1627,7 @@ function inicializarUI() {
     botonIniciar,
     etiquetaBoton,
     etiquetaTiempo,
+    avisoAlarmaEnviada,
     iconoActividad,
     anilloProgreso,
     panelAvisos,
@@ -1491,7 +1669,11 @@ function inicializarUI() {
   if (typeof window !== 'undefined' && window && typeof window.addEventListener === 'function') {
     window.addEventListener('beforeunload', detenerRefrescoUbicacion);
     window.addEventListener('pagehide', detenerRefrescoUbicacion);
+    window.addEventListener('pagehide', detenerPollAlarma);
   }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') detenerPollAlarma();
+  });
 
   // Click fuera de cualquier desplegable -> cerrar el panel abierto. El click
   // sobre el propio trigger o su panel es "adentro" (closest('.desplegable'))
