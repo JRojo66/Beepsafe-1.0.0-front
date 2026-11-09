@@ -2895,6 +2895,100 @@ await testAsync('el polling de alarma se detiene al ocultar la página', async (
   t.dispararDocumento('visibilitychange', {});
   assert.equal(t.ctxTest.temporizadorAlarma, null, 'page hide corta el polling');
 });
+
+await testAsync('al volver visible con la sesión finalizada se reanuda el polling y confirma (visibilitychange y pageshow)', async () => {
+  let enviada = false;
+  const t = contextoConAvisos({ alarmaEnviada: () => enviada });
+  await t.domListo();
+  fijarTiempo(t, { minutos: 2 });
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+
+  t.reloj.ahora += 120000;
+  t.tick();
+  await esperar(() => t.ctxTest.temporizadorAlarma !== null);
+
+  // oculta: corta el polling
+  t.ctx.document.visibilityState = 'hidden';
+  t.dispararDocumento('visibilitychange', {});
+  assert.equal(t.ctxTest.temporizadorAlarma, null);
+
+  // visible de nuevo con la alarma pendiente: reanuda el interval + fetch inmediato
+  t.ctx.document.visibilityState = 'visible';
+  t.dispararDocumento('visibilitychange', {});
+  assert.notEqual(t.ctxTest.temporizadorAlarma, null, 'visibilitychange visible reanuda');
+
+  // oculta otra vez y usa pageshow (bfcache) para reanudar con la alarma ya enviada
+  t.ctx.document.visibilityState = 'hidden';
+  t.dispararDocumento('visibilitychange', {});
+  assert.equal(t.ctxTest.temporizadorAlarma, null);
+
+  enviada = true;
+  t.ctx.document.visibilityState = 'visible';
+  t.dispararWindow('pageshow', { persisted: true });
+
+  await esperar(() => t.nodos.avisoAlarmaEnviada.hidden === false);
+  assert.equal(
+    t.nodos.avisoAlarmaEnviada.textContent,
+    'Mensaje de alarma enviado. Avise su situación a sus contactos.'
+  );
+  assert.equal(t.nodos.etiquetaBoton.classList.contains('parpadeando'), true);
+  assert.equal(t.ctxTest.temporizadorAlarma, null, 'al confirmar se corta el polling');
+  assert.equal(t.ctxTest.alarmaConfirmada, true);
+});
+
+await testAsync('al volver visible con la alarma ya confirmada no hace nuevos requests', async () => {
+  const t = contextoConAvisos({ alarmaEnviada: () => true });
+  await t.domListo();
+  fijarTiempo(t, { minutos: 2 });
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+  t.reloj.ahora += 120000;
+  t.tick();
+  await esperar(() => t.nodos.avisoAlarmaEnviada.hidden === false);
+  assert.equal(t.ctxTest.alarmaConfirmada, true);
+
+  const requestsAntes = t.fetchLog.length;
+  t.ctx.document.visibilityState = 'hidden';
+  t.dispararDocumento('visibilitychange', {});
+  t.ctx.document.visibilityState = 'visible';
+  t.dispararDocumento('visibilitychange', {});
+  t.dispararWindow('pageshow', { persisted: true });
+  await new Promise((resolver) => setTimeout(resolver, 20));
+
+  assert.equal(t.fetchLog.length, requestsAntes, 'confirmada: no consulta de nuevo');
+  assert.equal(t.ctxTest.temporizadorAlarma, null);
+});
+
+await testAsync('al volver visible mientras la sesión corre no inicia el polling de alarma', async () => {
+  const t = contextoConAvisos();
+  await t.domListo();
+  fijarTiempo(t, { minutos: 2 });
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+
+  const consultasAntes = t.fetchLog.filter((l) =>
+    /\/api\/message-events\/session\/sess-avisos$/.test(l.url)
+  ).length;
+
+  t.ctx.document.visibilityState = 'hidden';
+  t.dispararDocumento('visibilitychange', {});
+  t.ctx.document.visibilityState = 'visible';
+  t.dispararDocumento('visibilitychange', {});
+  t.dispararWindow('pageshow', { persisted: true });
+  await new Promise((resolver) => setTimeout(resolver, 20));
+
+  assert.equal(t.ctxTest.temporizadorAlarma, null, 'corriendo: no arranca polling');
+  assert.equal(t.ctxTest.alarmaConfirmada, false);
+  assert.equal(
+    t.fetchLog.filter((l) => /\/api\/message-events\/session\/sess-avisos$/.test(l.url)).length,
+    consultasAntes,
+    'no consulta la sesión mientras corre'
+  );
+});
 }
 
 // ------------------------------------------------------------------ cierre

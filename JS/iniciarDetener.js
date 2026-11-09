@@ -1445,6 +1445,12 @@ function iniciarPollAlarma() {
   }
 }
 
+// Reanuda el polling solo si la sesión terminó y la alarma sigue sin
+// confirmarse. `iniciarPollAlarma` no duplica el interval si ya está activo.
+function reanudarPollAlarmaSiCorresponde() {
+  if (estadoContador === 'finalizado' && !alarmaConfirmada) iniciarPollAlarma();
+}
+
 function reiniciarAvisoAlarma() {
   detenerPollAlarma();
   detenerAlertaPrevia();
@@ -1670,9 +1676,15 @@ function inicializarUI() {
     window.addEventListener('beforeunload', detenerRefrescoUbicacion);
     window.addEventListener('pagehide', detenerRefrescoUbicacion);
     window.addEventListener('pagehide', detenerPollAlarma);
+    // bfcache: al volver con pageshow se reintenta la confirmación pendiente
+    window.addEventListener('pageshow', reanudarPollAlarmaSiCorresponde);
   }
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'visible') detenerPollAlarma();
+    if (document.visibilityState === 'visible') {
+      reanudarPollAlarmaSiCorresponde();
+    } else {
+      detenerPollAlarma(); // oculta: se corta el polling (batería)
+    }
   });
 
   // Click fuera de cualquier desplegable -> cerrar el panel abierto. El click
