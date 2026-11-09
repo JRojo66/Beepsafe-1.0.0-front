@@ -193,10 +193,11 @@ function crearContexto(opciones = {}) {
     etiquetaTiempo: crearNodo(),
     iconoActividad: crearNodo({ src: '', alt: '' }),
     anilloProgreso: crearNodo({ getAttribute: () => '145' }),
-    avisoAlarmaEnviada: crearNodo({
-      hidden: true,
+    avisoAlarmaEnviada: crearNodo({ hidden: true }),
+    avisoAlarmaMensaje: crearNodo({
       textContent: 'Mensaje de alarma enviado. Avise su situación a sus contactos.',
     }),
+    avisoAlarmaDetalle: crearNodo(),
     nombre: crearNodo(),
     panelAvisos: crearNodo({ hidden: true }),
     tituloAvisos: crearNodo({ textContent: 'Mandar WhatsApp de inicio' }),
@@ -813,6 +814,8 @@ test('construirUrlWhatsapp deja solo dígitos y codifica el texto', () => {
 test('HTML y CSS declaran el pre-aviso y el aviso de alarma enviada', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'pages', 'iniciarDetener.html'), 'utf8');
   assert.ok(html.includes('id="avisoAlarmaEnviada"'), 'falta el nodo de aviso de alarma');
+  assert.ok(html.includes('id="avisoAlarmaMensaje"'), 'falta la primera línea del aviso');
+  assert.ok(html.includes('id="avisoAlarmaDetalle"'), 'falta el contenedor de detalle');
   assert.ok(
     html.includes('Mensaje de alarma enviado. Avise su situación a sus contactos.'),
     'falta el texto exacto del aviso'
@@ -822,6 +825,8 @@ test('HTML y CSS declaran el pre-aviso y el aviso de alarma enviada', () => {
   assert.ok(css.includes('.parpadeando'), 'falta la clase de parpadeo');
   assert.ok(css.includes('prefers-reduced-motion'), 'falta la regla de reduced motion');
   assert.ok(css.includes('.avisoAlarmaEnviada'), 'falta el estilo de la caja roja');
+  assert.ok(css.includes('.avisoAlarmaLinea'), 'falta el estilo de las líneas de detalle');
+  assert.ok(css.includes('monospace'), 'las líneas de detalle deben ser monoespaciadas');
 });
 
 console.log('# iniciarDetener.js — UI');
@@ -2354,7 +2359,11 @@ function contextoConAvisos(opciones = {}) {
           typeof opciones.alarmaEnviada === 'function'
             ? opciones.alarmaEnviada()
             : opciones.alarmaEnviada;
-        return respuestaOk({ alarmaEnviada: valor === true });
+        const detalle =
+          typeof opciones.alarmaDetalle === 'function'
+            ? opciones.alarmaDetalle()
+            : opciones.alarmaDetalle;
+        return respuestaOk({ alarmaEnviada: valor === true, alarmaDetalle: detalle });
       }
       if (url.includes('/ubicacion') && metodo === 'PATCH') return respuestaOk({});
       if (url.includes('/stop')) return respuestaOk({});
@@ -2867,7 +2876,7 @@ await testAsync('al llegar a 0 consulta la alarma y solo muestra la caja roja al
   await esperar(() => t.nodos.avisoAlarmaEnviada.hidden === false);
 
   assert.equal(
-    t.nodos.avisoAlarmaEnviada.textContent,
+    t.nodos.avisoAlarmaMensaje.textContent,
     'Mensaje de alarma enviado. Avise su situación a sus contactos.'
   );
   assert.equal(
@@ -2930,7 +2939,7 @@ await testAsync('al volver visible con la sesión finalizada se reanuda el polli
 
   await esperar(() => t.nodos.avisoAlarmaEnviada.hidden === false);
   assert.equal(
-    t.nodos.avisoAlarmaEnviada.textContent,
+    t.nodos.avisoAlarmaMensaje.textContent,
     'Mensaje de alarma enviado. Avise su situación a sus contactos.'
   );
   assert.equal(t.nodos.etiquetaBoton.classList.contains('parpadeando'), true);
@@ -2988,6 +2997,94 @@ await testAsync('al volver visible mientras la sesión corre no inicia el pollin
     consultasAntes,
     'no consulta la sesión mientras corre'
   );
+});
+
+// ------------------------------- detalle de envío de la alarma
+
+function detalleConOkYError() {
+  return [
+    {
+      ok: true,
+      wamid: 'wamid.1',
+      error: null,
+      telefono: '+54 9 11 1234-5678',
+    },
+    {
+      ok: false,
+      wamid: null,
+      error: { code: 131047, message: 'Re-engagement message' },
+      telefono: '+54 11 0000-0000',
+    },
+  ];
+}
+
+await testAsync('la caja de alarma muestra una línea por destinatario (ok y error)', async () => {
+  const t = contextoConAvisos({
+    alarmaEnviada: () => true,
+    alarmaDetalle: detalleConOkYError,
+  });
+  await t.domListo();
+  fijarTiempo(t, { minutos: 2 });
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+
+  t.reloj.ahora += 120000;
+  t.tick();
+  await esperar(() => t.nodos.avisoAlarmaEnviada.hidden === false);
+
+  assert.equal(
+    t.nodos.avisoAlarmaMensaje.textContent,
+    'Mensaje de alarma enviado. Avise su situación a sus contactos.',
+    'la primera línea exacta no cambia'
+  );
+  const lineas = t.nodos.avisoAlarmaDetalle.hijos.map((nodo) => nodo.textContent);
+  assert.deepEqual(lineas, [
+    'Enviado a +54 9 11 1234-5678: aceptado',
+    'Error con +54 11 0000-0000: 131047 — Re-engagement message',
+  ]);
+});
+
+await testAsync('sin alarmaDetalle la caja muestra "Sin detalle de envío."', async () => {
+  const t = contextoConAvisos({
+    alarmaEnviada: () => true,
+    alarmaDetalle: () => [],
+  });
+  await t.domListo();
+  fijarTiempo(t, { minutos: 2 });
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+
+  t.reloj.ahora += 120000;
+  t.tick();
+  await esperar(() => t.nodos.avisoAlarmaEnviada.hidden === false);
+
+  assert.deepEqual(
+    t.nodos.avisoAlarmaDetalle.hijos.map((nodo) => nodo.textContent),
+    ['Sin detalle de envío.']
+  );
+});
+
+await testAsync('con alarmaEnviada false la caja sigue oculta y sin detalle', async () => {
+  const t = contextoConAvisos({
+    alarmaEnviada: () => false,
+    alarmaDetalle: detalleConOkYError,
+  });
+  await t.domListo();
+  fijarTiempo(t, { minutos: 2 });
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+
+  t.reloj.ahora += 120000;
+  t.tick();
+  await esperar(() =>
+    t.fetchLog.some(
+      (l) =>
+        /\/api\/message-events\/session\/sess-avisos$/.test(l.url) && l.init.method === 'GET'
+    )
+  );
+
+  assert.equal(t.nodos.avisoAlarmaEnviada.hidden, true, 'sigue oculta');
+  assert.equal(t.nodos.avisoAlarmaDetalle.hijos.length, 0, 'sin líneas de detalle');
 });
 }
 

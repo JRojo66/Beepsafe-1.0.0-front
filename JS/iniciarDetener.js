@@ -181,6 +181,7 @@ let botonIniciar = null;
 let etiquetaBoton = null;
 let etiquetaTiempo = null;
 let avisoAlarmaEnviada = null;
+let avisoAlarmaDetalle = null;
 let iconoActividad = null;
 let anilloProgreso = null;
 let panelAvisos = null;
@@ -1388,12 +1389,40 @@ function detenerPollAlarma() {
   }
 }
 
-function confirmarAlarmaEnviada() {
+function renderizarDetalleAlarma(detalle) {
+  if (!avisoAlarmaDetalle) return;
+  avisoAlarmaDetalle.innerHTML = '';
+  const items = Array.isArray(detalle) ? detalle : [];
+  if (items.length === 0) {
+    const linea = document.createElement('p');
+    linea.className = 'avisoAlarmaLinea';
+    linea.textContent = 'Sin detalle de envío.';
+    avisoAlarmaDetalle.appendChild(linea);
+    return;
+  }
+  for (const item of items) {
+    const linea = document.createElement('p');
+    linea.className = 'avisoAlarmaLinea';
+    const telefono = item && item.telefono != null ? String(item.telefono) : '';
+    if (item && item.ok === true) {
+      linea.textContent = `Enviado a ${telefono}: aceptado`;
+    } else {
+      const error = item && item.error ? item.error : {};
+      const code = error.code != null ? String(error.code) : '';
+      const message = error.message != null ? String(error.message) : '';
+      linea.textContent = `Error con ${telefono}: ${code} — ${message}`;
+    }
+    avisoAlarmaDetalle.appendChild(linea);
+  }
+}
+
+function confirmarAlarmaEnviada(detalle) {
   if (alarmaConfirmada) return;
   alarmaConfirmada = true;
   detenerPollAlarma();
   detenerAlertaPrevia();
   if (etiquetaBoton) etiquetaBoton.classList.add('parpadeando');
+  renderizarDetalleAlarma(detalle);
   if (avisoAlarmaEnviada) avisoAlarmaEnviada.hidden = false;
 }
 
@@ -1417,7 +1446,9 @@ async function consultarAlarma(sessionId) {
       );
       return;
     }
-    if (datos && datos.alarmaEnviada === true) confirmarAlarmaEnviada();
+    if (datos && datos.alarmaEnviada === true) {
+      confirmarAlarmaEnviada(datos.alarmaDetalle);
+    }
   } catch (err) {
     console.error(`[iniciarDetener] GET sesión falló: ${url} — ${mensajeDeError(err)}`);
   }
@@ -1455,6 +1486,7 @@ function reiniciarAvisoAlarma() {
   detenerPollAlarma();
   detenerAlertaPrevia();
   alarmaConfirmada = false;
+  if (avisoAlarmaDetalle) avisoAlarmaDetalle.innerHTML = '';
   if (avisoAlarmaEnviada) avisoAlarmaEnviada.hidden = true;
 }
 
@@ -1601,6 +1633,7 @@ function inicializarUI() {
   etiquetaBoton = document.getElementById('etiquetaBoton');
   etiquetaTiempo = document.querySelector('.botonIniciar .tiempo');
   avisoAlarmaEnviada = document.getElementById('avisoAlarmaEnviada');
+  avisoAlarmaDetalle = document.getElementById('avisoAlarmaDetalle');
   iconoActividad = document.getElementById('iconoActividad');
   anilloProgreso = document.getElementById('anilloProgreso');
   panelAvisos = document.getElementById('panelAvisos');
@@ -1634,6 +1667,7 @@ function inicializarUI() {
     etiquetaBoton,
     etiquetaTiempo,
     avisoAlarmaEnviada,
+    avisoAlarmaDetalle,
     iconoActividad,
     anilloProgreso,
     panelAvisos,

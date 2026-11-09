@@ -751,6 +751,27 @@ a {
   display: none;
 }
 
+.avisoAlarmaMensaje {
+  margin: 0;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.avisoAlarmaDetalle {
+  margin-top: 8px;
+}
+
+.avisoAlarmaLinea {
+  margin: 2px 0 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 /* Desplegables personalizados de Iniciar/Detener (reemplazan a los <select
    class="menu"> nativos): cada caja visible tiene dos filas — la cabecera
    estática (título + flecha) y, debajo, la fila con el valor elegido — y el
