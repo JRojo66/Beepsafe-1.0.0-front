@@ -1,11 +1,15 @@
-const TIPOS_MENSAJE = ['inicio', 'fin', 'alarma', 'prueba'];
+const TIPOS_MENSAJE = ['inicio', 'fin', 'alarma', 'cancelacion', 'prueba'];
 
 const CLAVE_MENSAJES = 'beepsafe_mensajes';
+
+const TEXTO_CANCELACION_POR_DEFECTO =
+  'Estoy bien! Solo no llegué a cancelar la alarma a tiempo.';
 
 const MENSAJES_POR_DEFECTO = {
   inicio: '',
   fin: '',
   alarma: '',
+  cancelacion: TEXTO_CANCELACION_POR_DEFECTO,
   prueba: '',
 };
 
@@ -1174,7 +1178,9 @@ async function inicializarEditorMensaje(tipo) {
   const resultado = await cargaMensajes;
   const valorActual = typeof textarea.value === 'string' ? textarea.value : '';
   if (valorActual === '') {
-    textarea.value = resultado.mensajes[tipo] || '';
+    const valorGuardado = resultado.mensajes[tipo];
+    // cancelacion arranca con su texto por defecto cuando no hay nada guardado
+    textarea.value = valorGuardado || MENSAJES_POR_DEFECTO[tipo] || '';
     actualizarContador(textarea, contador);
   }
   boton.disabled = false;

@@ -199,6 +199,7 @@ function crearNodosBase() {
     previewInicio: crearNodo({ tagName: 'SPAN', textContent: 'Sin mensaje' }),
     previewFin: crearNodo({ tagName: 'SPAN', textContent: 'Sin mensaje' }),
     previewAlarma: crearNodo({ tagName: 'SPAN', textContent: 'Sin mensaje' }),
+    previewCancelacion: crearNodo({ tagName: 'SPAN', textContent: 'Sin mensaje' }),
     previewPrueba: crearNodo({ tagName: 'SPAN', textContent: 'Sin mensaje' }),
     estadoListaMensajes: crearNodo(),
   };
@@ -384,11 +385,17 @@ test('JS/mensajes.js no construye HTML dinámico con innerHTML', () => {
   assert.deepEqual(conInnerHtml, [], 'innerHTML solo se usa para vaciar con una cadena vacía');
 });
 
-test('las cuatro páginas de mensaje cumplen el contrato de HTML', () => {
+test('las cinco páginas de mensaje cumplen el contrato de HTML', () => {
   const paginas = [
     ['mensajeDeInicio.html', 'inicio', 'mensajeDeInicio.PNG', 'Mensaje de inicio'],
     ['mensajeDeFin.html', 'fin', 'mensajeDeFin.PNG', 'Mensaje de fin'],
     ['mensajeDeAlarma.html', 'alarma', 'mensajeDeAlarma.PNG', 'Mensaje de alarma'],
+    [
+      'mensajeDeCancelacion.html',
+      'cancelacion',
+      'mensajeDeAlarma.PNG',
+      'Mensaje de cancelación de alarma',
+    ],
     ['mensajeDePrueba.html', 'prueba', 'MensajeDePrueba.jpeg', 'Mensaje de prueba'],
   ];
   const ids = [
@@ -454,6 +461,15 @@ test('las cuatro páginas de mensaje cumplen el contrato de HTML', () => {
     assert.ok(html.includes('>0 de 3</span>'), `${archivo}: el contador arranca en 0 de 3`);
     assert.ok(html.includes('../JS/config.js'), `${archivo}: falta config.js`);
     assert.ok(html.includes('../JS/mensajes.js'), `${archivo}: falta mensajes.js`);
+    if (tipo === 'cancelacion') {
+      assert.ok(
+        html.includes('Este mensaje se envía desde tu WhatsApp cuando avisás que estás bien.'),
+        `${archivo}: falta la nota gris exacta`
+      );
+      assert.ok(html.includes('class="msj-nota"'), `${archivo}: la nota debe usar msj-nota`);
+      assert.ok(!html.includes('mensajeFijoAntes'), `${archivo}: no lleva marco fijo`);
+      assert.ok(!html.includes('mensajeFijoDespues'), `${archivo}: no lleva marco fijo`);
+    }
     for (const prohibido of prohibidos) {
       assert.ok(!html.includes(prohibido), `${archivo}: no debe contener "${prohibido}"`);
     }
@@ -497,13 +513,14 @@ test('las tres páginas declaran el preview fijo antes y después del textarea (
   }
 });
 
-test('misMensajes.html lista los cuatro tipos y el enlace a invitación', () => {
+test('misMensajes.html lista los cinco tipos y el enlace a invitación', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'pages', 'misMensajes.html'), 'utf8');
   assert.ok(html.includes('id="listaMensajes"'), 'falta la lista de mensajes');
   for (const [archivo, preview] of [
     ['mensajeDeInicio.html', 'previewInicio'],
     ['mensajeDeFin.html', 'previewFin'],
     ['mensajeDeAlarma.html', 'previewAlarma'],
+    ['mensajeDeCancelacion.html', 'previewCancelacion'],
     ['mensajeDePrueba.html', 'previewPrueba'],
   ]) {
     assert.ok(html.includes(`href="../pages/${archivo}"`), `falta el enlace a ${archivo}`);
@@ -523,7 +540,13 @@ async function testsAsync() {
       fetch: async (url) => {
         assert.equal(url, 'http://back.test/api/message-templates');
         return respuestaOk({
-          mensajes: { inicio: 'Hola', fin: 'Chau', alarma: 'Alerta', prueba: 'Prueba' },
+          mensajes: {
+            inicio: 'Hola',
+            fin: 'Chau',
+            alarma: 'Alerta',
+            cancelacion: '',
+            prueba: 'Prueba',
+          },
         });
       },
     });
@@ -532,7 +555,13 @@ async function testsAsync() {
     assert.deepEqual(plano(resultado), {
       ok: true,
       sesionExpirada: false,
-      mensajes: { inicio: 'Hola', fin: 'Chau', alarma: 'Alerta', prueba: 'Prueba' },
+      mensajes: {
+        inicio: 'Hola',
+        fin: 'Chau',
+        alarma: 'Alerta',
+        cancelacion: '',
+        prueba: 'Prueba',
+      },
       pendientes: [],
       degradado: false,
     });
@@ -692,7 +721,13 @@ async function testsAsync() {
         nombre: 'Ana',
         telefono: '123',
         mensajes: true,
-        mensajesPorTipo: { inicio: true, fin: true, alarma: true, prueba: true },
+        mensajesPorTipo: {
+          inicio: true,
+          fin: true,
+          alarma: true,
+          cancelacion: true,
+          prueba: true,
+        },
         visibilidad: false,
       },
     ]);
@@ -866,6 +901,42 @@ async function testsAsync() {
     assert.equal(t.nodos.botonGrabar.disabled, false);
   });
 
+  await testAsync('el editor de cancelación precarga el texto por defecto y lo guarda', async () => {
+    const token = crearToken({ email: 'ana@test.com' });
+    const store = new Map([['token', token]]);
+    const t = crearContexto({
+      dataset: { tipo: 'cancelacion' },
+      store,
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (url.endsWith('/api/message-templates') && metodo === 'GET') {
+          return respuestaOk({ mensajes: {} });
+        }
+        if (url.endsWith('/api/message-templates') && metodo === 'PUT') return respuestaOk({});
+        if (url.includes('/api/contacts') && metodo === 'GET') {
+          return respuestaOk({ contactos: [] });
+        }
+        throw new Error(`URL inesperada: ${url} ${metodo}`);
+      },
+    });
+
+    await t.ctxTest.inicializarEditorMensaje('cancelacion');
+
+    const texto = t.ctxTest.MENSAJES_POR_DEFECTO.cancelacion;
+    assert.equal(
+      texto,
+      'Estoy bien! Solo no llegué a cancelar la alarma a tiempo.',
+      'texto por defecto exacto'
+    );
+    assert.equal(t.nodos.mensaje.value, texto, 'el textarea arranca con el texto por defecto');
+    assert.equal(t.nodos.contadorMensaje.textContent, `${texto.length}/1000`);
+
+    await t.nodos.botonGrabar.disparar('click');
+    const put = t.fetchLog.find((llamada) => llamada.init && llamada.init.method === 'PUT');
+    assert.ok(put, 'se guarda la cancelación');
+    assert.deepEqual(JSON.parse(put.init.body), { mensajes: { cancelacion: texto } });
+  });
+
   await testAsync('la lista renderiza un preview por tipo con el texto guardado', async () => {
     const token = crearToken({ email: 'ana@test.com' });
     const store = new Map([['token', token]]);
@@ -877,6 +948,7 @@ async function testsAsync() {
             inicio: 'Arranco la actividad',
             fin: 'Terminé la actividad',
             alarma: 'Necesito ayuda',
+            cancelacion: 'Estoy bien, fue una falsa alarma',
             prueba: 'Este es un mensaje de prueba',
           },
         }),
@@ -887,6 +959,7 @@ async function testsAsync() {
     assert.equal(t.nodos.previewInicio.textContent, 'Arranco la actividad');
     assert.equal(t.nodos.previewFin.textContent, 'Terminé la actividad');
     assert.equal(t.nodos.previewAlarma.textContent, 'Necesito ayuda');
+    assert.equal(t.nodos.previewCancelacion.textContent, 'Estoy bien, fue una falsa alarma');
     assert.equal(t.nodos.previewPrueba.textContent, 'Este es un mensaje de prueba');
   });
 

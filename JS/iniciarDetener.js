@@ -1123,8 +1123,14 @@ function manejarCompartirAviso() {
   return compartirTexto(textoCompartirActual);
 }
 
+function textoCancelacionAlarma() {
+  const guardado = mensajeGuardadoAviso('cancelacion');
+  const limpio = typeof guardado === 'string' ? guardado.trim() : '';
+  return limpio || TEXTO_CANCELACION_ALARMA;
+}
+
 function manejarCompartirCancelacion() {
-  return compartirTexto(TEXTO_CANCELACION_ALARMA);
+  return compartirTexto(textoCancelacionAlarma());
 }
 
 function claveContactoAviso(contacto) {
@@ -1444,8 +1450,9 @@ function renderizarCancelacionAlarma() {
     return;
   }
   avisoAlarmaCancelacion.hidden = false;
+  const texto = textoCancelacionAlarma();
   for (const contacto of contactos) {
-    const href = construirUrlWhatsapp(contacto.telefono, TEXTO_CANCELACION_ALARMA);
+    const href = construirUrlWhatsapp(contacto.telefono, texto);
     const boton = document.createElement('button');
     boton.type = 'button';
     boton.className = 'avisoAlarmaCancelacionBoton';

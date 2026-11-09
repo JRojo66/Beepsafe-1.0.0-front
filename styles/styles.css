@@ -3485,6 +3485,13 @@ margin: 10px 0;
   cursor: not-allowed;
 }
 
+.msj-nota {
+  margin: 0 0 10px;
+  color: var(--msj-texto-suave);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .msj-ayuda {
   margin: 0 0 12px;
   color: var(--msj-texto-suave);

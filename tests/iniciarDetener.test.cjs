@@ -3216,6 +3216,44 @@ await testAsync('Compartir… de cancelación copia el texto exacto', async () =
   assert.equal(t.portapapeles[0], 'Estoy bien! Solo no llegué a cancelar la alarma a tiempo.');
   assert.ok(t.toasts.some((toast) => toast.mensaje.includes('copiado')));
 });
+
+await testAsync('la cancelación usa el texto guardado de cancelacion cuando existe', async () => {
+  const t = contextoConAvisos({
+    contactos: CONTACTOS_CANCELACION,
+    alarmaEnviada: () => true,
+    alarmaDetalle: () => [],
+  });
+  t.store.set(
+    'beepsafe_mensajes:marcelo@test.com',
+    JSON.stringify({
+      mensajes: {
+        inicio: 'Llevo casco',
+        fin: 'Listo',
+        alarma: '',
+        cancelacion: 'Falsa alarma, ya estoy en casa.',
+        prueba: '',
+      },
+    })
+  );
+  await confirmarAlarmaCon(t);
+
+  const botones = t.nodos.listaCancelacionAlarma.hijos;
+  assert.deepEqual(botones.map((boton) => boton.textContent), [
+    'Abrir WhatsApp — Ana',
+    'Abrir WhatsApp — Beto',
+  ]);
+
+  botones[0].disparar('click');
+  const href = t.ventanas[t.ventanas.length - 1][0];
+  assert.equal(
+    href,
+    `https://wa.me/5491112345678?text=${encodeURIComponent('Falsa alarma, ya estoy en casa.')}`
+  );
+
+  t.nodos.botonCompartirCancelacion.disparar('click');
+  await esperar(() => t.portapapeles.length === 1);
+  assert.equal(t.portapapeles[0], 'Falsa alarma, ya estoy en casa.');
+});
 }
 
 // ------------------------------------------------------------------ cierre
