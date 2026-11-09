@@ -31,7 +31,11 @@ const EXPORTS = `;globalThis.__test = {
   cargarContactosAvisos, manejarCompartirAviso, copiarTextoAlPortapapeles,
   cerrarPanelAvisos, claveContactoAviso, marcarContactoAvisoAbierto,
   formatearHoraAviso, horaAvisoFallback, horaPrevistaAviso,
-  mensajeGuardadoAviso,
+  mensajeGuardadoAviso, obtenerUbicacionActual, normalizarUbicacion,
+  iniciarRefrescoUbicacion, detenerRefrescoUbicacion, refrescarUbicacion,
+  urlUbicacionAviso, OPCIONES_UBICACION, INTERVALO_UBICACION_MS,
+  get ultimaUbicacion() { return ultimaUbicacion ? { ...ultimaUbicacion } : null; },
+  get temporizadorUbicacion() { return temporizadorUbicacion; },
   get equiposSeleccionados() { return equiposSeleccionados.slice(); },
   get cargaCompleta() { return cargaCompleta; },
   get cargaActividadesFallida() { return cargaActividadesFallida; },
@@ -194,6 +198,7 @@ function crearContexto(opciones = {}) {
 
   const documentHandlers = {};
   const document = {
+    visibilityState: opciones.visibilityState || 'visible',
     getElementById: (id) => nodos[id] || null,
     createElement: (tag) => crearNodo({ tagName: String(tag).toUpperCase() }),
     querySelector: (sel) => {
@@ -231,6 +236,7 @@ function crearContexto(opciones = {}) {
     },
   };
   if (opciones.navigator) Object.assign(navigator, opciones.navigator);
+  if (opciones.geolocation) navigator.geolocation = opciones.geolocation;
   const window = {
     location: { href: '' },
     // stub del helper real (utils.js es un módulo ES): captura los avisos
@@ -370,6 +376,10 @@ function crearContexto(opciones = {}) {
     // Simula un click en el documento (para el cierre por click afuera)
     dispararDocumento(tipo, evento) {
       for (const fn of documentHandlers[tipo] || []) fn(evento);
+    },
+    // Dispara un evento de window (p. ej. beforeunload/pagehide)
+    dispararWindow(tipo, evento) {
+      for (const fn of windowHandlers[tipo] || []) fn(evento);
     },
   };
 }
@@ -2286,6 +2296,8 @@ function contextoConAvisos(opciones = {}) {
         JSON.stringify({ mensajes: { inicio: 'Llevo casco', fin: 'Listo', alarma: '', prueba: '' } }),
       ],
     ]),
+    geolocation: opciones.geolocation,
+    visibilityState: opciones.visibilityState,
     fetch: async (url, init) => {
       const metodo = (init && init.method) || 'GET';
       if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
@@ -2296,10 +2308,48 @@ function contextoConAvisos(opciones = {}) {
       if (url.endsWith('/api/message-events/session') && metodo === 'POST') {
         return respuestaOk({ sessionId: 'sess-avisos' });
       }
+      if (url.includes('/ubicacion') && metodo === 'PATCH') return respuestaOk({});
       if (url.includes('/stop')) return respuestaOk({});
       throw new Error(`URL inesperada: ${url}`);
     },
   });
+}
+
+function geolocationExito(lat, lng) {
+  const llamadas = [];
+  return {
+    llamadas,
+    getCurrentPosition(ok, error, opciones) {
+      llamadas.push(opciones);
+      ok({ coords: { latitude: lat, longitude: lng } });
+    },
+  };
+}
+
+function geolocationError() {
+  const llamadas = [];
+  return {
+    llamadas,
+    getCurrentPosition(ok, error, opciones) {
+      llamadas.push(opciones);
+      error({ code: 1, message: 'denied' });
+    },
+  };
+}
+
+function geolocationSecuencia(posiciones) {
+  const llamadas = [];
+  let indice = 0;
+  return {
+    llamadas,
+    getCurrentPosition(ok, error, opciones) {
+      llamadas.push(opciones);
+      const posicion = posiciones[Math.min(indice, posiciones.length - 1)];
+      indice += 1;
+      if (posicion) ok({ coords: { latitude: posicion.lat, longitude: posicion.lng } });
+      else error({ code: 1, message: 'denied' });
+    },
+  };
 }
 
 await testAsync('INICIAR exitoso muestra un botón wa.me por contacto de inicio con el texto codificado', async () => {
@@ -2442,6 +2492,206 @@ await testAsync('el panel se autooculta al abrir el WhatsApp de todos los contac
   t.nodos.listaAvisos.hijos[1].disparar('click');
   assert.equal(t.nodos.panelAvisos.hidden, true, 'al abrir todos se oculta solo');
   assert.equal(t.ventanas.length, 2, 'se abrieron los dos WhatsApp');
+});
+
+// ------------------------------- ubicación del dispositivo
+
+await testAsync('INICIAR captura la ubicación, la envía en el alta y la persiste', async () => {
+  const geo = geolocationExito(-34.6037, -58.3816);
+  const t = contextoConAvisos({ geolocation: geo });
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() =>
+    t.fetchLog.some(
+      (l) => l.url === 'http://back.test/api/message-events/session' && l.init.method === 'POST'
+    )
+  );
+
+  assert.deepEqual(geo.llamadas[0], t.ctxTest.OPCIONES_UBICACION, 'opciones de geolocation');
+  const alta = t.fetchLog.find(
+    (l) => l.url === 'http://back.test/api/message-events/session' && l.init.method === 'POST'
+  );
+  assert.deepEqual(JSON.parse(alta.init.body), {
+    actividad: 'Windsurf',
+    duracionSegundos: 180 * 60,
+    ubicacion: { lat: -34.6037, lng: -58.3816 },
+  });
+
+  await esperar(() => t.ctxTest.ultimaUbicacion !== null);
+  assert.deepEqual(JSON.parse(JSON.stringify(t.ctxTest.ultimaUbicacion)), {
+    lat: -34.6037,
+    lng: -58.3816,
+  });
+  const guardada = JSON.parse(t.store.get('beepsafe_sesion_en_curso:marcelo@test.com'));
+  assert.deepEqual(guardada.ubicacion, { lat: -34.6037, lng: -58.3816 });
+});
+
+await testAsync('la ubicación se agrega al texto de inicio y nunca al de fin', async () => {
+  const geo = geolocationExito(-34.6037, -58.3816);
+  const t = contextoConAvisos({ geolocation: geo });
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+  t.nodos.listaAvisos.hijos[0].disparar('click');
+  const inicio = textoDesdeWa(t.ventanas[0][0]);
+  assert.ok(
+    inicio.endsWith(' Ubicación: https://www.google.com/maps?q=-34.6037,-58.3816'),
+    inicio
+  );
+  assert.ok(
+    inicio.includes('Tiene previsto finalizarla el lun 18:30. Ubicación: https://www.google.com/maps?q=-34.6037,-58.3816'),
+    'la ubicación va después del cierre, separada por un solo espacio'
+  );
+
+  t.nodos.botonIniciar.disparar('click'); // DETENER
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+  t.nodos.listaAvisos.hijos[0].disparar('click');
+  const fin = textoDesdeWa(t.ventanas[t.ventanas.length - 1][0]);
+  assert.ok(!fin.includes('Ubicación'), 'el fin no lleva ubicación');
+  assert.ok(!fin.includes('google.com/maps'), 'el fin no lleva link de mapa');
+});
+
+await testAsync('si geolocation falla, la sesión se crea igual y el panel se muestra sin ubicación', async () => {
+  const geo = geolocationError();
+  const t = contextoConAvisos({ geolocation: geo });
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+
+  const alta = t.fetchLog.find(
+    (l) => l.url === 'http://back.test/api/message-events/session' && l.init.method === 'POST'
+  );
+  const cuerpo = JSON.parse(alta.init.body);
+  assert.equal('ubicacion' in cuerpo, false, 'sin ubicación en el alta');
+  assert.deepEqual(cuerpo, { actividad: 'Windsurf', duracionSegundos: 180 * 60 });
+  assert.equal(t.nodos.panelAvisos.hidden, false, 'el panel igual se muestra');
+  assert.equal(t.toasts.length, 0, 'sin toast de error por ubicación');
+
+  t.nodos.listaAvisos.hijos[0].disparar('click');
+  assert.ok(!textoDesdeWa(t.ventanas[0][0]).includes('Ubicación'));
+});
+
+await testAsync('el refresco de ubicación solo corre con la página visible y se detiene al DETENER', async () => {
+  const geo = geolocationSecuencia([
+    { lat: -34.6037, lng: -58.3816 },
+    { lat: -34.7, lng: -58.4 },
+  ]);
+  const t = contextoConAvisos({ geolocation: geo });
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+  assert.equal(geo.llamadas.length, 1, 'una captura inicial');
+  assert.equal(t.ctxTest.temporizadorUbicacion !== null, true, 'timer de refresco activo');
+
+  t.ctx.document.visibilityState = 'hidden';
+  t.reloj.ahora += t.ctxTest.INTERVALO_UBICACION_MS;
+  t.tick();
+  await new Promise((resolver) => setTimeout(resolver, 10));
+  assert.equal(geo.llamadas.length, 1, 'oculto no se pide la posición');
+  assert.equal(
+    t.fetchLog.filter((l) => l.init && l.init.method === 'PATCH').length,
+    0,
+    'oculto no se manda PATCH'
+  );
+
+  t.ctx.document.visibilityState = 'visible';
+  t.tick();
+  await esperar(() => t.fetchLog.some((l) => l.init && l.init.method === 'PATCH'));
+  assert.equal(geo.llamadas.length, 2, 'visible sí se pide la posición');
+
+  const patch = t.fetchLog.find((l) => l.init && l.init.method === 'PATCH');
+  assert.equal(
+    patch.url,
+    'http://back.test/api/message-events/session/sess-avisos/ubicacion'
+  );
+  assert.deepEqual(JSON.parse(patch.init.body), { lat: -34.7, lng: -58.4 });
+
+  const patchesAntes = t.fetchLog.filter((l) => l.init && l.init.method === 'PATCH').length;
+  t.nodos.botonIniciar.disparar('click'); // DETENER
+  assert.equal(t.ctxTest.temporizadorUbicacion, null, 'el timer se corta al detener');
+
+  t.ctx.document.visibilityState = 'visible';
+  t.reloj.ahora += t.ctxTest.INTERVALO_UBICACION_MS;
+  t.tick();
+  await new Promise((resolver) => setTimeout(resolver, 10));
+  assert.equal(
+    t.fetchLog.filter((l) => l.init && l.init.method === 'PATCH').length,
+    patchesAntes,
+    'DETENER no deja refrescos pendientes'
+  );
+});
+
+await testAsync('el refresco de ubicación se detiene al descargar la página', async () => {
+  const geo = geolocationSecuencia([
+    { lat: -34.6037, lng: -58.3816 },
+    { lat: -34.8, lng: -58.5 },
+  ]);
+  const t = contextoConAvisos({ geolocation: geo });
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+  assert.equal(t.ctxTest.temporizadorUbicacion !== null, true);
+
+  t.dispararWindow('beforeunload', {});
+  assert.equal(t.ctxTest.temporizadorUbicacion, null, 'unload corta el timer');
+
+  const patchesAntes = t.fetchLog.filter((l) => l.init && l.init.method === 'PATCH').length;
+  t.reloj.ahora += t.ctxTest.INTERVALO_UBICACION_MS;
+  t.tick();
+  await new Promise((resolver) => setTimeout(resolver, 10));
+  assert.equal(
+    t.fetchLog.filter((l) => l.init && l.init.method === 'PATCH').length,
+    patchesAntes
+  );
+});
+
+await testAsync('al reanudar una sesión se reutiliza la ubicación persistida', async () => {
+  const ahora = Date.UTC(2026, 4, 18, 18, 30);
+  const store = new Map([
+    ['token', 'tok-reload'],
+    [
+      'beepsafe_sesion_en_curso:marcelo@test.com',
+      JSON.stringify({
+        actividad: 'Windsurf',
+        equipo: [],
+        tiempoSegundos: 180 * 60,
+        inicioContadorMs: ahora - 60 * 1000,
+        sessionId: 'sess-reload',
+        ubicacion: { lat: -34.6037, lng: -58.3816 },
+      }),
+    ],
+  ]);
+  const geo = geolocationSecuencia([{ lat: -34.7, lng: -58.4 }]);
+  const t = crearContexto({
+    ahora,
+    store,
+    geolocation: geo,
+    fetch: async (url) => {
+      if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
+      if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+      if (url.includes('/api/contacts')) return respuestaOk({ contactos: [] });
+      if (url.includes('/ubicacion')) return respuestaOk({});
+      throw new Error(`URL inesperada: ${url}`);
+    },
+  });
+
+  await t.domListo();
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'DETENER', 'la sesión se reanuda');
+  assert.deepEqual(JSON.parse(JSON.stringify(t.ctxTest.ultimaUbicacion)), {
+    lat: -34.6037,
+    lng: -58.3816,
+  });
+  assert.equal(t.ctxTest.temporizadorUbicacion !== null, true, 'refresco activo tras reanudar');
+  assert.ok(
+    t.ctxTest
+      .componerTextoAviso('inicio', 'Ana', '')
+      .includes('Ubicación: https://www.google.com/maps?q=-34.6037,-58.3816')
+  );
 });
 }
 

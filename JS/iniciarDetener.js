@@ -53,6 +53,15 @@ const TIMEOUT_ESPERA_SESION_MS = 10000;
 const TEXTO_SESION_NO_REGISTRADA =
   'El contador va a correr, pero no se enviará la alarma automática porque no se pudo registrar la sesión.';
 
+// Ubicación del dispositivo: se captura al INICIAR y se refresca cada 5 min
+// solo con la página visible. Se envía en el alta y en PATCH; nunca en el FIN.
+const INTERVALO_UBICACION_MS = 5 * 60 * 1000;
+const OPCIONES_UBICACION = {
+  enableHighAccuracy: true,
+  timeout: 10000,
+  maximumAge: 60000,
+};
+
 // Textos manuales de inicio/fin. Ya no los manda la API: el usuario los
 // comparte desde su propio WhatsApp con el panel "Avisar a mis contactos".
 const ZONA_HORARIA_AVISOS = 'America/Argentina/Buenos_Aires';
@@ -170,6 +179,10 @@ let tituloAvisos = null;
 let listaAvisos = null;
 let botonCompartirAviso = null;
 let botonCerrarAvisos = null;
+
+// Última posición válida del dispositivo y timer de refresco cada 5 minutos.
+let ultimaUbicacion = null;
+let temporizadorUbicacion = null;
 
 // Id de la sesión registrada en el backend, para poder detenerla al DETENER.
 // Vacío cuando la creación falló o el backend no lo devolvió: no se dispara stop.
@@ -718,6 +731,9 @@ function guardarSesionEnCurso() {
       inicioContadorMs,
     };
     if (sessionIdEnCurso) payload.sessionId = sessionIdEnCurso;
+    if (ultimaUbicacion) {
+      payload.ubicacion = { lat: ultimaUbicacion.lat, lng: ultimaUbicacion.lng };
+    }
     localStorage.setItem(claveConUsuario(CLAVE_SESION_EN_CURSO), JSON.stringify(payload));
   } catch (err) {
     // localStorage bloqueado: la sesión no sobrevive al reload pero sigue corriendo
@@ -770,11 +786,13 @@ function reanudarSesionEnCurso() {
   // recupera el id si la sesión ya se había registrado (payloads viejos: vacío)
   sessionIdEnCurso =
     typeof guardada.sessionId === 'string' && guardada.sessionId ? guardada.sessionId : '';
+  ultimaUbicacion = normalizarUbicacion(guardada.ubicacion);
   estadoContador = 'corriendo';
   etiquetaBoton.textContent = 'DETENER';
   fijarTriggersBloqueados(true);
   if (temporizador) clearInterval(temporizador);
   temporizador = setInterval(contarSegundo, 1000);
+  if (sessionIdEnCurso) iniciarRefrescoUbicacion();
   actualizarVisualizacion();
 }
 
@@ -957,7 +975,11 @@ function componerTextoAviso(tipo, contactoNombre, mensaje) {
   }
   const limpio = cerrarFrase(mensaje);
   if (limpio) partes.push(limpio);
-  if (tipo === 'inicio') partes.push(`Tiene previsto finalizarla el ${horaPrevistaAviso()}.`);
+  if (tipo === 'inicio') {
+    partes.push(`Tiene previsto finalizarla el ${horaPrevistaAviso()}.`);
+    const ubicacion = urlUbicacionAviso();
+    if (ubicacion) partes.push(ubicacion);
+  }
   return partes.join(' ');
 }
 
@@ -1164,6 +1186,107 @@ async function cargarContactosAvisos() {
   }
 }
 
+// ------------------------------------------------------------- ubicación GPS
+
+function geolocalizacionDisponible() {
+  return Boolean(
+    typeof navigator !== 'undefined' &&
+      navigator &&
+      navigator.geolocation &&
+      typeof navigator.geolocation.getCurrentPosition === 'function'
+  );
+}
+
+function normalizarUbicacion(valor) {
+  if (!valor || typeof valor !== 'object') return null;
+  const lat = Number(valor.lat);
+  const lng = Number(valor.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+}
+
+function ubicacionDesdePosicion(posicion) {
+  const coords = posicion && posicion.coords ? posicion.coords : null;
+  if (!coords) return null;
+  return normalizarUbicacion({ lat: coords.latitude, lng: coords.longitude });
+}
+
+// Resuelve siempre (null si no hay API, error, permiso denegado o timeout):
+// un fallo de ubicación nunca bloquea el INICIAR ni muestra un toast de error.
+function obtenerUbicacionActual() {
+  return new Promise((resolve) => {
+    if (!geolocalizacionDisponible()) {
+      resolve(null);
+      return;
+    }
+    try {
+      navigator.geolocation.getCurrentPosition(
+        (posicion) => resolve(ubicacionDesdePosicion(posicion)),
+        () => resolve(null),
+        OPCIONES_UBICACION
+      );
+    } catch (err) {
+      console.error(`[iniciarDetener] geolocation falló: ${mensajeDeError(err)}`);
+      resolve(null);
+    }
+  });
+}
+
+function detenerRefrescoUbicacion() {
+  if (temporizadorUbicacion) {
+    clearInterval(temporizadorUbicacion);
+    temporizadorUbicacion = null;
+  }
+}
+
+function iniciarRefrescoUbicacion() {
+  detenerRefrescoUbicacion();
+  if (!geolocalizacionDisponible()) return; // sin API: no-op silencioso
+  temporizadorUbicacion = setInterval(refrescarUbicacion, INTERVALO_UBICACION_MS);
+}
+
+async function actualizarUbicacionEnBackend(sessionId, ubicacion) {
+  const url = `${ROOT_URL}/api/message-events/session/${encodeURIComponent(sessionId)}/ubicacion`;
+  try {
+    const respuesta = await fetchConTimeout(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify({ lat: ubicacion.lat, lng: ubicacion.lng }),
+    });
+    if (!respuesta.ok) {
+      console.error(
+        `[iniciarDetener] PATCH ubicación falló: ${url} status=${respuesta.status}`
+      );
+    }
+  } catch (err) {
+    console.error(`[iniciarDetener] PATCH ubicación falló: ${url} — ${mensajeDeError(err)}`);
+  }
+}
+
+function refrescarUbicacion() {
+  // Solo se refresca con la pestaña visible; oculto se saltea sin cortar el timer
+  if (typeof document !== 'undefined' && document && document.visibilityState !== 'visible') {
+    return;
+  }
+  const sessionId = sessionIdEnCurso;
+  if (!sessionId) return;
+  obtenerUbicacionActual().then((ubicacion) => {
+    if (!ubicacion) return;
+    if (estadoContador !== 'corriendo' || sessionIdEnCurso !== sessionId) return;
+    ultimaUbicacion = ubicacion;
+    guardarSesionEnCurso();
+    actualizarUbicacionEnBackend(sessionId, ubicacion);
+  });
+}
+
+function urlUbicacionAviso() {
+  if (!ultimaUbicacion) return '';
+  return `Ubicación: https://www.google.com/maps?q=${ultimaUbicacion.lat},${ultimaUbicacion.lng}`;
+}
+
 function iniciarContador() {
   if (!cargaCompleta) return; // carga pendiente: no arrancar ni persistir (REL-101)
   sincronizarEstadoSesion();
@@ -1178,6 +1301,8 @@ function iniciarContador() {
 
   sessionIdEnCurso = ''; // sesión nueva: el id anterior ya no aplica
   promesaSesionEnCurso = null;
+  detenerRefrescoUbicacion();
+  ultimaUbicacion = null; // se captura fresca al registrar la sesión
   segundosRestantes = totalContador;
   inicioContadorMs = Date.now();
   estadoContador = 'corriendo';
@@ -1204,8 +1329,10 @@ function detenerContador() {
     clearInterval(temporizador);
     temporizador = null;
   }
+  detenerRefrescoUbicacion(); // el GPS deja de refrescarse al cerrar la sesión
   quitarSesionEnCurso(); // DETENER resetea: no queda nada que reanudar (REL-105)
   sessionIdEnCurso = '';
+  ultimaUbicacion = null;
   inicioContadorMs = 0;
   estadoContador = 'detenido';
   etiquetaBoton.textContent = 'INICIAR';
@@ -1360,6 +1487,12 @@ function inicializarUI() {
   botonCompartirAviso.addEventListener('click', manejarCompartirAviso);
   botonCerrarAvisos.addEventListener('click', cerrarPanelAvisos);
 
+  // Al abandonar la página se corta el refresco de ubicación (no queda timer)
+  if (typeof window !== 'undefined' && window && typeof window.addEventListener === 'function') {
+    window.addEventListener('beforeunload', detenerRefrescoUbicacion);
+    window.addEventListener('pagehide', detenerRefrescoUbicacion);
+  }
+
   // Click fuera de cualquier desplegable -> cerrar el panel abierto. El click
   // sobre el propio trigger o su panel es "adentro" (closest('.desplegable'))
   // y no lo cierra, para no pelear con el toggle del trigger.
@@ -1493,18 +1626,26 @@ function esperarConTiempoLimite(promesa, ms) {
 // Devuelve (y deja en promesaSesionEnCurso) la promesa que resuelve el sessionId
 // para que DETENER pueda esperarla si llega antes de que termine (REL-002).
 function enviarInicioSesionEnBackend() {
-  const cuerpo = {
-    actividad: estadoSesion.actividad,
-    duracionSegundos: estadoSesion.tiempoSegundos,
-  };
   const inicioEnviado = inicioContadorMs;
   const promesa = (async () => {
+    // Geolocation con timeout propio de la API: si falla, se sigue sin ubicación
+    const ubicacion = await obtenerUbicacionActual();
+    if (ubicacion && estadoContador === 'corriendo' && inicioContadorMs === inicioEnviado) {
+      ultimaUbicacion = ubicacion;
+      guardarSesionEnCurso(); // persiste para reutilizarla tras un reload
+    }
+    const cuerpo = {
+      actividad: estadoSesion.actividad,
+      duracionSegundos: estadoSesion.tiempoSegundos,
+    };
+    if (ubicacion) cuerpo.ubicacion = { lat: ubicacion.lat, lng: ubicacion.lng };
     const sessionId = await crearSesionEnBackend(cuerpo);
     if (sessionId) {
       // Si mientras tanto la sesión se detuvo o reinició, no pisar el estado
       if (estadoContador === 'corriendo' && inicioContadorMs === inicioEnviado) {
         sessionIdEnCurso = sessionId;
         guardarSesionEnCurso(); // el id persiste: un reload todavía puede detenerla
+        iniciarRefrescoUbicacion(); // refresco cada 5 min mientras esté visible
         // Sesión registrada: recién ahora el inicio puede compartirse a mano
         renderizarPanelAvisos('inicio');
       }
