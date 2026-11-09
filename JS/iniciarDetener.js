@@ -69,6 +69,8 @@ const DURACION_BEEP_SEGUNDOS = 0.2;
 const INTERVALO_BEEP_MS = 2000;
 const GANANCIA_BEEP = 0.2;
 const INTERVALO_POLL_ALARMA_MS = 10000;
+const TEXTO_CANCELACION_ALARMA =
+  'Estoy bien! Solo no llegué a cancelar la alarma a tiempo.';
 
 // Textos manuales de inicio/fin. Ya no los manda la API: el usuario los
 // comparte desde su propio WhatsApp con el panel "Avisar a mis contactos".
@@ -182,6 +184,9 @@ let etiquetaBoton = null;
 let etiquetaTiempo = null;
 let avisoAlarmaEnviada = null;
 let avisoAlarmaDetalle = null;
+let avisoAlarmaCancelacion = null;
+let listaCancelacionAlarma = null;
+let botonCompartirCancelacion = null;
 let iconoActividad = null;
 let anilloProgreso = null;
 let panelAvisos = null;
@@ -1011,13 +1016,20 @@ function normalizarContactoAviso(contacto) {
     telefono: typeof origen.telefono === 'string' ? origen.telefono : String(origen.telefono ?? ''),
     inicio: asignado('inicio'),
     fin: asignado('fin'),
+    alarma: asignado('alarma'),
   };
 }
 
 function contactosParaAviso(tipo) {
-  if (tipo !== 'inicio' && tipo !== 'fin') return [];
+  if (tipo !== 'inicio' && tipo !== 'fin' && tipo !== 'alarma') return [];
   return contactosAvisos.filter(
     (contacto) => contacto[tipo] === true && contacto.nombre.trim() !== ''
+  );
+}
+
+function contactosCancelacionAlarma() {
+  return contactosParaAviso('alarma').filter(
+    (contacto) => soloDigitos(contacto.telefono) !== ''
   );
 }
 
@@ -1093,8 +1105,7 @@ function copiarTextoAlPortapapeles(texto) {
   return false;
 }
 
-function manejarCompartirAviso() {
-  const texto = textoCompartirActual;
+function compartirTexto(texto) {
   if (!texto) return false;
   if (typeof navigator !== 'undefined' && navigator && typeof navigator.share === 'function') {
     try {
@@ -1106,6 +1117,14 @@ function manejarCompartirAviso() {
     }
   }
   return copiarTextoAlPortapapeles(texto);
+}
+
+function manejarCompartirAviso() {
+  return compartirTexto(textoCompartirActual);
+}
+
+function manejarCompartirCancelacion() {
+  return compartirTexto(TEXTO_CANCELACION_ALARMA);
 }
 
 function claveContactoAviso(contacto) {
@@ -1416,6 +1435,26 @@ function renderizarDetalleAlarma(detalle) {
   }
 }
 
+function renderizarCancelacionAlarma() {
+  if (!avisoAlarmaCancelacion || !listaCancelacionAlarma) return;
+  const contactos = contactosCancelacionAlarma();
+  listaCancelacionAlarma.innerHTML = '';
+  if (contactos.length === 0) {
+    avisoAlarmaCancelacion.hidden = true;
+    return;
+  }
+  avisoAlarmaCancelacion.hidden = false;
+  for (const contacto of contactos) {
+    const href = construirUrlWhatsapp(contacto.telefono, TEXTO_CANCELACION_ALARMA);
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'avisoAlarmaCancelacionBoton';
+    boton.textContent = `Abrir WhatsApp — ${contacto.nombre}`;
+    boton.addEventListener('click', () => abrirWhatsapp(href));
+    listaCancelacionAlarma.appendChild(boton);
+  }
+}
+
 function confirmarAlarmaEnviada(detalle) {
   if (alarmaConfirmada) return;
   alarmaConfirmada = true;
@@ -1423,6 +1462,7 @@ function confirmarAlarmaEnviada(detalle) {
   detenerAlertaPrevia();
   if (etiquetaBoton) etiquetaBoton.classList.add('parpadeando');
   renderizarDetalleAlarma(detalle);
+  renderizarCancelacionAlarma();
   if (avisoAlarmaEnviada) avisoAlarmaEnviada.hidden = false;
 }
 
@@ -1487,6 +1527,8 @@ function reiniciarAvisoAlarma() {
   detenerAlertaPrevia();
   alarmaConfirmada = false;
   if (avisoAlarmaDetalle) avisoAlarmaDetalle.innerHTML = '';
+  if (listaCancelacionAlarma) listaCancelacionAlarma.innerHTML = '';
+  if (avisoAlarmaCancelacion) avisoAlarmaCancelacion.hidden = true;
   if (avisoAlarmaEnviada) avisoAlarmaEnviada.hidden = true;
 }
 
@@ -1634,6 +1676,9 @@ function inicializarUI() {
   etiquetaTiempo = document.querySelector('.botonIniciar .tiempo');
   avisoAlarmaEnviada = document.getElementById('avisoAlarmaEnviada');
   avisoAlarmaDetalle = document.getElementById('avisoAlarmaDetalle');
+  avisoAlarmaCancelacion = document.getElementById('avisoAlarmaCancelacion');
+  listaCancelacionAlarma = document.getElementById('listaCancelacionAlarma');
+  botonCompartirCancelacion = document.getElementById('botonCompartirCancelacion');
   iconoActividad = document.getElementById('iconoActividad');
   anilloProgreso = document.getElementById('anilloProgreso');
   panelAvisos = document.getElementById('panelAvisos');
@@ -1668,6 +1713,9 @@ function inicializarUI() {
     etiquetaTiempo,
     avisoAlarmaEnviada,
     avisoAlarmaDetalle,
+    avisoAlarmaCancelacion,
+    listaCancelacionAlarma,
+    botonCompartirCancelacion,
     iconoActividad,
     anilloProgreso,
     panelAvisos,
@@ -1704,6 +1752,7 @@ function inicializarUI() {
   botonIniciar.addEventListener('click', alternarContador);
   botonCompartirAviso.addEventListener('click', manejarCompartirAviso);
   botonCerrarAvisos.addEventListener('click', cerrarPanelAvisos);
+  botonCompartirCancelacion.addEventListener('click', manejarCompartirCancelacion);
 
   // Al abandonar la página se corta el refresco de ubicación (no queda timer)
   if (typeof window !== 'undefined' && window && typeof window.addEventListener === 'function') {

@@ -37,7 +37,10 @@ const EXPORTS = `;globalThis.__test = {
   umbralPreaviso, prepararAudio, emitirBeep, iniciarBeep, detenerBeep,
   activarAlertaPrevia, detenerAlertaPrevia, detenerPollAlarma,
   confirmarAlarmaEnviada, consultarAlarma, iniciarPollAlarma, reiniciarAvisoAlarma,
+  contactosCancelacionAlarma, renderizarCancelacionAlarma, manejarCompartirCancelacion,
+  TEXTO_CANCELACION_ALARMA,
   UMBRAL_PREAVISO_MAXIMO_SEGUNDOS, INTERVALO_BEEP_MS, INTERVALO_POLL_ALARMA_MS,
+  get sessionIdEnCurso() { return sessionIdEnCurso; },
   get ultimaUbicacion() { return ultimaUbicacion ? { ...ultimaUbicacion } : null; },
   get temporizadorUbicacion() { return temporizadorUbicacion; },
   get contextoAudio() { return contextoAudio; },
@@ -198,6 +201,12 @@ function crearContexto(opciones = {}) {
       textContent: 'Mensaje de alarma enviado. Avise su situación a sus contactos.',
     }),
     avisoAlarmaDetalle: crearNodo(),
+    avisoAlarmaCancelacion: crearNodo({ hidden: true }),
+    avisoAlarmaCancelacionTitulo: crearNodo({
+      textContent: 'Enviar mensaje de cancelación de alarma a tus contactos',
+    }),
+    listaCancelacionAlarma: crearNodo(),
+    botonCompartirCancelacion: crearNodo({ textContent: 'Compartir…' }),
     nombre: crearNodo(),
     panelAvisos: crearNodo({ hidden: true }),
     tituloAvisos: crearNodo({ textContent: 'Mandar WhatsApp de inicio' }),
@@ -816,6 +825,13 @@ test('HTML y CSS declaran el pre-aviso y el aviso de alarma enviada', () => {
   assert.ok(html.includes('id="avisoAlarmaEnviada"'), 'falta el nodo de aviso de alarma');
   assert.ok(html.includes('id="avisoAlarmaMensaje"'), 'falta la primera línea del aviso');
   assert.ok(html.includes('id="avisoAlarmaDetalle"'), 'falta el contenedor de detalle');
+  assert.ok(html.includes('id="avisoAlarmaCancelacion"'), 'falta la sección de cancelación');
+  assert.ok(html.includes('id="listaCancelacionAlarma"'), 'falta la lista de cancelación');
+  assert.ok(html.includes('id="botonCompartirCancelacion"'), 'falta el compartir de cancelación');
+  assert.ok(
+    html.includes('Enviar mensaje de cancelación de alarma a tus contactos'),
+    'falta el título exacto de cancelación'
+  );
   assert.ok(
     html.includes('Mensaje de alarma enviado. Avise su situación a sus contactos.'),
     'falta el texto exacto del aviso'
@@ -827,6 +843,8 @@ test('HTML y CSS declaran el pre-aviso y el aviso de alarma enviada', () => {
   assert.ok(css.includes('.avisoAlarmaEnviada'), 'falta el estilo de la caja roja');
   assert.ok(css.includes('.avisoAlarmaLinea'), 'falta el estilo de las líneas de detalle');
   assert.ok(css.includes('monospace'), 'las líneas de detalle deben ser monoespaciadas');
+  assert.ok(css.includes('.avisoAlarmaCancelacionBoton'), 'falta el estilo de botones de cancelación');
+  assert.ok(css.includes('.avisoAlarmaCompartir'), 'falta el estilo del compartir de cancelación');
 });
 
 console.log('# iniciarDetener.js — UI');
@@ -3085,6 +3103,118 @@ await testAsync('con alarmaEnviada false la caja sigue oculta y sin detalle', as
 
   assert.equal(t.nodos.avisoAlarmaEnviada.hidden, true, 'sigue oculta');
   assert.equal(t.nodos.avisoAlarmaDetalle.hijos.length, 0, 'sin líneas de detalle');
+  assert.equal(
+    t.nodos.avisoAlarmaCancelacion.hidden,
+    true,
+    'la sección de cancelación también espera la confirmación'
+  );
+});
+
+// ------------------------------- cancelación de alarma
+
+const CONTACTOS_CANCELACION = [
+  {
+    nombre: 'Ana',
+    telefono: '+54 9 11 1234-5678',
+    mensajes: true,
+    mensajesPorTipo: { inicio: false, fin: false, alarma: true, prueba: false },
+    visibilidad: true,
+  },
+  {
+    nombre: 'Beto',
+    telefono: '+54 11 0000-0000',
+    mensajes: true,
+    mensajesPorTipo: { inicio: false, fin: false, alarma: true, prueba: false },
+    visibilidad: true,
+  },
+  {
+    nombre: 'SinTel',
+    telefono: '',
+    mensajes: true,
+    mensajesPorTipo: { inicio: false, fin: false, alarma: true, prueba: false },
+    visibilidad: true,
+  },
+];
+
+async function confirmarAlarmaCon(t, opciones = {}) {
+  await t.domListo();
+  fijarTiempo(t, { minutos: 2 });
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.ctxTest.sessionIdEnCurso !== '');
+  t.reloj.ahora += 120000;
+  t.tick();
+  await esperar(() => t.nodos.avisoAlarmaEnviada.hidden === false);
+}
+
+await testAsync('la caja de alarma muestra la cancelación con un wa.me por contacto de alarma', async () => {
+  const t = contextoConAvisos({
+    contactos: CONTACTOS_CANCELACION,
+    alarmaEnviada: () => true,
+    alarmaDetalle: () => [],
+  });
+  await confirmarAlarmaCon(t);
+
+  assert.equal(t.nodos.avisoAlarmaCancelacion.hidden, false);
+  assert.equal(
+    t.nodos.avisoAlarmaCancelacionTitulo.textContent,
+    'Enviar mensaje de cancelación de alarma a tus contactos'
+  );
+  const botones = t.nodos.listaCancelacionAlarma.hijos;
+  assert.deepEqual(
+    botones.map((boton) => boton.textContent),
+    ['Abrir WhatsApp — Ana', 'Abrir WhatsApp — Beto'],
+    'solo contactos de alarma con teléfono resoluble'
+  );
+
+  botones[0].disparar('click');
+  const [href, target, features] = t.ventanas[t.ventanas.length - 1];
+  assert.equal(target, '_blank');
+  assert.equal(features, 'noopener');
+  assert.equal(
+    href,
+    `https://wa.me/5491112345678?text=${encodeURIComponent(
+      'Estoy bien! Solo no llegué a cancelar la alarma a tiempo.'
+    )}`
+  );
+  assert.equal(
+    decodeURIComponent(href.split('?text=')[1]),
+    'Estoy bien! Solo no llegué a cancelar la alarma a tiempo.'
+  );
+});
+
+await testAsync('sin contactos de alarma la sección de cancelación queda oculta', async () => {
+  const t = contextoConAvisos({
+    contactos: [
+      {
+        nombre: 'Ana',
+        telefono: '111',
+        mensajes: true,
+        mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
+        visibilidad: true,
+      },
+    ],
+    alarmaEnviada: () => true,
+    alarmaDetalle: () => [],
+  });
+  await confirmarAlarmaCon(t);
+
+  assert.equal(t.nodos.avisoAlarmaCancelacion.hidden, true, 'sin contactos de alarma');
+  assert.equal(t.nodos.listaCancelacionAlarma.hijos.length, 0);
+});
+
+await testAsync('Compartir… de cancelación copia el texto exacto', async () => {
+  const t = contextoConAvisos({
+    contactos: CONTACTOS_CANCELACION,
+    alarmaEnviada: () => true,
+    alarmaDetalle: () => [],
+  });
+  await confirmarAlarmaCon(t);
+
+  t.nodos.botonCompartirCancelacion.disparar('click');
+  await esperar(() => t.portapapeles.length === 1 && t.toasts.length > 0);
+
+  assert.equal(t.portapapeles[0], 'Estoy bien! Solo no llegué a cancelar la alarma a tiempo.');
+  assert.ok(t.toasts.some((toast) => toast.mensaje.includes('copiado')));
 });
 }
 

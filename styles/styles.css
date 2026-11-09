@@ -772,6 +772,57 @@ a {
   overflow-wrap: anywhere;
 }
 
+.avisoAlarmaCancelacion {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.avisoAlarmaCancelacion[hidden] {
+  display: none;
+}
+
+.avisoAlarmaCancelacionTitulo {
+  margin: 0 0 8px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 1.35;
+}
+
+.avisoAlarmaCompartir,
+.avisoAlarmaCancelacionBoton {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+  margin: 0 0 6px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  background-color: transparent;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: bold;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.avisoAlarmaCompartir:hover,
+.avisoAlarmaCompartir:focus-visible,
+.avisoAlarmaCancelacionBoton:hover,
+.avisoAlarmaCancelacionBoton:focus-visible {
+  background-color: rgba(255, 255, 255, 0.16);
+  outline: none;
+}
+
+.avisoAlarmaCancelacionLista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 /* Desplegables personalizados de Iniciar/Detener (reemplazan a los <select
    class="menu"> nativos): cada caja visible tiene dos filas — la cabecera
    estática (título + flecha) y, debajo, la fila con el valor elegido — y el
