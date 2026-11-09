@@ -620,15 +620,17 @@ a {
   max-width: 400px;
 }
 
-/* Panel "Avisar a mis contactos": aparece dentro de la tarjeta después de
-   INICIAR (texto de inicio) o DETENER (texto de fin). Los botones abren
-   wa.me con el mensaje ya compuesto. */
+/* Panel "Mandar WhatsApp de inicio/fin": va entre el reloj y la fila de
+   Actividad/Equipo/Tiempo. Los botones abren wa.me con el mensaje compuesto. */
 .panelAvisos {
   box-sizing: border-box;
-  width: 100%;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-principal);
+  width: 80%;
+  max-width: 400px;
+  margin: 12px auto;
+  padding: 14px 20px;
+  border: 1px solid var(--color-principal);
+  border-radius: 20px;
+  background-color: var(--color-fondo);
   text-align: left;
 }
 
@@ -636,11 +638,40 @@ a {
   display: none;
 }
 
+.panelAvisosCabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
 .panelAvisosTitulo {
-  margin: 0 0 10px;
+  margin: 0;
   color: #ffffff;
   font-size: 15px;
   font-weight: bold;
+}
+
+.panelAvisosCerrar {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: transparent;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.panelAvisosCerrar:hover,
+.panelAvisosCerrar:focus-visible {
+  background-color: rgba(255, 255, 255, 0.12);
+  outline: none;
 }
 
 .panelAvisosLista {
@@ -675,7 +706,7 @@ a {
 }
 
 .panelAvisosCompartir {
-  margin-top: 8px;
+  margin: 0 0 8px;
   background-color: transparent;
   color: var(--color-principal);
 }

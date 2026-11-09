@@ -42,9 +42,9 @@ const VALORES_PREVIEW_RESPALDO = {
   hora: '19:00',
 };
 
-const MAX_CONTACTOS_POR_TIPO = 5;
+const MAX_CONTACTOS_POR_TIPO = 3;
 
-const TEXTO_LIMITE_CONTACTOS = 'Llegaste al máximo de 5 contactos para este mensaje.';
+const TEXTO_LIMITE_CONTACTOS = 'Máximo 3 contactos por mensaje.';
 
 const TEXTO_ERROR_ENVIO_GENERICO = 'error desconocido';
 

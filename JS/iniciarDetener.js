@@ -131,9 +131,11 @@ let nombreUsuarioAvisos = '';
 // Contactos que pueden recibir los avisos manuales de inicio/fin
 let contactosAvisos = [];
 
-// Panel "Avisar a mis contactos": tipo visible y texto actual de "Compartir…"
+// Panel "Mandar WhatsApp de inicio/fin": tipo visible, texto de "Compartir…"
+// y contactos ya abiertos (para auto-ocultar cuando se abrieron todos).
 let tipoAvisoActual = '';
 let textoCompartirActual = '';
+let avisosAbiertos = new Set();
 
 // Referencias del DOM
 let triggerActividad = null;
@@ -164,8 +166,10 @@ let etiquetaTiempo = null;
 let iconoActividad = null;
 let anilloProgreso = null;
 let panelAvisos = null;
+let tituloAvisos = null;
 let listaAvisos = null;
 let botonCompartirAviso = null;
+let botonCerrarAvisos = null;
 
 // Id de la sesión registrada en el backend, para poder detenerla al DETENER.
 // Vacío cuando la creación falló o el backend no lo devolvió: no se dispara stop.
@@ -1066,11 +1070,34 @@ function manejarCompartirAviso() {
   return copiarTextoAlPortapapeles(texto);
 }
 
+function claveContactoAviso(contacto) {
+  return `${contacto.nombre.trim()}|${soloDigitos(contacto.telefono)}`;
+}
+
+function cerrarPanelAvisos() {
+  if (panelAvisos) panelAvisos.hidden = true;
+}
+
+// Auto-ocultado sin timer: cuando se abrió al menos una vez el WhatsApp de
+// CADA contacto del panel actual, el panel se esconde solo.
+function marcarContactoAvisoAbierto(contacto) {
+  avisosAbiertos.add(claveContactoAviso(contacto));
+  const contactos = contactosParaAviso(tipoAvisoActual);
+  if (contactos.length === 0) return;
+  const todos = contactos.every((item) => avisosAbiertos.has(claveContactoAviso(item)));
+  if (todos) cerrarPanelAvisos();
+}
+
 function renderizarPanelAvisos(tipo) {
   if (tipo !== 'inicio' && tipo !== 'fin') return false;
   if (!panelAvisos || !listaAvisos) return false;
   const contactos = contactosParaAviso(tipo);
   const mensaje = mensajeGuardadoAviso(tipo);
+  avisosAbiertos = new Set();
+  if (tituloAvisos) {
+    tituloAvisos.textContent =
+      tipo === 'inicio' ? 'Mandar WhatsApp de inicio' : 'Mandar WhatsApp de fin';
+  }
   listaAvisos.innerHTML = '';
   for (const contacto of contactos) {
     const texto = componerTextoAviso(tipo, contacto.nombre, mensaje);
@@ -1079,7 +1106,10 @@ function renderizarPanelAvisos(tipo) {
     boton.type = 'button';
     boton.className = 'panelAvisosBoton';
     boton.textContent = `Abrir WhatsApp — ${contacto.nombre}`;
-    boton.addEventListener('click', () => abrirWhatsapp(href));
+    boton.addEventListener('click', () => {
+      abrirWhatsapp(href);
+      marcarContactoAvisoAbierto(contacto);
+    });
     listaAvisos.appendChild(boton);
   }
   const contactoCompartir =
@@ -1264,8 +1294,10 @@ function inicializarUI() {
   iconoActividad = document.getElementById('iconoActividad');
   anilloProgreso = document.getElementById('anilloProgreso');
   panelAvisos = document.getElementById('panelAvisos');
+  tituloAvisos = document.getElementById('tituloAvisos');
   listaAvisos = document.getElementById('listaAvisos');
   botonCompartirAviso = document.getElementById('botonCompartirAviso');
+  botonCerrarAvisos = document.getElementById('botonCerrarAvisos');
 
   const nodosRequeridos = {
     triggerActividad,
@@ -1294,8 +1326,10 @@ function inicializarUI() {
     iconoActividad,
     anilloProgreso,
     panelAvisos,
+    tituloAvisos,
     listaAvisos,
     botonCompartirAviso,
+    botonCerrarAvisos,
   };
   const faltantes = Object.keys(nodosRequeridos).filter((nombre) => !nodosRequeridos[nombre]);
   if (faltantes.length > 0) {
@@ -1324,6 +1358,7 @@ function inicializarUI() {
   botonMinutosMenos.addEventListener('click', () => manejarPasoTiempo('minutos', -1));
   botonIniciar.addEventListener('click', alternarContador);
   botonCompartirAviso.addEventListener('click', manejarCompartirAviso);
+  botonCerrarAvisos.addEventListener('click', cerrarPanelAvisos);
 
   // Click fuera de cualquier desplegable -> cerrar el panel abierto. El click
   // sobre el propio trigger o su panel es "adentro" (closest('.desplegable'))

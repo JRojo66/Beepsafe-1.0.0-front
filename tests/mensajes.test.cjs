@@ -187,7 +187,7 @@ function crearNodosBase() {
     contadorMensaje: crearNodo({ textContent: '0/1000' }),
     seccionContactos: crearNodo(),
     listaContactos: crearNodo({ tagName: 'UL' }),
-    contadorContactos: crearNodo({ textContent: '0 de 5' }),
+    contadorContactos: crearNodo({ textContent: '0 de 3' }),
     mensajeLimiteContactos: crearNodo(),
     formAgregarContacto: crearNodo({ tagName: 'FORM' }),
     contactoNombre: crearNodo({ tagName: 'INPUT' }),
@@ -443,7 +443,15 @@ test('las cuatro páginas de mensaje cumplen el contrato de HTML', () => {
     );
     assert.ok(html.includes('maxlength="1000"'), `${archivo}: falta maxlength=1000`);
     assert.ok(html.includes('id="botonGrabar" type="button"'), `${archivo}: el botón debe ser type=button`);
-    assert.ok(html.includes('Quiero que reciba mis mensajes'), `${archivo}: falta el checkbox de mensajes`);
+    assert.ok(
+      !html.includes('Quiero que reciba mis mensajes'),
+      `${archivo}: no debe quedar el texto viejo del checkbox`
+    );
+    assert.ok(
+      html.includes('id="contactoMensajes" name="mensajes" checked hidden'),
+      `${archivo}: #contactoMensajes debe seguir existiendo, oculto`
+    );
+    assert.ok(html.includes('>0 de 3</span>'), `${archivo}: el contador arranca en 0 de 3`);
     assert.ok(html.includes('../JS/config.js'), `${archivo}: falta config.js`);
     assert.ok(html.includes('../JS/mensajes.js'), `${archivo}: falta mensajes.js`);
     for (const prohibido of prohibidos) {
@@ -1095,7 +1103,7 @@ async function testsAsync() {
     assert.ok(textos.includes('Ana'), 'Ana recibe inicio y se lista');
     assert.ok(textos.includes('Carla'), 'Carla recibe inicio y se lista');
     assert.ok(!textos.includes('Beto'), 'Beto recibe fin y no se lista en inicio');
-    assert.equal(t.nodos.contadorContactos.textContent, '2 de 5');
+    assert.equal(t.nodos.contadorContactos.textContent, '2 de 3');
   });
 
   await testAsync('un contacto asignado solo a otro tipo no se lista', async () => {
@@ -1120,7 +1128,7 @@ async function testsAsync() {
       t.nodos.estadoContactos.textContent.includes('para este mensaje'),
       'el estado vacío habla del mensaje de la página'
     );
-    assert.equal(t.nodos.contadorContactos.textContent, '0 de 5');
+    assert.equal(t.nodos.contadorContactos.textContent, '0 de 3');
   });
 
   await testAsync('el alta envía mensajesPorTipo solo con el tipo de la página', async () => {
@@ -1201,8 +1209,8 @@ async function testsAsync() {
     assert.deepEqual(Object.keys(cuerpo.mensajesPorTipo), ['inicio']);
   });
 
-  await testAsync('con 5 contactos el alta se deshabilita y el contador marca 5 de 5', async () => {
-    const contactos = Array.from({ length: 5 }, (_, indice) => ({
+  await testAsync('con 3 contactos el alta se deshabilita y el contador marca 3 de 3', async () => {
+    const contactos = Array.from({ length: 3 }, (_, indice) => ({
       nombre: `Contacto ${indice}`,
       telefono: `555${indice}`,
       mensajes: true,
@@ -1216,12 +1224,9 @@ async function testsAsync() {
     });
 
     await t.ctxTest.inicializarContactos();
-    assert.equal(t.nodos.listaContactos.hijos.length, 5, 'se listan los 5 contactos');
-    assert.equal(t.nodos.contadorContactos.textContent, '5 de 5');
-    assert.equal(
-      t.nodos.mensajeLimiteContactos.textContent,
-      'Llegaste al máximo de 5 contactos para este mensaje.'
-    );
+    assert.equal(t.nodos.listaContactos.hijos.length, 3, 'se listan los 3 contactos');
+    assert.equal(t.nodos.contadorContactos.textContent, '3 de 3');
+    assert.equal(t.nodos.mensajeLimiteContactos.textContent, 'Máximo 3 contactos por mensaje.');
     assert.equal(t.nodos.contactoNombre.disabled, true);
     assert.equal(t.nodos.contactoTelefono.disabled, true);
     assert.equal(t.nodos.contactoMensajes.disabled, true);
@@ -1233,7 +1238,7 @@ async function testsAsync() {
     assert.equal(
       t.fetchLog.filter((llamada) => llamada.init && llamada.init.method === 'POST').length,
       0,
-      'no se puede agregar un sexto contacto'
+      'no se puede agregar un cuarto contacto'
     );
   });
 
@@ -1247,7 +1252,7 @@ async function testsAsync() {
         visibilidad: true,
       },
     ];
-    const mensajeServidor = 'Ya hay 5 contactos para este mensaje.';
+    const mensajeServidor = 'Ya hay 3 contactos para este mensaje.';
     const t = crearContexto({
       dataset: { tipo: 'inicio' },
       store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
@@ -1300,12 +1305,12 @@ async function testsAsync() {
 
     await t.ctxTest.inicializarContactos();
     assert.equal(t.nodos.listaContactos.hijos.length, 2, 'arranca con dos filas');
-    assert.equal(t.nodos.contadorContactos.textContent, '2 de 5');
+    assert.equal(t.nodos.contadorContactos.textContent, '2 de 3');
 
     const ok = await t.ctxTest.refrescarContactos();
     assert.equal(ok, false, 'el refresh falla');
     assert.equal(t.nodos.listaContactos.hijos.length, 2, 'las filas siguen en pantalla');
-    assert.equal(t.nodos.contadorContactos.textContent, '2 de 5', 'el contador no se toca');
+    assert.equal(t.nodos.contadorContactos.textContent, '2 de 3', 'el contador no se toca');
     assert.equal(t.nodos.contactoNombre.disabled, false, 'el formulario sigue habilitado con filas');
     assert.ok(
       t.nodos.estadoContactos.textContent.includes('No se pudieron cargar los contactos'),
@@ -1321,10 +1326,10 @@ async function testsAsync() {
       mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
       visibilidad: true,
     });
-    const cuatro = Array.from({ length: 4 }, (_, indice) => crearContacto(indice));
-    const cinco = Array.from({ length: 5 }, (_, indice) => crearContacto(indice));
-    const mensajeServidor = 'Ya hay 5 contactos para este mensaje.';
-    let contactos = cuatro;
+    const dos = Array.from({ length: 2 }, (_, indice) => crearContacto(indice));
+    const tres = Array.from({ length: 3 }, (_, indice) => crearContacto(indice));
+    const mensajeServidor = 'Ya hay 3 contactos para este mensaje.';
+    let contactos = dos;
     const t = crearContexto({
       dataset: { tipo: 'inicio' },
       store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
@@ -1332,7 +1337,7 @@ async function testsAsync() {
         const metodo = (init && init.method) || 'GET';
         if (metodo === 'GET') return respuestaOk({ contactos });
         if (metodo === 'POST') {
-          contactos = cinco;
+          contactos = tres;
           return { ok: false, status: 400, json: async () => ({ error: mensajeServidor }) };
         }
         throw new Error(`método inesperado: ${metodo}`);
@@ -1340,15 +1345,15 @@ async function testsAsync() {
     });
 
     await t.ctxTest.inicializarContactos();
-    assert.equal(t.nodos.contadorContactos.textContent, '4 de 5');
+    assert.equal(t.nodos.contadorContactos.textContent, '2 de 3');
     assert.equal(t.nodos.botonAgregarContacto.disabled, false);
 
     t.nodos.contactoNombre.value = 'Beto';
     t.nodos.contactoTelefono.value = '999';
     await t.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
 
-    assert.equal(t.nodos.listaContactos.hijos.length, 5, 'la lista converge a los 5 del servidor');
-    assert.equal(t.nodos.contadorContactos.textContent, '5 de 5');
+    assert.equal(t.nodos.listaContactos.hijos.length, 3, 'la lista converge a los 3 del servidor');
+    assert.equal(t.nodos.contadorContactos.textContent, '3 de 3');
     assert.equal(t.nodos.botonAgregarContacto.disabled, true);
     assert.equal(t.nodos.contactoNombre.disabled, true);
     assert.equal(t.nodos.contactoTelefono.disabled, true);
@@ -1385,7 +1390,7 @@ async function testsAsync() {
 
     await t.ctxTest.inicializarContactos();
     assert.equal(t.nodos.listaContactos.hijos.length, 1);
-    assert.equal(t.nodos.contadorContactos.textContent, '1 de 5');
+    assert.equal(t.nodos.contadorContactos.textContent, '1 de 3');
 
     t.nodos.contactoNombre.value = 'Beto';
     t.nodos.contactoTelefono.value = '555';
@@ -1393,7 +1398,7 @@ async function testsAsync() {
 
     assert.equal(gets, 3, 'el refresh falla una vez y hay un único reintento');
     assert.equal(t.nodos.listaContactos.hijos.length, 2, 'las filas reflejan el alta exitosa');
-    assert.equal(t.nodos.contadorContactos.textContent, '2 de 5');
+    assert.equal(t.nodos.contadorContactos.textContent, '2 de 3');
     assert.equal(t.nodos.estadoContactos.textContent, 'Contacto agregado.');
     assert.ok(t.nodos.estadoContactos.classList.contains('mensajes-estado-ok'));
   });

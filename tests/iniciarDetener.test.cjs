@@ -29,6 +29,7 @@ const EXPORTS = `;globalThis.__test = {
   componerTextoAviso, cerrarFrase, normalizarContactoAviso, contactosParaAviso,
   soloDigitos, construirUrlWhatsapp, renderizarPanelAvisos,
   cargarContactosAvisos, manejarCompartirAviso, copiarTextoAlPortapapeles,
+  cerrarPanelAvisos, claveContactoAviso, marcarContactoAvisoAbierto,
   formatearHoraAviso, horaAvisoFallback, horaPrevistaAviso,
   mensajeGuardadoAviso,
   get equiposSeleccionados() { return equiposSeleccionados.slice(); },
@@ -182,8 +183,10 @@ function crearContexto(opciones = {}) {
     anilloProgreso: crearNodo({ getAttribute: () => '145' }),
     nombre: crearNodo(),
     panelAvisos: crearNodo({ hidden: true }),
+    tituloAvisos: crearNodo({ textContent: 'Mandar WhatsApp de inicio' }),
     listaAvisos: crearNodo(),
     botonCompartirAviso: crearNodo({ textContent: 'Compartir…' }),
+    botonCerrarAvisos: crearNodo({ textContent: '×' }),
   };
   if (opciones.sinNodos) {
     for (const clave of opciones.sinNodos) delete nodos[clave];
@@ -657,14 +660,29 @@ test('el HTML tiene los tres triggers con su título, paneles y stepper; sin sel
     'valorHoras',
     'valorMinutos',
     'panelAvisos',
+    'tituloAvisos',
     'listaAvisos',
     'botonCompartirAviso',
+    'botonCerrarAvisos',
   ]) {
     assert.ok(html.includes(`id="${id}"`), `falta el nodo #${id}`);
   }
-  assert.ok(html.includes('Avisar a mis contactos'), 'falta el título del panel de avisos');
+  assert.ok(html.includes('Mandar WhatsApp de inicio'), 'falta el título inicial del panel');
   assert.ok(html.includes('Compartir…'), 'falta el botón Compartir…');
   assert.ok(html.includes('id="panelAvisos" hidden'), 'el panel de avisos arranca oculto');
+  assert.ok(!html.includes('Avisar a mis contactos'), 'el título viejo ya no debe existir');
+
+  // Orden: reloj -> panel de avisos -> fila Actividad/Equipo/Tiempo
+  const posReloj = html.indexOf('class="reloj"');
+  const posPanel = html.indexOf('id="panelAvisos"');
+  const posFila = html.indexOf('class="contenedor-padre"');
+  assert.ok(posReloj > -1, 'falta el reloj');
+  assert.ok(posPanel > posReloj, 'el panel debe ir después del reloj');
+  assert.ok(posFila > posPanel, 'el panel debe ir antes de la fila de actividad');
+  assert.ok(
+    html.indexOf('id="botonCompartirAviso"') < html.indexOf('id="listaAvisos"'),
+    'Compartir… debe ir arriba de los botones de contacto'
+  );
   assert.ok(!html.includes('<select'), 'ya no hay <select> nativos en la pantalla');
   assert.ok(!html.includes('class="tituloSelect"'), 'los títulos sueltos fueron eliminados');
   assert.ok(!html.includes('class="elegidos"'), 'la repetición .elegidos fue eliminada');
@@ -2389,6 +2407,41 @@ await testAsync('Compartir… usa navigator.share con {text} cuando está dispon
     'Aviso de BeepSafe para Beto: Marcelo finalizó su sesión de Windsurf. Listo.'
   );
   assert.equal(t.portapapeles.length, 0, 'no copia cuando hay share');
+});
+
+await testAsync('el panel cambia de título según inicio/fin y el botón × lo oculta', async () => {
+  const t = contextoConAvisos();
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+  assert.equal(t.nodos.tituloAvisos.textContent, 'Mandar WhatsApp de inicio');
+
+  t.nodos.botonCerrarAvisos.disparar('click');
+  assert.equal(t.nodos.panelAvisos.hidden, true, 'el × oculta el panel al instante');
+
+  t.nodos.botonIniciar.disparar('click'); // DETENER
+  assert.equal(t.nodos.panelAvisos.hidden, false);
+  assert.equal(t.nodos.tituloAvisos.textContent, 'Mandar WhatsApp de fin');
+
+  t.nodos.botonCerrarAvisos.disparar('click');
+  assert.equal(t.nodos.panelAvisos.hidden, true);
+});
+
+await testAsync('el panel se autooculta al abrir el WhatsApp de todos los contactos', async () => {
+  const t = contextoConAvisos();
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
+  assert.equal(t.nodos.panelAvisos.hidden, false);
+
+  t.nodos.listaAvisos.hijos[0].disparar('click');
+  assert.equal(t.nodos.panelAvisos.hidden, false, 'todavía falta abrir un contacto');
+
+  t.nodos.listaAvisos.hijos[1].disparar('click');
+  assert.equal(t.nodos.panelAvisos.hidden, true, 'al abrir todos se oculta solo');
+  assert.equal(t.ventanas.length, 2, 'se abrieron los dos WhatsApp');
 });
 }
 

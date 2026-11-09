@@ -57,7 +57,7 @@
             <section class="msj-seccion" id="seccionContactos" aria-labelledby="tituloContactos">
                 <div class="msj-seccion-titulo">
                     <h2 class="msj-subtitulo" id="tituloContactos">Contactos</h2>
-                    <span class="msj-contador-contactos" id="contadorContactos">0 de 5</span>
+                    <span class="msj-contador-contactos" id="contadorContactos">0 de 3</span>
                 </div>
                 <p class="msj-ayuda">Estos son los contactos que reciben tus mensajes. <a class="msj-enlace-contactos" href="../pages/misContactos.html">Gestionar todos mis contactos</a></p>
                 <p class="msj-estado mensajes-estado" id="estadoContactos" role="status" aria-live="polite"></p>
@@ -76,10 +76,7 @@
                             <input type="tel" id="contactoTelefono" name="telefono" required autocomplete="tel" placeholder="+54911 1234 5678">
                         </label>
                     </div>
-                    <label class="msj-check mensajes-check">
-                        <input type="checkbox" id="contactoMensajes" name="mensajes" checked>
-                        <span>Quiero que reciba mis mensajes</span>
-                    </label>
+                    <input type="checkbox" id="contactoMensajes" name="mensajes" checked hidden>
                     <button class="msj-boton msj-boton-agregar" id="botonAgregarContacto" type="submit">Agregar</button>
                 </form>
             </section>
