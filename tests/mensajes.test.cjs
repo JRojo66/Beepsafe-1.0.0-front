@@ -462,13 +462,9 @@ test('las cinco páginas de mensaje cumplen el contrato de HTML', () => {
     assert.ok(html.includes('../JS/config.js'), `${archivo}: falta config.js`);
     assert.ok(html.includes('../JS/mensajes.js'), `${archivo}: falta mensajes.js`);
     if (tipo === 'cancelacion') {
-      assert.ok(
-        html.includes('Este mensaje se envía desde tu WhatsApp cuando avisás que estás bien.'),
-        `${archivo}: falta la nota gris exacta`
-      );
-      assert.ok(html.includes('class="msj-nota"'), `${archivo}: la nota debe usar msj-nota`);
-      assert.ok(!html.includes('mensajeFijoAntes'), `${archivo}: no lleva marco fijo`);
-      assert.ok(!html.includes('mensajeFijoDespues'), `${archivo}: no lleva marco fijo`);
+      assert.ok(html.includes('id="mensajeFijoAntes"'), `${archivo}: falta el bloque fijo antes`);
+      assert.ok(html.includes('id="mensajeFijoDespues"'), `${archivo}: falta el bloque fijo después`);
+      assert.ok(!html.includes('msj-nota'), `${archivo}: la nota vieja ya no debe existir`);
     }
     for (const prohibido of prohibidos) {
       assert.ok(!html.includes(prohibido), `${archivo}: no debe contener "${prohibido}"`);
@@ -476,7 +472,7 @@ test('las cinco páginas de mensaje cumplen el contrato de HTML', () => {
   }
 });
 
-test('las tres páginas declaran el preview fijo antes y después del textarea (REL-004)', () => {
+test('las cuatro páginas declaran el preview fijo antes y después del textarea (REL-004)', () => {
   const paginas = [
     [
       'mensajeDeInicio.html',
@@ -492,6 +488,11 @@ test('las tres páginas declaran el preview fijo antes y después del textarea (
       'mensajeDeAlarma.html',
       'Aviso de BeepSafe para María: Marcelo no detuvo su sesión de windsurf en el tiempo previsto.',
       /^- Enviado desde BeepSafe\.$/,
+    ],
+    [
+      'mensajeDeCancelacion.html',
+      'Aviso de Beepsafe para María. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido.',
+      /^Enviado desde Beepsafe\.$/,
     ],
   ];
 
@@ -928,6 +929,12 @@ async function testsAsync() {
       'Estoy bien! Solo no llegué a cancelar la alarma a tiempo.',
       'texto por defecto exacto'
     );
+    assert.equal(
+      t.nodos.mensajeFijoAntes.textContent,
+      'Aviso de Beepsafe para María. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido.',
+      'bloque fijo con fallbacks'
+    );
+    assert.equal(t.nodos.mensajeFijoDespues.textContent, 'Enviado desde Beepsafe.');
     assert.equal(t.nodos.mensaje.value, texto, 'el textarea arranca con el texto por defecto');
     assert.equal(t.nodos.contadorMensaje.textContent, `${texto.length}/1000`);
 
@@ -935,6 +942,49 @@ async function testsAsync() {
     const put = t.fetchLog.find((llamada) => llamada.init && llamada.init.method === 'PUT');
     assert.ok(put, 'se guarda la cancelación');
     assert.deepEqual(JSON.parse(put.init.body), { mensajes: { cancelacion: texto } });
+  });
+
+  await testAsync('el preview de cancelación interpola el primer contacto y el usuario real', async () => {
+    const token = crearToken({ email: 'ana@test.com', name: 'Ana' });
+    const t = crearContexto({
+      dataset: { tipo: 'cancelacion' },
+      store: new Map([['token', token]]),
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (url.endsWith('/api/message-templates') && metodo === 'GET') {
+          return respuestaOk({ mensajes: {} });
+        }
+        if (url.includes('/api/contacts') && metodo === 'GET') {
+          return respuestaOk({
+            contactos: [
+              {
+                nombre: 'Carla',
+                telefono: '111',
+                mensajes: true,
+                mensajesPorTipo: {
+                  inicio: false,
+                  fin: false,
+                  alarma: false,
+                  cancelacion: true,
+                  prueba: false,
+                },
+                visibilidad: true,
+              },
+            ],
+          });
+        }
+        throw new Error(`URL inesperada: ${url} ${metodo}`);
+      },
+    });
+
+    await t.ctxTest.inicializarEditorMensaje('cancelacion');
+
+    assert.equal(
+      t.nodos.mensajeFijoAntes.textContent,
+      'Aviso de Beepsafe para Carla. Ana avisa que está bien, y que el mensaje de alarma ya no es válido.'
+    );
+    assert.equal(t.nodos.mensajeFijoDespues.textContent, 'Enviado desde Beepsafe.');
+    assert.equal(t.nodos.mensaje.value, t.ctxTest.MENSAJES_POR_DEFECTO.cancelacion);
   });
 
   await testAsync('la lista renderiza un preview por tipo con el texto guardado', async () => {

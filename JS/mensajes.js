@@ -37,6 +37,11 @@ const PLANTILLAS_PREVIEW = {
       'Aviso de BeepSafe para {contacto}: {usuario} no detuvo su sesión de {actividad} en el tiempo previsto.',
     despues: '- Enviado desde BeepSafe.',
   },
+  cancelacion: {
+    antes:
+      'Aviso de Beepsafe para {contacto}. {usuario} avisa que está bien, y que el mensaje de alarma ya no es válido.',
+    despues: 'Enviado desde Beepsafe.',
+  },
 };
 
 const VALORES_PREVIEW_RESPALDO = {

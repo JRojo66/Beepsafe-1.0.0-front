@@ -1123,10 +1123,35 @@ function manejarCompartirAviso() {
   return compartirTexto(textoCompartirActual);
 }
 
-function textoCancelacionAlarma() {
+function contactoCancelacionPreview() {
+  const contactos = contactosParaAviso('cancelacion');
+  const primero = contactos.find((contacto) => contacto.nombre.trim());
+  return primero ? primero.nombre.trim() : 'María';
+}
+
+function mensajeCancelacionGuardado() {
   const guardado = mensajeGuardadoAviso('cancelacion');
   const limpio = typeof guardado === 'string' ? guardado.trim() : '';
   return limpio || TEXTO_CANCELACION_ALARMA;
+}
+
+function componerTextoCancelacion(contactoNombre, mensaje) {
+  const contacto =
+    typeof contactoNombre === 'string' && contactoNombre.trim()
+      ? contactoNombre.trim()
+      : 'María';
+  const usuario = nombreUsuarioAvisos.trim() || 'Marcelo';
+  const partes = [
+    `Aviso de Beepsafe para ${contacto}. ${usuario} avisa que está bien, y que el mensaje de alarma ya no es válido.`,
+  ];
+  const limpio = cerrarFrase(mensaje);
+  if (limpio) partes.push(limpio);
+  partes.push('Enviado desde Beepsafe.');
+  return partes.join(' ');
+}
+
+function textoCancelacionAlarma() {
+  return componerTextoCancelacion(contactoCancelacionPreview(), mensajeCancelacionGuardado());
 }
 
 function manejarCompartirCancelacion() {

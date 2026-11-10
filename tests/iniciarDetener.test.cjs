@@ -3170,16 +3170,10 @@ await testAsync('la caja de alarma muestra la cancelación con un wa.me por cont
   const [href, target, features] = t.ventanas[t.ventanas.length - 1];
   assert.equal(target, '_blank');
   assert.equal(features, 'noopener');
-  assert.equal(
-    href,
-    `https://wa.me/5491112345678?text=${encodeURIComponent(
-      'Estoy bien! Solo no llegué a cancelar la alarma a tiempo.'
-    )}`
-  );
-  assert.equal(
-    decodeURIComponent(href.split('?text=')[1]),
-    'Estoy bien! Solo no llegué a cancelar la alarma a tiempo.'
-  );
+  const esperado =
+    'Aviso de Beepsafe para María. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido. Estoy bien! Solo no llegué a cancelar la alarma a tiempo. Enviado desde Beepsafe.';
+  assert.equal(href, `https://wa.me/5491112345678?text=${encodeURIComponent(esperado)}`);
+  assert.equal(decodeURIComponent(href.split('?text=')[1]), esperado);
 });
 
 await testAsync('sin contactos de alarma la sección de cancelación queda oculta', async () => {
@@ -3213,7 +3207,10 @@ await testAsync('Compartir… de cancelación copia el texto exacto', async () =
   t.nodos.botonCompartirCancelacion.disparar('click');
   await esperar(() => t.portapapeles.length === 1 && t.toasts.length > 0);
 
-  assert.equal(t.portapapeles[0], 'Estoy bien! Solo no llegué a cancelar la alarma a tiempo.');
+  assert.equal(
+    t.portapapeles[0],
+    'Aviso de Beepsafe para María. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido. Estoy bien! Solo no llegué a cancelar la alarma a tiempo. Enviado desde Beepsafe.'
+  );
   assert.ok(t.toasts.some((toast) => toast.mensaje.includes('copiado')));
 });
 
@@ -3245,14 +3242,44 @@ await testAsync('la cancelación usa el texto guardado de cancelacion cuando exi
 
   botones[0].disparar('click');
   const href = t.ventanas[t.ventanas.length - 1][0];
-  assert.equal(
-    href,
-    `https://wa.me/5491112345678?text=${encodeURIComponent('Falsa alarma, ya estoy en casa.')}`
-  );
+  const esperado =
+    'Aviso de Beepsafe para María. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido. Falsa alarma, ya estoy en casa. Enviado desde Beepsafe.';
+  assert.equal(href, `https://wa.me/5491112345678?text=${encodeURIComponent(esperado)}`);
 
   t.nodos.botonCompartirCancelacion.disparar('click');
   await esperar(() => t.portapapeles.length === 1);
-  assert.equal(t.portapapeles[0], 'Falsa alarma, ya estoy en casa.');
+  assert.equal(t.portapapeles[0], esperado);
+});
+
+await testAsync('el cierre de cancelación respeta la puntuación final del mensaje', async () => {
+  const t = contextoConAvisos({
+    contactos: CONTACTOS_CANCELACION,
+    alarmaEnviada: () => true,
+    alarmaDetalle: () => [],
+  });
+  t.store.set(
+    'beepsafe_mensajes:marcelo@test.com',
+    JSON.stringify({
+      mensajes: {
+        inicio: 'Llevo casco',
+        fin: 'Listo',
+        alarma: '',
+        cancelacion: '¡Estoy bien!',
+        prueba: '',
+      },
+    })
+  );
+  await confirmarAlarmaCon(t);
+
+  const botones = t.nodos.listaCancelacionAlarma.hijos;
+  botones[0].disparar('click');
+  const texto = decodeURIComponent(t.ventanas[t.ventanas.length - 1][0].split('?text=')[1]);
+  assert.equal(
+    texto,
+    'Aviso de Beepsafe para María. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido. ¡Estoy bien! Enviado desde Beepsafe.'
+  );
+  assert.ok(!texto.includes('!.'), 'no agrega punto después de "!"');
+  assert.ok(!texto.includes('..'), 'sin doble punto');
 });
 }
 
