@@ -751,6 +751,32 @@ a {
   display: none;
 }
 
+.avisoAlarmaCabecera {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 4px;
+}
+
+#botonCerrarAlarma {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: transparent;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#botonCerrarAlarma:hover,
+#botonCerrarAlarma:focus-visible {
+  background-color: rgba(255, 255, 255, 0.18);
+  outline: none;
+}
+
 .avisoAlarmaMensaje {
   margin: 0;
   color: #ffffff;

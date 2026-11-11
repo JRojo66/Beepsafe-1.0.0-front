@@ -183,6 +183,7 @@ let botonIniciar = null;
 let etiquetaBoton = null;
 let etiquetaTiempo = null;
 let avisoAlarmaEnviada = null;
+let botonCerrarAlarma = null;
 let avisoAlarmaDetalle = null;
 let avisoAlarmaCancelacion = null;
 let listaCancelacionAlarma = null;
@@ -1439,6 +1440,12 @@ function detenerPollAlarma() {
   }
 }
 
+// Cierre manual del aviso: solo oculta la caja. No toca la sesión, el polling
+// ni `alarmaConfirmada`, así no se reabre hasta que arranque otra sesión.
+function cerrarAvisoAlarma() {
+  if (avisoAlarmaEnviada) avisoAlarmaEnviada.hidden = true;
+}
+
 function renderizarDetalleAlarma(detalle) {
   if (!avisoAlarmaDetalle) return;
   avisoAlarmaDetalle.innerHTML = '';
@@ -1709,6 +1716,7 @@ function inicializarUI() {
   etiquetaBoton = document.getElementById('etiquetaBoton');
   etiquetaTiempo = document.querySelector('.botonIniciar .tiempo');
   avisoAlarmaEnviada = document.getElementById('avisoAlarmaEnviada');
+  botonCerrarAlarma = document.getElementById('botonCerrarAlarma');
   avisoAlarmaDetalle = document.getElementById('avisoAlarmaDetalle');
   avisoAlarmaCancelacion = document.getElementById('avisoAlarmaCancelacion');
   listaCancelacionAlarma = document.getElementById('listaCancelacionAlarma');
@@ -1746,6 +1754,7 @@ function inicializarUI() {
     etiquetaBoton,
     etiquetaTiempo,
     avisoAlarmaEnviada,
+    botonCerrarAlarma,
     avisoAlarmaDetalle,
     avisoAlarmaCancelacion,
     listaCancelacionAlarma,
@@ -1787,6 +1796,7 @@ function inicializarUI() {
   botonCompartirAviso.addEventListener('click', manejarCompartirAviso);
   botonCerrarAvisos.addEventListener('click', cerrarPanelAvisos);
   botonCompartirCancelacion.addEventListener('click', manejarCompartirCancelacion);
+  botonCerrarAlarma.addEventListener('click', cerrarAvisoAlarma);
 
   // Al abandonar la página se corta el refresco de ubicación (no queda timer)
   if (typeof window !== 'undefined' && window && typeof window.addEventListener === 'function') {

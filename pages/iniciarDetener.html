@@ -44,8 +44,11 @@
             <button class="botonIniciar" id="botonIniciar" type="button"><span id="etiquetaBoton">INICIAR</span><br><span class="tiempo">03:00:00</span></button>
         </div>
 
-        <div class="avisoAlarmaEnviada" id="avisoAlarmaEnviada" role="status" aria-live="polite" hidden>
-            <p class="avisoAlarmaMensaje" id="avisoAlarmaMensaje">Mensaje de alarma enviado. Avise su situación a sus contactos.</p>
+        <div class="avisoAlarmaEnviada" id="avisoAlarmaEnviada" hidden>
+            <div class="avisoAlarmaCabecera">
+                <button id="botonCerrarAlarma" type="button" aria-label="Cerrar aviso de alarma">×</button>
+            </div>
+            <p class="avisoAlarmaMensaje" id="avisoAlarmaMensaje" role="status" aria-live="polite">Mensaje de alarma enviado. Avise su situación a sus contactos.</p>
             <div class="avisoAlarmaDetalle" id="avisoAlarmaDetalle"></div>
             <div class="avisoAlarmaCancelacion" id="avisoAlarmaCancelacion" hidden>
                 <p class="avisoAlarmaCancelacionTitulo" id="avisoAlarmaCancelacionTitulo">Enviar mensaje de cancelación de alarma a tus contactos</p>

@@ -197,6 +197,7 @@ function crearContexto(opciones = {}) {
     iconoActividad: crearNodo({ src: '', alt: '' }),
     anilloProgreso: crearNodo({ getAttribute: () => '145' }),
     avisoAlarmaEnviada: crearNodo({ hidden: true }),
+    botonCerrarAlarma: crearNodo({ textContent: '×' }),
     avisoAlarmaMensaje: crearNodo({
       textContent: 'Mensaje de alarma enviado. Avise su situación a sus contactos.',
     }),
@@ -823,6 +824,16 @@ test('construirUrlWhatsapp deja solo dígitos y codifica el texto', () => {
 test('HTML y CSS declaran el pre-aviso y el aviso de alarma enviada', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'pages', 'iniciarDetener.html'), 'utf8');
   assert.ok(html.includes('id="avisoAlarmaEnviada"'), 'falta el nodo de aviso de alarma');
+  assert.ok(
+    html.includes(
+      '<button id="botonCerrarAlarma" type="button" aria-label="Cerrar aviso de alarma">×</button>'
+    ),
+    'falta el botón × con su aria-label exacto'
+  );
+  assert.ok(
+    html.includes('id="avisoAlarmaMensaje" role="status" aria-live="polite"'),
+    'el role/live debe quedar en el mensaje'
+  );
   assert.ok(html.includes('id="avisoAlarmaMensaje"'), 'falta la primera línea del aviso');
   assert.ok(html.includes('id="avisoAlarmaDetalle"'), 'falta el contenedor de detalle');
   assert.ok(html.includes('id="avisoAlarmaCancelacion"'), 'falta la sección de cancelación');
@@ -845,6 +856,7 @@ test('HTML y CSS declaran el pre-aviso y el aviso de alarma enviada', () => {
   assert.ok(css.includes('monospace'), 'las líneas de detalle deben ser monoespaciadas');
   assert.ok(css.includes('.avisoAlarmaCancelacionBoton'), 'falta el estilo de botones de cancelación');
   assert.ok(css.includes('.avisoAlarmaCompartir'), 'falta el estilo del compartir de cancelación');
+  assert.ok(css.includes('#botonCerrarAlarma'), 'falta el estilo del × de la caja roja');
 });
 
 console.log('# iniciarDetener.js — UI');
@@ -3310,6 +3322,42 @@ await testAsync('el cierre de cancelación respeta la puntuación final del mens
   );
   assert.ok(!texto.includes('!.'), 'no agrega punto después de "!"');
   assert.ok(!texto.includes('..'), 'sin doble punto');
+});
+
+await testAsync('el × de la caja de alarma la oculta sin tocar sesión ni polling', async () => {
+  const t = contextoConAvisos({ alarmaEnviada: () => true, alarmaDetalle: () => [] });
+  await confirmarAlarmaCon(t);
+  assert.equal(t.nodos.avisoAlarmaEnviada.hidden, false);
+  assert.equal(t.ctxTest.alarmaConfirmada, true);
+
+  const requestsAntes = t.fetchLog.length;
+  t.nodos.botonCerrarAlarma.disparar('click');
+  assert.equal(t.nodos.avisoAlarmaEnviada.hidden, true, 'el × oculta la caja');
+  assert.equal(t.ctxTest.alarmaConfirmada, true, 'no toca la confirmación');
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'FINALIZADO', 'no toca la sesión');
+
+  t.reloj.ahora += t.ctxTest.INTERVALO_POLL_ALARMA_MS;
+  t.tick();
+  await new Promise((resolver) => setTimeout(resolver, 20));
+  assert.equal(t.nodos.avisoAlarmaEnviada.hidden, true, 'no reaparece en el siguiente poll');
+  assert.equal(t.fetchLog.length, requestsAntes, 'no hay requests nuevos');
+});
+
+await testAsync('al iniciar una nueva sesión la caja vuelve a mostrarse al confirmar', async () => {
+  const t = contextoConAvisos({ alarmaEnviada: () => true, alarmaDetalle: () => [] });
+  await confirmarAlarmaCon(t);
+  t.nodos.botonCerrarAlarma.disparar('click');
+  assert.equal(t.nodos.avisoAlarmaEnviada.hidden, true);
+
+  t.nodos.botonIniciar.disparar('click'); // nueva sesión
+  assert.equal(t.ctxTest.alarmaConfirmada, false, 'reiniciarAvisoAlarma resetea');
+  assert.equal(t.nodos.avisoAlarmaEnviada.hidden, true, 'sigue oculta hasta confirmar');
+  await esperar(() => t.ctxTest.sessionIdEnCurso !== '');
+
+  t.reloj.ahora += 120000;
+  t.tick();
+  await esperar(() => t.nodos.avisoAlarmaEnviada.hidden === false);
+  assert.equal(t.ctxTest.alarmaConfirmada, true);
 });
 }
 
