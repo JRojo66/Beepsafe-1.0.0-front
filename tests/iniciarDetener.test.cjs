@@ -3170,10 +3170,40 @@ await testAsync('la caja de alarma muestra la cancelación con un wa.me por cont
   const [href, target, features] = t.ventanas[t.ventanas.length - 1];
   assert.equal(target, '_blank');
   assert.equal(features, 'noopener');
+  const esperadoAna =
+    'Aviso de Beepsafe para Ana. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido. Estoy bien! Solo no llegué a cancelar la alarma a tiempo. Enviado desde Beepsafe.';
+  assert.equal(href, `https://wa.me/5491112345678?text=${encodeURIComponent(esperadoAna)}`);
+  assert.equal(decodeURIComponent(href.split('?text=')[1]), esperadoAna);
+
+  botones[1].disparar('click');
+  const hrefBeto = t.ventanas[t.ventanas.length - 1][0];
+  const esperadoBeto =
+    'Aviso de Beepsafe para Beto. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido. Estoy bien! Solo no llegué a cancelar la alarma a tiempo. Enviado desde Beepsafe.';
+  assert.equal(hrefBeto, `https://wa.me/541100000000?text=${encodeURIComponent(esperadoBeto)}`);
+  assert.equal(decodeURIComponent(hrefBeto.split('?text=')[1]), esperadoBeto);
+});
+
+await testAsync('con un solo contacto de alarma el href usa su nombre y no María', async () => {
+  const t = contextoConAvisos({
+    contactos: [CONTACTOS_CANCELACION[0]],
+    alarmaEnviada: () => true,
+    alarmaDetalle: () => [],
+  });
+  await confirmarAlarmaCon(t);
+
+  const botones = t.nodos.listaCancelacionAlarma.hijos;
+  assert.equal(botones.length, 1);
+  botones[0].disparar('click');
+  const href = t.ventanas[t.ventanas.length - 1][0];
   const esperado =
-    'Aviso de Beepsafe para María. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido. Estoy bien! Solo no llegué a cancelar la alarma a tiempo. Enviado desde Beepsafe.';
+    'Aviso de Beepsafe para Ana. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido. Estoy bien! Solo no llegué a cancelar la alarma a tiempo. Enviado desde Beepsafe.';
   assert.equal(href, `https://wa.me/5491112345678?text=${encodeURIComponent(esperado)}`);
   assert.equal(decodeURIComponent(href.split('?text=')[1]), esperado);
+  assert.ok(!decodeURIComponent(href.split('?text=')[1]).includes('María'));
+
+  t.nodos.botonCompartirCancelacion.disparar('click');
+  await esperar(() => t.portapapeles.length === 1);
+  assert.equal(t.portapapeles[0], esperado, 'Compartir usa el primer contacto de alarma');
 });
 
 await testAsync('sin contactos de alarma la sección de cancelación queda oculta', async () => {
@@ -3209,7 +3239,7 @@ await testAsync('Compartir… de cancelación copia el texto exacto', async () =
 
   assert.equal(
     t.portapapeles[0],
-    'Aviso de Beepsafe para María. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido. Estoy bien! Solo no llegué a cancelar la alarma a tiempo. Enviado desde Beepsafe.'
+    'Aviso de Beepsafe para Ana. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido. Estoy bien! Solo no llegué a cancelar la alarma a tiempo. Enviado desde Beepsafe.'
   );
   assert.ok(t.toasts.some((toast) => toast.mensaje.includes('copiado')));
 });
@@ -3243,7 +3273,7 @@ await testAsync('la cancelación usa el texto guardado de cancelacion cuando exi
   botones[0].disparar('click');
   const href = t.ventanas[t.ventanas.length - 1][0];
   const esperado =
-    'Aviso de Beepsafe para María. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido. Falsa alarma, ya estoy en casa. Enviado desde Beepsafe.';
+    'Aviso de Beepsafe para Ana. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido. Falsa alarma, ya estoy en casa. Enviado desde Beepsafe.';
   assert.equal(href, `https://wa.me/5491112345678?text=${encodeURIComponent(esperado)}`);
 
   t.nodos.botonCompartirCancelacion.disparar('click');
@@ -3276,7 +3306,7 @@ await testAsync('el cierre de cancelación respeta la puntuación final del mens
   const texto = decodeURIComponent(t.ventanas[t.ventanas.length - 1][0].split('?text=')[1]);
   assert.equal(
     texto,
-    'Aviso de Beepsafe para María. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido. ¡Estoy bien! Enviado desde Beepsafe.'
+    'Aviso de Beepsafe para Ana. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido. ¡Estoy bien! Enviado desde Beepsafe.'
   );
   assert.ok(!texto.includes('!.'), 'no agrega punto después de "!"');
   assert.ok(!texto.includes('..'), 'sin doble punto');

@@ -1124,7 +1124,7 @@ function manejarCompartirAviso() {
 }
 
 function contactoCancelacionPreview() {
-  const contactos = contactosParaAviso('cancelacion');
+  const contactos = contactosParaAviso('alarma');
   const primero = contactos.find((contacto) => contacto.nombre.trim());
   return primero ? primero.nombre.trim() : 'María';
 }
@@ -1475,8 +1475,10 @@ function renderizarCancelacionAlarma() {
     return;
   }
   avisoAlarmaCancelacion.hidden = false;
-  const texto = textoCancelacionAlarma();
+  const mensaje = mensajeCancelacionGuardado();
   for (const contacto of contactos) {
+    // Cada botón lleva el nombre del contacto de alarma que lo recibe
+    const texto = componerTextoCancelacion(contacto.nombre, mensaje);
     const href = construirUrlWhatsapp(contacto.telefono, texto);
     const boton = document.createElement('button');
     boton.type = 'button';

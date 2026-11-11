@@ -944,7 +944,7 @@ async function testsAsync() {
     assert.deepEqual(JSON.parse(put.init.body), { mensajes: { cancelacion: texto } });
   });
 
-  await testAsync('el preview de cancelación interpola el primer contacto y el usuario real', async () => {
+  await testAsync('el preview de cancelación interpola el primer contacto de alarma y el usuario real', async () => {
     const token = crearToken({ email: 'ana@test.com', name: 'Ana' });
     const t = crearContexto({
       dataset: { tipo: 'cancelacion' },
@@ -958,14 +958,27 @@ async function testsAsync() {
           return respuestaOk({
             contactos: [
               {
-                nombre: 'Carla',
-                telefono: '111',
+                nombre: 'SoloCancelacion',
+                telefono: '000',
                 mensajes: true,
                 mensajesPorTipo: {
                   inicio: false,
                   fin: false,
                   alarma: false,
                   cancelacion: true,
+                  prueba: false,
+                },
+                visibilidad: true,
+              },
+              {
+                nombre: 'Carla',
+                telefono: '111',
+                mensajes: true,
+                mensajesPorTipo: {
+                  inicio: false,
+                  fin: false,
+                  alarma: true,
+                  cancelacion: false,
                   prueba: false,
                 },
                 visibilidad: true,

@@ -223,7 +223,9 @@ function renderizarPreview(tipo) {
   const plantilla = PLANTILLAS_PREVIEW[tipo];
   if (!plantilla) return false;
   const valores = {
-    contacto: contactoPreview(tipo),
+    // La cancelación la reciben los contactos de alarma (no existe un tipo
+    // "cancelacion" en la asignación de contactos).
+    contacto: contactoPreview(tipo === 'cancelacion' ? 'alarma' : tipo),
     usuario: nombreDesdeToken() || VALORES_PREVIEW_RESPALDO.usuario,
     actividad: actividadPreview(),
     hora: horaPreview(),
