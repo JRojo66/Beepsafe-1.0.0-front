@@ -61,8 +61,23 @@ function crearNodo(extra = {}) {
       (this.listeners[tipo] ||= []).push(fn);
     },
     appendChild(hijo) {
+      hijo._parent = this;
       this.hijos.push(hijo);
       return hijo;
+    },
+    removeChild(hijo) {
+      const indice = this.hijos.indexOf(hijo);
+      if (indice >= 0) this.hijos.splice(indice, 1);
+      hijo._parent = null;
+      return hijo;
+    },
+    remove() {
+      if (this._parent && typeof this._parent.removeChild === 'function') {
+        this._parent.removeChild(this);
+      }
+    },
+    focus() {
+      this.focused = true;
     },
     disparar(tipo, evento) {
       for (const fn of this.listeners[tipo] || []) fn(evento);
@@ -88,6 +103,9 @@ function crearNodo(extra = {}) {
     remove: (...cs) => cs.forEach((c) => clases.delete(c)),
     contains: (c) => clases.has(c),
   };
+  Object.defineProperty(nodo, 'childElementCount', {
+    get: () => nodo.hijos.length,
+  });
   let nombreClase = '';
   Object.defineProperty(nodo, 'className', {
     get: () => nombreClase,
@@ -121,12 +139,26 @@ function crearContextoActividadGrupos(opciones = {}) {
     listaVencidos: crearNodo(),
     listaEnCurso: crearNodo(),
     listaTerminados: crearNodo(),
+    estadoEliminarSesion: crearNodo(),
+    modalEliminarSesion: crearNodo({ className: 'modal hidden' }),
+    continuarEliminarSesion: crearNodo({ textContent: 'Continuar' }),
+    cancelarEliminarSesion: crearNodo({ textContent: 'Cancelar' }),
+    cerrarModalEliminarSesion: crearNodo({ textContent: '×' }),
+    modalConfirmarEliminarSesion: crearNodo({ className: 'modal hidden' }),
+    eliminarSesion: crearNodo({ textContent: 'Eliminar' }),
+    cancelarConfirmarEliminar: crearNodo({ textContent: 'Cancelar' }),
+    cerrarModalConfirmarEliminar: crearNodo({ textContent: '×' }),
   };
+  nodos.modalEliminarSesion.classList.add('hidden');
+  nodos.modalConfirmarEliminarSesion.classList.add('hidden');
 
+  const documentHandlers = {};
   const document = {
     getElementById: (id) => nodos[id] || null,
     createElement: (tag) => crearNodo({ tagName: String(tag).toUpperCase() }),
-    addEventListener() {},
+    addEventListener(tipo, fn) {
+      (documentHandlers[tipo] ||= []).push(fn);
+    },
   };
 
   const DateReal = Date;
@@ -158,7 +190,15 @@ function crearContextoActividadGrupos(opciones = {}) {
   };
   vm.createContext(ctx);
   vm.runInContext(FUENTE + EXPORTS, ctx, { filename: 'actividadGrupos.js' });
-  return { ctx, ctxTest: ctx.__test, nodos, fetchLog };
+  return {
+    ctx,
+    ctxTest: ctx.__test,
+    nodos,
+    fetchLog,
+    dispararDocumento(tipo, evento) {
+      for (const fn of documentHandlers[tipo] || []) fn(evento);
+    },
+  };
 }
 
 function buscarPorClase(nodo, clase) {
@@ -201,6 +241,9 @@ async function esperar(condicion, intentos = 200) {
 const GRUPO = { _id: 'g1', name: 'Surf', members: [1, 2, 3] };
 
 const MIEMBRO_VENCIDO = {
+  id: 'v1',
+  tipo: 'sesion',
+  puedeEliminar: true,
   usuario: 'Ana',
   actividad: 'Surf',
   inicio: new Date(AHORA - 60 * 60 * 1000).toISOString(),
@@ -214,6 +257,8 @@ const MIEMBRO_VENCIDO = {
 };
 
 const MIEMBRO_EN_CURSO = {
+  id: 'c1',
+  tipo: 'sesion',
   usuario: 'Beto',
   actividad: 'Kayak',
   inicio: new Date(AHORA - 30 * 60 * 1000).toISOString(),
@@ -223,6 +268,9 @@ const MIEMBRO_EN_CURSO = {
 };
 
 const MIEMBRO_TERMINADO = {
+  id: 'r1',
+  tipo: 'registro',
+  puedeEliminar: true,
   usuario: 'Carla',
   actividad: 'Windsurf',
   inicio: new Date(AHORA - 120 * 60 * 1000).toISOString(),
@@ -422,6 +470,149 @@ await testAsync('un activity-state vacío muestra el mensaje y las secciones vac
     t.nodos.listaTerminados,
   ]) {
     assert.equal(lista.hijos[0].textContent, 'Sin registros.');
+  }
+});
+
+console.log('# actividadGrupos.js — eliminación');
+
+await testAsync('solo los miembros con puedeEliminar muestran el botón Eliminar', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  assert.ok(buscarPorClase(t.nodos.listaVencidos.hijos[0], 'grupo-eliminar-boton'));
+  assert.ok(buscarPorClase(t.nodos.listaTerminados.hijos[0], 'grupo-eliminar-boton'));
+  assert.equal(
+    buscarPorClase(t.nodos.listaEnCurso.hijos[0], 'grupo-eliminar-boton'),
+    null,
+    'sin puedeEliminar no hay botón'
+  );
+});
+
+await testAsync('el primer diálogo no elimina y Escape/Cancelar/× abortan', async () => {
+  let deletes = 0;
+  const t = crearContextoActividadGrupos({
+    fetch: async (url, init) => {
+      if ((init && init.method) === 'DELETE') {
+        deletes += 1;
+        return { ok: true, status: 204, json: async () => ({}) };
+      }
+      return respuestaOk({ activityState: estadoCompleto() });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+  const card = t.nodos.listaVencidos.hijos[0];
+  const boton = buscarPorClase(card, 'grupo-eliminar-boton');
+
+  boton.disparar('click');
+  assert.equal(t.nodos.modalEliminarSesion.classList.contains('hidden'), false);
+  assert.equal(t.nodos.continuarEliminarSesion.focused, true, 'foco en Continuar');
+  assert.equal(deletes, 0, 'el primer diálogo no elimina');
+
+  t.nodos.continuarEliminarSesion.disparar('click');
+  assert.equal(t.nodos.modalEliminarSesion.classList.contains('hidden'), true);
+  assert.equal(t.nodos.modalConfirmarEliminarSesion.classList.contains('hidden'), false);
+  assert.equal(t.nodos.eliminarSesion.focused, true, 'foco en Eliminar');
+  assert.equal(deletes, 0, 'el segundo diálogo todavía no elimina');
+
+  t.dispararDocumento('keydown', { key: 'Escape' });
+  assert.equal(t.nodos.modalConfirmarEliminarSesion.classList.contains('hidden'), true);
+
+  boton.disparar('click');
+  t.nodos.cancelarEliminarSesion.disparar('click');
+  assert.equal(t.nodos.modalEliminarSesion.classList.contains('hidden'), true);
+
+  boton.disparar('click');
+  t.nodos.cerrarModalEliminarSesion.disparar('click');
+  assert.equal(t.nodos.modalEliminarSesion.classList.contains('hidden'), true);
+
+  boton.disparar('click');
+  t.nodos.continuarEliminarSesion.disparar('click');
+  t.nodos.cancelarConfirmarEliminar.disparar('click');
+  assert.equal(t.nodos.modalConfirmarEliminarSesion.classList.contains('hidden'), true);
+
+  boton.disparar('click');
+  t.nodos.continuarEliminarSesion.disparar('click');
+  t.nodos.cerrarModalConfirmarEliminar.disparar('click');
+  assert.equal(t.nodos.modalConfirmarEliminarSesion.classList.contains('hidden'), true);
+
+  assert.equal(deletes, 0, 'ninguna ruta abortada eliminó');
+  assert.ok(t.nodos.listaVencidos.hijos.includes(card), 'la tarjeta sigue');
+});
+
+await testAsync('el segundo Eliminar usa la URL por tipo y el 204 quita la tarjeta', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async (url, init) => {
+      if ((init && init.method) === 'DELETE') {
+        return { ok: true, status: 204, json: async () => ({}) };
+      }
+      return respuestaOk({ activityState: estadoCompleto() });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  const cardVencido = t.nodos.listaVencidos.hijos[0];
+  buscarPorClase(cardVencido, 'grupo-eliminar-boton').disparar('click');
+  t.nodos.continuarEliminarSesion.disparar('click');
+  t.nodos.eliminarSesion.disparar('click');
+  await esperar(() => !t.nodos.listaVencidos.hijos.includes(cardVencido));
+
+  const primerDelete = t.fetchLog.find((l) => l.init && l.init.method === 'DELETE');
+  assert.equal(primerDelete.url, 'http://back.test/api/message-events/session/v1');
+  assert.equal(primerDelete.init.headers.Authorization, 'Bearer tok-grupos');
+  const vacioVencidos = buscarPorClase(t.nodos.listaVencidos, 'grupo-actividad-vacio');
+  assert.ok(vacioVencidos, 'la sección muestra su estado vacío');
+  assert.equal(vacioVencidos.textContent, 'Sin registros.');
+
+  const cardTerminado = t.nodos.listaTerminados.hijos[0];
+  buscarPorClase(cardTerminado, 'grupo-eliminar-boton').disparar('click');
+  t.nodos.continuarEliminarSesion.disparar('click');
+  t.nodos.eliminarSesion.disparar('click');
+  await esperar(() => !t.nodos.listaTerminados.hijos.includes(cardTerminado));
+
+  const deletes = t.fetchLog.filter((l) => l.init && l.init.method === 'DELETE');
+  assert.equal(deletes.length, 2);
+  assert.equal(deletes[1].url, 'http://back.test/api/activity-logs/r1');
+});
+
+await testAsync('si falla el DELETE se mantiene la tarjeta y se muestra el error', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async (url, init) => {
+      if ((init && init.method) === 'DELETE') {
+        return { ok: false, status: 500, json: async () => ({}) };
+      }
+      return respuestaOk({ activityState: estadoCompleto() });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  const card = t.nodos.listaVencidos.hijos[0];
+  buscarPorClase(card, 'grupo-eliminar-boton').disparar('click');
+  t.nodos.continuarEliminarSesion.disparar('click');
+  t.nodos.eliminarSesion.disparar('click');
+
+  await esperar(() => t.nodos.estadoEliminarSesion.textContent.includes('No se pudo eliminar'));
+  assert.ok(t.nodos.listaVencidos.hijos.includes(card), 'la tarjeta se mantiene');
+  assert.equal(t.nodos.modalConfirmarEliminarSesion.classList.contains('hidden'), true);
+});
+
+test('la página declara los dos diálogos de eliminación', () => {
+  const html = fs.readFileSync(
+    path.join(__dirname, '..', 'pages', 'actividadGrupos.html'),
+    'utf8'
+  );
+  for (const texto of [
+    'id="modalEliminarSesion"',
+    'id="modalConfirmarEliminarSesion"',
+    '¿Eliminar esta sesión?',
+    '¿Desea continuar?',
+    'id="continuarEliminarSesion"',
+    'id="eliminarSesion"',
+    'id="cancelarEliminarSesion"',
+    'id="cancelarConfirmarEliminar"',
+  ]) {
+    assert.ok(html.includes(texto), `falta ${texto}`);
   }
 });
 

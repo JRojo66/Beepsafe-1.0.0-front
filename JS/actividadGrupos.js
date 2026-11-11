@@ -2,6 +2,14 @@ const ZONA_ACTIVIDAD_GRUPOS = 'America/Argentina/Buenos_Aires';
 
 let grupoDetalleActual = null;
 
+let modalEliminarSesion = null;
+let modalConfirmarEliminar = null;
+let estadoEliminarSesion = null;
+let miembroPendienteEliminar = null;
+let tarjetaPendienteEliminar = null;
+let listaPendienteEliminar = null;
+let modalesEliminarCableados = false;
+
 function tokenActividadGrupos() {
   try {
     return localStorage.getItem('token') || '';
@@ -168,7 +176,127 @@ function crearItemEquipo(equipo) {
   return item;
 }
 
-function crearTarjetaMiembro(miembro, esVencido) {
+function mostrarErrorEliminar(mensaje) {
+  if (!estadoEliminarSesion) return;
+  estadoEliminarSesion.textContent = mensaje;
+}
+
+function abrirModalEliminarSesion(miembro, tarjeta, lista) {
+  if (!modalEliminarSesion) return;
+  miembroPendienteEliminar = miembro;
+  tarjetaPendienteEliminar = tarjeta;
+  listaPendienteEliminar = lista;
+  mostrarErrorEliminar('');
+  if (modalConfirmarEliminar) modalConfirmarEliminar.classList.add('hidden');
+  modalEliminarSesion.classList.remove('hidden');
+  const continuar = document.getElementById('continuarEliminarSesion');
+  if (continuar && typeof continuar.focus === 'function') continuar.focus();
+}
+
+function abrirModalConfirmarEliminar() {
+  if (!modalConfirmarEliminar) return;
+  if (modalEliminarSesion) modalEliminarSesion.classList.add('hidden');
+  modalConfirmarEliminar.classList.remove('hidden');
+  const eliminar = document.getElementById('eliminarSesion');
+  if (eliminar && typeof eliminar.focus === 'function') eliminar.focus();
+}
+
+function cerrarModalesEliminar() {
+  if (modalEliminarSesion) modalEliminarSesion.classList.add('hidden');
+  if (modalConfirmarEliminar) modalConfirmarEliminar.classList.add('hidden');
+  miembroPendienteEliminar = null;
+  tarjetaPendienteEliminar = null;
+  listaPendienteEliminar = null;
+}
+
+function manejarTeclaEliminar(evento) {
+  if (!evento || evento.key !== 'Escape') return;
+  const abierto =
+    (modalEliminarSesion && !modalEliminarSesion.classList.contains('hidden')) ||
+    (modalConfirmarEliminar && !modalConfirmarEliminar.classList.contains('hidden'));
+  if (abierto) cerrarModalesEliminar();
+}
+
+function actualizarVacioLista(lista) {
+  if (!lista) return;
+  const vacia =
+    typeof lista.childElementCount === 'number'
+      ? lista.childElementCount === 0
+      : Array.isArray(lista.hijos)
+        ? lista.hijos.length === 0
+        : !lista.firstChild;
+  if (!vacia) return;
+  lista.appendChild(crearTextoActividad('grupo-actividad-vacio', 'Sin registros.'));
+}
+
+async function confirmarEliminarSesion() {
+  const miembro = miembroPendienteEliminar;
+  const tarjeta = tarjetaPendienteEliminar;
+  const lista = listaPendienteEliminar;
+  if (!miembro || !tarjeta) {
+    cerrarModalesEliminar();
+    return;
+  }
+  const id = miembro.id;
+  const tipo = miembro.tipo;
+  if (!id || (tipo !== 'sesion' && tipo !== 'registro')) {
+    mostrarErrorEliminar('No se pudo eliminar: datos incompletos.');
+    cerrarModalesEliminar();
+    return;
+  }
+  const url =
+    tipo === 'sesion'
+      ? `${ROOT_URL}/api/message-events/session/${encodeURIComponent(id)}`
+      : `${ROOT_URL}/api/activity-logs/${encodeURIComponent(id)}`;
+  const token = tokenActividadGrupos();
+  const boton = document.getElementById('eliminarSesion');
+  if (boton) boton.disabled = true;
+  try {
+    const respuesta = await fetch(url, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (respuesta.status === 204) {
+      cerrarModalesEliminar();
+      if (typeof tarjeta.remove === 'function') tarjeta.remove();
+      actualizarVacioLista(lista);
+      return;
+    }
+    mostrarErrorEliminar('No se pudo eliminar. Intentá de nuevo.');
+    cerrarModalesEliminar();
+  } catch (err) {
+    const detalle = err && err.message ? err.message : String(err);
+    console.error(`[actividadGrupos] DELETE falló: ${detalle}`);
+    mostrarErrorEliminar('No se pudo eliminar. Intentá de nuevo.');
+    cerrarModalesEliminar();
+  } finally {
+    if (boton) boton.disabled = false;
+  }
+}
+
+function inicializarModalesEliminar() {
+  if (modalesEliminarCableados) return;
+  modalEliminarSesion = document.getElementById('modalEliminarSesion');
+  modalConfirmarEliminar = document.getElementById('modalConfirmarEliminarSesion');
+  if (!modalEliminarSesion || !modalConfirmarEliminar) return;
+  estadoEliminarSesion = document.getElementById('estadoEliminarSesion');
+  modalesEliminarCableados = true;
+  const continuar = document.getElementById('continuarEliminarSesion');
+  const cancelar = document.getElementById('cancelarEliminarSesion');
+  const cerrar = document.getElementById('cerrarModalEliminarSesion');
+  const eliminar = document.getElementById('eliminarSesion');
+  const cancelar2 = document.getElementById('cancelarConfirmarEliminar');
+  const cerrar2 = document.getElementById('cerrarModalConfirmarEliminar');
+  if (continuar) continuar.addEventListener('click', abrirModalConfirmarEliminar);
+  if (cancelar) cancelar.addEventListener('click', cerrarModalesEliminar);
+  if (cerrar) cerrar.addEventListener('click', cerrarModalesEliminar);
+  if (eliminar) eliminar.addEventListener('click', confirmarEliminarSesion);
+  if (cancelar2) cancelar2.addEventListener('click', cerrarModalesEliminar);
+  if (cerrar2) cerrar2.addEventListener('click', cerrarModalesEliminar);
+  document.addEventListener('keydown', manejarTeclaEliminar);
+}
+
+function crearTarjetaMiembro(miembro, esVencido, lista) {
   const datos = miembro && typeof miembro === 'object' ? miembro : {};
   const tarjeta = document.createElement('div');
   tarjeta.className = `grupo-miembro-card${esVencido ? ' grupo-miembro-card-vencido' : ''}`;
@@ -181,6 +309,16 @@ function crearTarjetaMiembro(miembro, esVencido) {
   cabecera.appendChild(
     crearTextoActividad('grupo-miembro-actividad', datos.actividad || 'Sin actividad', 'span')
   );
+  if (datos.puedeEliminar === true) {
+    const botonEliminar = document.createElement('button');
+    botonEliminar.type = 'button';
+    botonEliminar.className = 'grupo-eliminar-boton';
+    botonEliminar.textContent = 'Eliminar';
+    botonEliminar.addEventListener('click', () => {
+      abrirModalEliminarSesion(datos, tarjeta, lista);
+    });
+    cabecera.appendChild(botonEliminar);
+  }
   tarjeta.appendChild(cabecera);
 
   if (esVencido) {
@@ -269,7 +407,7 @@ function renderizarMiembrosEnLista(lista, miembros, esVencido) {
     return;
   }
   for (const miembro of miembros) {
-    lista.appendChild(crearTarjetaMiembro(miembro, esVencido));
+    lista.appendChild(crearTarjetaMiembro(miembro, esVencido, lista));
   }
 }
 
@@ -456,6 +594,8 @@ async function cargarGrupos() {
     return [];
   }
 }
+
+inicializarModalesEliminar();
 
 if (typeof window !== 'undefined' && window.addEventListener) {
   window.addEventListener('DOMContentLoaded', () => {

@@ -1542,6 +1542,48 @@ a {
   font-size: 13px;
 }
 
+.grupo-eliminar-boton {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 1px solid #ff5a5a;
+  border-radius: 999px;
+  background-color: transparent;
+  color: #ff8a8a;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.grupo-eliminar-boton:hover,
+.grupo-eliminar-boton:focus-visible {
+  background-color: rgba(244, 67, 54, 0.2);
+  outline: none;
+}
+
+.grupo-eliminar-boton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+#estadoEliminarSesion {
+  margin: 0 0 10px;
+}
+
+.modal-confirmacion {
+  position: relative;
+  min-width: 280px;
+  max-width: 360px;
+}
+
+.modal-confirmacion .modal-buttons {
+  gap: 10px;
+}
+
+.modal-confirmacion .modal-btn {
+  flex: 1;
+}
+
 .grupo-alarma-estado {
   display: inline-block;
   margin-top: 6px;
