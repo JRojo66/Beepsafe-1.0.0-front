@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+      default-src 'self';
+      script-src 'self';
+      style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com;
+      font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;
+      img-src 'self';
+      connect-src 'self' http://localhost:8080 https://beepsafe-1-0-0-back.onrender.com https://beepsafe-10-0-back-production.up.railway.app;
+      object-src 'none';
+    "
+    />
+
+    <title>Actividad Grupos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles/styles.css">
+</head>
+<body>
+    <div class="configuracion">
+        <a href="../pages/perfil.html" class="perfil">
+            <div class="containerPerfil">
+                <img src="../imagenes/volver.PNG" alt="Volver">
+                <img src="../imagenes/amigosSinFondoBlanco.png" alt="Actividad Grupos" class="encabezado">
+                <div class="opciones">Actividad Grupos</div>
+            </div>
+        </a>
+        <p class="encabezadoBajada">Mirá el estado de las actividades de tus grupos: alarmas vencidas, sesiones en curso y finalizadas.</p>
+        <div class="break"></div>
+
+        <div id="vistaListaActividadGrupos" class="actividad-grupos-vista">
+            <p id="estadoListaGrupos" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
+            <button id="botonReintentarGrupos" class="btn-confirm" type="button" hidden>Reintentar</button>
+            <div id="listaGrupos" class="actividad-grupos-lista"></div>
+        </div>
+
+        <div id="vistaDetalleActividadGrupos" class="actividad-grupos-vista" hidden>
+            <button id="volverListaGrupos" class="actividad-grupos-volver" type="button">&lt; Volver a mis grupos</button>
+            <h2 id="tituloDetalleGrupo" class="actividad-grupos-titulo"></h2>
+            <p id="estadoDetalleActividad" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
+            <button id="botonReintentarDetalle" class="btn-confirm" type="button" hidden>Reintentar</button>
+
+            <section id="seccionVencidos" class="grupo-actividad-seccion">
+                <h3 class="grupo-actividad-seccion-titulo">Alarmas vencidas</h3>
+                <div id="listaVencidos" class="grupo-actividad-miembros"></div>
+            </section>
+
+            <section id="seccionEnCurso" class="grupo-actividad-seccion">
+                <h3 class="grupo-actividad-seccion-titulo">En actividad</h3>
+                <div id="listaEnCurso" class="grupo-actividad-miembros"></div>
+            </section>
+
+            <section id="seccionTerminados" class="grupo-actividad-seccion">
+                <h3 class="grupo-actividad-seccion-titulo">Finalizadas</h3>
+                <div id="listaTerminados" class="grupo-actividad-miembros"></div>
+            </section>
+        </div>
+    </div>
+
+    <div class="contenedor-padre2">
+        <div class="flex-container2 nav-tres">
+            <div class="inicio">
+                <img class="imagenHome" src="../imagenes/homeFondoVerde.jpg" alt="Home">
+                <a href="../pages/iniciarDetener.html" class="botonInicio">Inicio</a>
+            </div>
+            <a href="../pages/historial.html" class="enlaceDiv">
+                <div class="miPerfil">
+                    <img class="imagenPerfil" src="../imagenes/historial.PNG" alt="Historial">
+                    <span class="botonPerfil">Historial</span>
+                </div>
+            </a>
+            <a href="../pages/perfil.html" class="enlaceDiv">
+                <div class="miPerfil">
+                    <img class="imagenPerfil" src="../imagenes/perfilFondoBlanco.png" alt="Perfil">
+                    <span class="botonPerfil">Mi Perfil</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <script src="../JS/config.js"></script>
+    <script src="../JS/actividadGrupos.js"></script>
+</body>
+</html>

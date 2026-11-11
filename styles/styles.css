@@ -1399,6 +1399,244 @@ a {
   cursor: pointer;
 }
 
+/* Actividad Grupos */
+.actividad-grupos-vista[hidden] {
+  display: none;
+}
+
+.actividad-grupos-lista {
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.grupo-actividad-card {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  max-width: 380px;
+  height: auto;
+  min-height: 4rem;
+  padding: 6px 0;
+  border: none;
+  border-radius: 20px;
+  background-color: var(--color-fondo2);
+  color: #ffffff;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.grupo-actividad-card:hover,
+.grupo-actividad-card:focus-visible {
+  outline: 2px solid var(--color-principal);
+}
+
+.grupo-actividad-card .containerPerfil {
+  gap: 10px;
+}
+
+.grupo-actividad-card .opciones {
+  width: auto;
+  margin-left: 0;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.grupo-actividad-secundario {
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+}
+
+.grupo-actividad-chevron {
+  color: var(--color-principal);
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.actividad-grupos-volver {
+  margin: 0 0 10px;
+  padding: 8px 14px;
+  border: 1px solid var(--color-principal);
+  border-radius: 999px;
+  background-color: transparent;
+  color: var(--color-principal);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.actividad-grupos-volver:hover,
+.actividad-grupos-volver:focus-visible {
+  background-color: rgba(144, 255, 239, 0.15);
+  outline: none;
+}
+
+.actividad-grupos-titulo {
+  margin: 0 0 10px;
+  color: #ffffff;
+  font-size: 20px;
+  text-align: center;
+}
+
+.grupo-actividad-seccion {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto 14px;
+  text-align: left;
+}
+
+.grupo-actividad-seccion-titulo {
+  margin: 0 0 8px;
+  color: var(--color-principal);
+  font-size: 16px;
+  text-align: left;
+}
+
+.grupo-actividad-miembros {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.grupo-actividad-vacio {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+}
+
+.grupo-miembro-card {
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  background-color: var(--color-fondo);
+  color: #ffffff;
+}
+
+.grupo-miembro-card-vencido {
+  border-color: #ff5a5a;
+  background-color: rgba(244, 67, 54, 0.18);
+}
+
+.grupo-miembro-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.grupo-miembro-usuario {
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.grupo-miembro-actividad {
+  color: var(--color-principal);
+  font-size: 13px;
+}
+
+.grupo-alarma-estado {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: #c62828;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.grupo-miembro-horas {
+  margin: 6px 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+}
+
+.grupo-progreso {
+  height: 8px;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.grupo-progreso-barra {
+  height: 100%;
+  background-color: #ff5a5a;
+}
+
+.grupo-equipos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.grupo-equipo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.grupo-equipo-foto {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.grupo-equipo-placeholder {
+  width: 28px;
+  height: 28px;
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.grupo-equipo-nombre {
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.grupo-telefono {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.grupo-telefono-boton {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background-color: var(--color-principal);
+  color: var(--color-fondo);
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.grupo-telefono-boton:hover,
+.grupo-telefono-boton:focus-visible {
+  background-color: var(--color-principal-hover);
+  outline: none;
+}
+
+.grupo-telefono-numero {
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.grupo-telefono-numero[hidden] {
+  display: none;
+}
+
 /* Mis mensajes*/
 .perfilb {
   font-size: 1.8rem;

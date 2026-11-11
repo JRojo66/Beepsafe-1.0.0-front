@@ -1164,6 +1164,23 @@ function textoCancelacionAlarma() {
   return componerTextoCancelacion(contactoCancelacionPreview(), mensajeCancelacionGuardado());
 }
 
+// Registra la cancelación en el backend sin bloquear la apertura de WhatsApp.
+function registrarCancelacionAlarma() {
+  const sessionId = sessionIdEnCurso || leerSessionIdEnCurso();
+  if (!sessionId) return;
+  const url = `${ROOT_URL}/api/message-events/session/${encodeURIComponent(sessionId)}/cancelacion`;
+  fetchConTimeout(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  }).catch((err) => {
+    console.error(
+      `[iniciarDetener] POST cancelación falló: ${url} — ${mensajeDeError(err)}`
+    );
+  });
+}
+
 function manejarCompartirCancelacion() {
   return compartirTexto(textoCancelacionAlarma());
 }
@@ -1500,7 +1517,10 @@ function renderizarCancelacionAlarma() {
     boton.type = 'button';
     boton.className = 'avisoAlarmaCancelacionBoton';
     boton.textContent = `Abrir WhatsApp — ${contacto.nombre}`;
-    boton.addEventListener('click', () => abrirWhatsapp(href));
+    boton.addEventListener('click', () => {
+      abrirWhatsapp(href);
+      registrarCancelacionAlarma();
+    });
     listaCancelacionAlarma.appendChild(boton);
   }
 }

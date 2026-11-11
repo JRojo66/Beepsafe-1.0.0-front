@@ -2473,6 +2473,7 @@ function contextoConAvisos(opciones = {}) {
         return respuestaOk({ alarmaEnviada: valor === true, alarmaDetalle: detalle });
       }
       if (url.includes('/ubicacion') && metodo === 'PATCH') return respuestaOk({});
+      if (url.includes('/cancelacion') && metodo === 'POST') return respuestaOk({});
       if (url.includes('/stop')) return respuestaOk({});
       throw new Error(`URL inesperada: ${url}`);
     },
@@ -3263,6 +3264,15 @@ await testAsync('la caja de alarma muestra la cancelación con un wa.me por cont
     'Aviso de Beepsafe para Ana. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido. Estoy bien! Solo no llegué a cancelar la alarma a tiempo. Enviado desde Beepsafe.';
   assert.equal(href, `https://wa.me/5491112345678?text=${encodeURIComponent(esperadoAna)}`);
   assert.equal(decodeURIComponent(href.split('?text=')[1]), esperadoAna);
+
+  await esperar(() =>
+    t.fetchLog.some((l) => l.url.endsWith('/session/sess-avisos/cancelacion'))
+  );
+  const cancelacion = t.fetchLog.find((l) =>
+    l.url.endsWith('/session/sess-avisos/cancelacion')
+  );
+  assert.equal(cancelacion.init.method, 'POST');
+  assert.equal(cancelacion.init.headers.Authorization, 'Bearer tok-avisos');
 
   botones[1].disparar('click');
   const hrefBeto = t.ventanas[t.ventanas.length - 1][0];
