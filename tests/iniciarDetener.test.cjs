@@ -19,7 +19,8 @@ const FUENTE = fs.readFileSync(RUTA_SCRIPT, 'utf8');
 const EXPORTS = `;globalThis.__test = {
   formatearTiempo, tiempoValido, imagenParaActividad, normalizarNombre,
   resumenTiempoCorto, IMAGENES_POR_DEFECTO, IMAGEN_POR_ACTIVIDAD,
-  CLAVE_ULTIMA_SESION, CLAVE_SESION_EN_CURSO,
+  CLAVE_ULTIMA_SESION, CLAVE_SESION_EN_CURSO, CLAVE_SELECCION,
+  guardarSeleccionActual, restaurarSeleccionGuardada,
   cerrarPaneles, manejarPasoTiempo,
   manejarSeleccionActividad, manejarSeleccionEquipo,
   manejarClickTriggerActividad, manejarClickTriggerEquipo,
@@ -305,7 +306,7 @@ function crearContexto(opciones = {}) {
 
   // Captura de la consola del script: silencia la salida (TAP limpio) y deja
   // los mensajes assertables en t.consola.errores / .infos / .avisos / .logs
-  const consola = { errores: [], avisos: [], infos: [], logs: [] };
+  const consola = { errores: [], avisos: [], infos: [], logs: [], depuracion: [] };
   function textoArg(arg) {
     if (typeof arg === 'string') return arg;
     if (arg && typeof arg.message === 'string') {
@@ -366,6 +367,7 @@ function crearContexto(opciones = {}) {
       warn: registrar(consola.avisos),
       info: registrar(consola.infos),
       log: registrar(consola.logs),
+      debug: registrar(consola.depuracion),
     },
   };
 
@@ -3656,6 +3658,142 @@ await testAsync('el historial muestra error y reintento si falla el GET', async 
   assert.ok(t.nodos.estadoHistorial.textContent.includes('No se pudo cargar el historial'));
   assert.equal(t.nodos.botonReintentarHistorial.hidden, false, 'botón de reintento visible');
   assert.equal(t.nodos.listaHistorial.hijos.length, 0);
+});
+
+// ------------------------------- persistencia de la selección
+
+await testAsync('la selección se persiste por usuario en cada cambio', async () => {
+  const token = 'tok-sel';
+  const store = new Map([['token', token]]);
+  const t = crearContexto({ store, fetch: fetchNormal() });
+  await t.domListo();
+
+  t.ctxTest.manejarSeleccionActividad('Windsurf');
+  t.ctxTest.manejarSeleccionEquipo('Naish 5.8');
+  fijarTiempo(t, { horas: 2, minutos: 30 });
+
+  const guardada = JSON.parse(store.get('beepsafe_seleccion:marcelo@test.com'));
+  assert.deepEqual(guardada, {
+    actividad: 'Windsurf',
+    equipos: ['Goya verde 5.0', 'Naish 5.8'],
+    tiempoSegundos: 2 * 3600 + 30 * 60,
+  });
+});
+
+await testAsync('tras un reload se restauran actividad, equipos y tiempo guardados', async () => {
+  const token = 'tok-sel-reload';
+  const store = new Map([
+    ['token', token],
+    [
+      'beepsafe_seleccion:marcelo@test.com',
+      JSON.stringify({
+        actividad: 'Windsurf',
+        equipos: ['Goya verde 5.0', 'Naish 5.8'],
+        tiempoSegundos: 2 * 3600 + 30 * 60,
+      }),
+    ],
+  ]);
+  const t = crearContexto({ store, fetch: fetchNormal() });
+  await t.domListo();
+
+  assert.equal(t.nodos.filaValorActividad.textContent, 'Windsurf');
+  assert.deepEqual([...t.ctxTest.equiposSeleccionados], ['Goya verde 5.0', 'Naish 5.8']);
+  assert.equal(t.nodos.etiquetaTiempo.textContent, '02:30:00');
+  assert.equal(t.nodos.filaValorTiempo.textContent, '2h 30m');
+  assert.deepEqual(lineasEquipo(t), ['Goya verde 5.0', 'Naish 5.8']);
+});
+
+await testAsync('otro usuario no hereda la selección de un usuario anterior', async () => {
+  const store = new Map([
+    ['token', 'tok-otro'],
+    [
+      'beepsafe_seleccion:marcelo@test.com',
+      JSON.stringify({
+        actividad: 'Windsurf',
+        equipos: ['Goya verde 5.0', 'Naish 5.8'],
+        tiempoSegundos: 2 * 3600 + 30 * 60,
+      }),
+    ],
+  ]);
+  const t = crearContexto({
+    store,
+    fetch: async (url) => {
+      if (url.includes('/api/sessions/current')) {
+        return respuestaOk({ userJWT: { name: 'Otro', email: 'otro@test.com' } });
+      }
+      if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+      if (url.includes('/api/contacts')) return respuestaOk({ contactos: [] });
+      throw new Error(`URL inesperada: ${url}`);
+    },
+  });
+  await t.domListo();
+
+  assert.equal(t.nodos.filaValorActividad.textContent, 'Windsurf');
+  assert.deepEqual([...t.ctxTest.equiposSeleccionados], ['Goya verde 5.0']);
+  assert.equal(t.nodos.etiquetaTiempo.textContent, '03:00:00');
+  assert.ok(store.has('beepsafe_seleccion:marcelo@test.com'), 'la clave del otro usuario sigue');
+  assert.equal(store.has('beepsafe_seleccion:otro@test.com'), false, 'otro usuario no escribió');
+});
+
+await testAsync('un payload corrupto cae a defaults y loguea en debug', async () => {
+  const store = new Map([
+    ['token', 'tok-corrupto'],
+    ['beepsafe_seleccion:marcelo@test.com', 'no-es-json'],
+  ]);
+  const t = crearContexto({ store, fetch: fetchNormal() });
+  await t.domListo();
+
+  assert.equal(t.nodos.filaValorActividad.textContent, 'Windsurf');
+  assert.deepEqual([...t.ctxTest.equiposSeleccionados], ['Goya verde 5.0']);
+  assert.equal(t.nodos.etiquetaTiempo.textContent, '03:00:00');
+  assert.ok(
+    t.consola.depuracion.some((m) => m.includes('selección guardada ilegible')),
+    'el fallback se loguea en debug'
+  );
+});
+
+await testAsync('actividad, equipos o duración desconocidos caen a defaults silenciosos', async () => {
+  const store = new Map([
+    ['token', 'tok-desconocido'],
+    [
+      'beepsafe_seleccion:marcelo@test.com',
+      JSON.stringify({
+        actividad: 'NoExiste',
+        equipos: ['NoExiste'],
+        tiempoSegundos: 99999999,
+      }),
+    ],
+  ]);
+  const t = crearContexto({ store, fetch: fetchNormal() });
+  await t.domListo();
+
+  assert.equal(t.nodos.filaValorActividad.textContent, 'Windsurf');
+  assert.deepEqual([...t.ctxTest.equiposSeleccionados], ['Goya verde 5.0']);
+  assert.equal(t.nodos.etiquetaTiempo.textContent, '03:00:00');
+  assert.ok(
+    t.consola.depuracion.some((m) => m.includes('actividad guardada desconocida')),
+    'actividad inválida logueada en debug'
+  );
+});
+
+await testAsync('el logout no borra la selección y al volver se restaura', async () => {
+  const token = 'tok-logout';
+  const store = new Map([['token', token]]);
+  const t = crearContexto({ store, fetch: fetchNormal() });
+  await t.domListo();
+
+  t.ctxTest.manejarSeleccionEquipo('Naish 5.8');
+  const clave = 'beepsafe_seleccion:marcelo@test.com';
+  assert.ok(store.has(clave));
+
+  store.delete('token'); // logout: solo se va el token
+  assert.ok(store.has(clave), 'el logout no toca la selección guardada');
+
+  store.set('token', token); // vuelve a entrar el mismo usuario
+  const t2 = crearContexto({ store, fetch: fetchNormal() });
+  await t2.domListo();
+  assert.deepEqual([...t2.ctxTest.equiposSeleccionados], ['Goya verde 5.0', 'Naish 5.8']);
+  assert.equal(t2.nodos.etiquetaTiempo.textContent, '03:00:00');
 });
 }
 

@@ -15,6 +15,8 @@ const CLAVE_ULTIMA_SESION = 'beepsafe_ultima_sesion';
 // Clave de la sesión en curso: se persiste al INICIAR y se borra al DETENER
 // o al FINALIZAR, para poder reanudarla si la página se recarga (REL-105)
 const CLAVE_SESION_EN_CURSO = 'beepsafe_sesion_en_curso';
+// Selección actual de Actividad/Equipo/Tiempo, persistida por usuario
+const CLAVE_SELECCION = 'beepsafe_seleccion';
 
 // Valores por defecto del stepper de Tiempo: 0 días, 3 horas, 0 minutos
 // (= 180 minutos, la duración histórica por defecto de la pantalla)
@@ -565,6 +567,7 @@ function manejarSeleccionActividad(nombre) {
   poblarListaEquipo(nombre);
   cerrarPaneles();
   sincronizarEstadoSesion();
+  guardarSeleccionActual();
   refrescarTriggers();
   actualizarIconoActividad();
   actualizarVisualizacion();
@@ -584,6 +587,7 @@ function manejarSeleccionEquipo(nombre) {
   }
   marcarOpcionesEquipoSeleccionadas();
   sincronizarEstadoSesion();
+  guardarSeleccionActual();
   refrescarTriggers();
   actualizarVisualizacion();
 }
@@ -602,6 +606,7 @@ function manejarPasoTiempo(campo, delta) {
     tiempoMinutos = limitarRango(tiempoMinutos + delta, LIMITE_MINUTOS.min, LIMITE_MINUTOS.max);
   }
   sincronizarEstadoSesion();
+  guardarSeleccionActual();
   refrescarTriggers();
   actualizarVisualizacion();
 }
@@ -725,6 +730,115 @@ function leerObjetoReconciliado(base) {
     return payload;
   }
   return null;
+}
+
+function logDebugSeleccion(mensaje) {
+  try {
+    if (typeof console === 'undefined' || !console) return;
+    if (typeof console.debug === 'function') console.debug(mensaje);
+    else if (typeof console.info === 'function') console.info(mensaje);
+  } catch (err) {
+    // el logging nunca debe romper la restauración
+  }
+}
+
+// Persiste la selección actual por usuario. Nunca toca beepsafe_ultima_sesion
+// ni beepsafe_sesion_en_curso; son claves con otros propósitos.
+function guardarSeleccionActual() {
+  if (!estadoSesion.actividad) return; // sin actividad no se pisa una selección válida
+  try {
+    localStorage.setItem(
+      claveConUsuario(CLAVE_SELECCION),
+      JSON.stringify({
+        actividad: estadoSesion.actividad,
+        equipos: estadoSesion.equipo.slice(),
+        tiempoSegundos: estadoSesion.tiempoSegundos,
+      })
+    );
+  } catch (err) {
+    console.error(
+      `[iniciarDetener] no se pudo guardar la selección: ${mensajeDeError(err)}`
+    );
+  }
+}
+
+function aplicarSeleccionPorDefecto() {
+  if (actividades.length === 0) return;
+  const actividad = actividades[0].name;
+  const equipos = equiposDeActividad(actividad);
+  valorActividad = actividad;
+  equiposSeleccionados = equipos.length > 0 ? [equipos[0].name] : [];
+  poblarListaEquipo(actividad);
+  fijarTiempoDesdeSegundos(
+    DIAS_DEFECTO * 86400 + HORAS_DEFECTO * 3600 + MINUTOS_DEFECTO * 60
+  );
+  sincronizarEstadoSesion();
+  refrescarTriggers();
+  actualizarIconoActividad();
+  actualizarVisualizacion();
+}
+
+// Restaura la selección guardada del usuario después de cargar actividades.
+// Si no hay clave, deja la restauración previa (beepsafe_ultima_sesion). Si la
+// clave existe pero es ilegible o trae valores desconocidos, cae a defaults.
+function restaurarSeleccionGuardada() {
+  const guardada = leerObjetoReconciliado(CLAVE_SELECCION);
+  const hayCrudo = [claveConUsuario(CLAVE_SELECCION), CLAVE_SELECCION].some(
+    (clave) => obtenerCrudo(clave) != null
+  );
+  if (!guardada) {
+    if (hayCrudo) {
+      logDebugSeleccion('[iniciarDetener] selección guardada ilegible: uso defaults');
+      aplicarSeleccionPorDefecto();
+    }
+    return false;
+  }
+  if (actividades.length === 0) return false;
+
+  const actividadGuardada =
+    typeof guardada.actividad === 'string' ? guardada.actividad.trim() : '';
+  const actividadExiste = actividades.some((item) => item.name === actividadGuardada);
+  const actividad = actividadExiste ? actividadGuardada : actividades[0].name;
+  if (!actividadExiste) {
+    logDebugSeleccion(
+      `[iniciarDetener] actividad guardada desconocida (${actividadGuardada || 'vacía'}): uso ${actividad}`
+    );
+  }
+
+  const equiposDisponibles = equiposDeActividad(actividad);
+  const nombresValidos = equiposDisponibles.map((equipo) => equipo.name);
+  const equiposEsArray = Array.isArray(guardada.equipos);
+  const equiposGuardados = equiposEsArray
+    ? guardada.equipos.filter((nombre) => typeof nombre === 'string' && nombre)
+    : [];
+  let equipos = equiposGuardados.filter((nombre) => nombresValidos.includes(nombre));
+  if (!equiposEsArray) {
+    equipos = equiposDisponibles.length > 0 ? [equiposDisponibles[0].name] : [];
+    logDebugSeleccion('[iniciarDetener] equipos guardados inválidos: uso los disponibles');
+  } else if (equiposGuardados.length > 0 && equipos.length === 0) {
+    equipos = equiposDisponibles.length > 0 ? [equiposDisponibles[0].name] : [];
+    logDebugSeleccion('[iniciarDetener] equipos guardados desconocidos: uso el primero');
+  }
+
+  const duracionValida =
+    tiempoValido(guardada.tiempoSegundos) &&
+    guardada.tiempoSegundos <= TIEMPO_MAXIMO_SEGUNDOS;
+  if (!duracionValida) {
+    logDebugSeleccion('[iniciarDetener] duración guardada inválida: uso el default');
+  }
+  const duracion = duracionValida
+    ? guardada.tiempoSegundos
+    : DIAS_DEFECTO * 86400 + HORAS_DEFECTO * 3600 + MINUTOS_DEFECTO * 60;
+
+  valorActividad = actividad;
+  equiposSeleccionados = equipos;
+  poblarListaEquipo(actividad);
+  fijarTiempoDesdeSegundos(duracion);
+  sincronizarEstadoSesion();
+  refrescarTriggers();
+  actualizarIconoActividad();
+  actualizarVisualizacion();
+  return true;
 }
 
 function guardarUltimaSesion() {
@@ -1614,6 +1728,7 @@ function iniciarContador() {
   }
 
   guardarUltimaSesion();
+  guardarSeleccionActual(); // la selección también sobrevive a reload/logout
   reiniciarAvisoAlarma(); // sesión nueva: sin blink, beep, polling ni caja roja
 
   sessionIdEnCurso = ''; // sesión nueva: el id anterior ya no aplica
@@ -2279,6 +2394,7 @@ async function cargarActividades(email) {
     }
     poblarListaActividad();
     restaurarUltimaSesion();
+    restaurarSeleccionGuardada();
     reanudarSesionEnCurso();
   } catch (err) {
     // un error inesperado tampoco puede dejar la UI sin terminar de cargar
