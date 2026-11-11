@@ -776,7 +776,10 @@ test('el HTML tiene los tres triggers con su título, paneles y stepper; sin sel
   assert.ok(html.includes('Finalizar actividad'), 'falta el título del modal de fin');
   assert.ok(html.includes('Continuar actividad'), 'falta el botón continuar');
   assert.ok(html.includes('maxlength="2000"'), 'el textarea debe limitar a 2000');
-  assert.ok(html.includes('href="../pages/historial.html"'), 'falta el enlace Historial en el nav');
+  assert.ok(
+    !html.includes('href="../pages/historial.html"'),
+    'el nav inferior ya no lleva Historial/Mi Historia'
+  );
   assert.ok(html.includes('Mandar WhatsApp de inicio'), 'falta el título inicial del panel');
   assert.ok(html.includes('Compartir…'), 'falta el botón Compartir…');
   assert.ok(html.includes('id="panelAvisos" hidden'), 'el panel de avisos arranca oculto');

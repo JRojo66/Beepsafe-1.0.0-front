@@ -2098,12 +2098,6 @@ a {
   color: #ffffff;
 }
 
-/* Navegación inferior con tres accesos */
-.nav-tres > .inicio,
-.nav-tres > .enlaceDiv {
-  width: 33.333%;
-}
-
 .add-equipment-form {
   margin-top: 10px;
   padding: 10px;
