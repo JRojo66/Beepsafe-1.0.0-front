@@ -778,7 +778,7 @@ test('el HTML tiene los tres triggers con su título, paneles y stepper; sin sel
   assert.ok(html.includes('maxlength="2000"'), 'el textarea debe limitar a 2000');
   assert.ok(
     !html.includes('href="../pages/historial.html"'),
-    'el nav inferior ya no lleva Historial/Mi Historia'
+    'el nav inferior ya no lleva Historial/Mi Historial'
   );
   assert.ok(html.includes('Mandar WhatsApp de inicio'), 'falta el título inicial del panel');
   assert.ok(html.includes('Compartir…'), 'falta el botón Compartir…');
