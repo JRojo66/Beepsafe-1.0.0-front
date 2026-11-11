@@ -123,11 +123,17 @@
 
         
         <div class="contenedor-padre2">
-            <div class="flex-container2">
+            <div class="flex-container2 nav-tres">
                 <div class="inicio">
                     <img class="imagenHome" src="../imagenes/homeFondoVerde.jpg" alt="Home">
                     <a href="../pages/iniciarDetener.html" class="botonInicio">Inicio</a>
                 </div>
+                <a href="../pages/historial.html" class="enlaceDiv">
+                    <div class="miPerfil">
+                        <img class="imagenPerfil" src="../imagenes/historial.PNG" alt="Historial">
+                        <span class="botonPerfil">Historial</span>
+                    </div>
+                </a>
                 <a href="../pages/perfil.html" class="enlaceDiv">
                     <div class="miPerfil">
                         <img class="imagenPerfil" src="../imagenes/perfilFondoBlanco.png" alt="Perfil">
@@ -136,6 +142,31 @@
                 </a>
             </div>
         </div>
+
+        <div id="modalFinActividad" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="tituloModalFin">
+            <div class="modal-content modal-fin">
+                <button id="cerrarModalFin" type="button" class="modal-cerrar" aria-label="Cerrar">×</button>
+                <h2 id="tituloModalFin" class="modal-titulo">Finalizar actividad</h2>
+                <div class="modal-buttons">
+                    <button id="botonConfirmarFin" type="button" class="modal-btn confirmar">Confirmar fin de actividad</button>
+                    <button id="botonContinuarActividad" type="button" class="modal-btn cancelar">Continuar actividad</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modalComentariosFin" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="tituloModalComentarios">
+            <div class="modal-content modal-comentarios">
+                <button id="cerrarModalComentarios" type="button" class="modal-cerrar" aria-label="Cerrar">×</button>
+                <h2 id="tituloModalComentarios" class="modal-titulo">Comentarios</h2>
+                <label for="comentariosFin">Comentarios</label>
+                <textarea id="comentariosFin" rows="4" maxlength="2000" placeholder="Contá cómo fue la actividad (opcional)"></textarea>
+                <div class="modal-buttons">
+                    <button id="botonGrabarComentarios" type="button" class="modal-btn grabar">Grabar</button>
+                    <button id="botonCancelarComentarios" type="button" class="modal-btn cancelar">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
     <script src="../JS/config.js"></script>
     <script src="../JS/cerrarSesion.js"></script>
     <script src="../JS/iniciarDetener.js"></script>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,6 +18,9 @@
     />
 
     <title>Historial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../styles/styles.css">
 </head>
 <body>
@@ -25,88 +28,40 @@
         <a href="../pages/perfil.html" class="perfil">
             <div class="containerPerfil">
                 <img src="../imagenes/volver.PNG" alt="Volver">
-                <img src="../imagenes/historial.PNG" alt="historial" class="encabezado">
+                <img src="../imagenes/historial.PNG" alt="Historial" class="encabezado">
                 <div class="opciones">Historial</div>
             </div>
         </a>
-        <p class="encabezadoBajada">Acá vas a encontrar el registro de la informacion de las acividades que realizaste, para que puedas volver y revisar todos los detalles!</p>
-        
-        <div class="containerActividad">
-            <div class="subActividad">
-                <p class="fechaActividad">Domingo 31 de Mayo</p>
-                <p class="fechaActividad">15:37</p>
-            </div>
-            <div>
-                <p class="actividad">WINDSURF</p>
-            </div>
-            <table class="detalleActividad">
-                <tr>
-                  <th>Duración</th>
-                  <th>Equipo</th>
-                </tr>
-                <tr>
-                  <td>01:14</td>
-                  <td>Goya verde fluo 4.7</td>
-                </tr>
-              </table>
-              <div>
-                  <p class="comentariosActividad">Viento arrachado de tierra. Rio bajo. Navegué con Marcelo. No fue la mejor sesión, pero, tarde ganada!</p>
-              </div>
+        <p class="encabezadoBajada">Acá vas a encontrar el registro de la información de las actividades que realizaste, para que puedas revisar todos los detalles.</p>
+        <div class="break"></div>
 
-              <div class="breakVioleta"></div>
-
-              <div class="containerActividad">
-                <div class="subActividad">
-                    <p class="fechaActividad">Domingo 31 de Mayo</p>
-                    <p class="fechaActividad">15:37</p>
-                </div>
-                <div>
-                    <p class="actividad">KITESURF</p>
-                </div>
-                <table class="detalleActividad">
-                    <tr>
-                      <th>Duración</th>
-                      <th>Equipo</th>
-                    </tr>
-                    <tr>
-                      <td>02:26</td>
-                      <td>Cabrinha 12 Celeste, Tabla surfera</td>
-                    </tr>
-                  </table>
-                  <div>
-                      <p class="comentariosActividad">Viento parejo del SE. Rio subiendo. Mucha Corriente</p>
-                  </div>
-
-                  <div class="breakVioleta"></div>
-                  <div class="containerActividad">
-                    <div class="subActividad">
-                        <p class="fechaActividad">Sábado 9 de Octubre</p>
-                        <p class="fechaActividad">17:30</p>
-                    </div>
-                    <div>
-                        <p class="actividad">WINDSURF</p>
-                    </div>
-                    <table class="detalleActividad">
-                        <tr>
-                          <th>Duración</th>
-                          <th>Equipo</th>
-                        </tr>
-                        <tr>
-                          <td>01:22</td>
-                          <td>Neilpryde azul 5.5</td>
-                        </tr>
-                      </table>
-                      <div>
-                          <p class="comentariosActividad">Viento del SE. 25 nudos en la racha. Rio alto. Sin corriente. Estaban todos!.</p>
-                      </div>
-        </div> 
+        <p id="estadoHistorial" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
+        <button id="botonReintentarHistorial" class="btn-confirm" type="button" hidden>Reintentar</button>
+        <div id="listaHistorial" class="historial-lista"></div>
     </div>
-        
 
-        
-        
-        
-        
+    <div class="contenedor-padre2">
+        <div class="flex-container2 nav-tres">
+            <div class="inicio">
+                <img class="imagenHome" src="../imagenes/homeFondoVerde.jpg" alt="Home">
+                <a href="../pages/iniciarDetener.html" class="botonInicio">Inicio</a>
+            </div>
+            <a href="../pages/historial.html" class="enlaceDiv">
+                <div class="miPerfil">
+                    <img class="imagenPerfil" src="../imagenes/historial.PNG" alt="Historial">
+                    <span class="botonPerfil">Historial</span>
+                </div>
+            </a>
+            <a href="../pages/perfil.html" class="enlaceDiv">
+                <div class="miPerfil">
+                    <img class="imagenPerfil" src="../imagenes/perfilFondoBlanco.png" alt="Perfil">
+                    <span class="botonPerfil">Mi Perfil</span>
+                </div>
+            </a>
+        </div>
     </div>
+
+    <script src="../JS/config.js"></script>
+    <script src="../JS/historial.js"></script>
 </body>
 </html>

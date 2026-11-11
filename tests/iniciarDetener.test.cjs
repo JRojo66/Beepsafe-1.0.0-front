@@ -56,6 +56,14 @@ const EXPORTS = `;globalThis.__test = {
   get nombreUsuarioAvisos() { return nombreUsuarioAvisos; },
 };`;
 
+const RUTA_HISTORIAL = path.join(__dirname, '..', 'JS', 'historial.js');
+const FUENTE_HISTORIAL = fs.readFileSync(RUTA_HISTORIAL, 'utf8');
+const EXPORTS_HISTORIAL = `;globalThis.__test = {
+  normalizarRegistros, ordenarHistorial, formatearFechaHistorial,
+  renderizarHistorial, crearFilaHistorial, cargarHistorial,
+  LARGO_COMENTARIO_COLAPSADO,
+};`;
+
 let pasados = 0;
 let total = 0;
 
@@ -212,9 +220,20 @@ function crearContexto(opciones = {}) {
     panelAvisos: crearNodo({ hidden: true }),
     tituloAvisos: crearNodo({ textContent: 'Mandar WhatsApp de inicio' }),
     listaAvisos: crearNodo(),
-    botonCompartirAviso: crearNodo({ textContent: 'Compartir…' }),
-    botonCerrarAvisos: crearNodo({ textContent: '×' }),
+    botonCompartirAviso: crearNodo({ textContent: 'Compartir.' }),
+    botonCerrarAvisos: crearNodo({ textContent: 'x' }),
+    modalFinActividad: crearNodo({ className: 'modal hidden' }),
+    botonConfirmarFin: crearNodo({ textContent: 'Confirmar fin de actividad' }),
+    botonContinuarActividad: crearNodo({ textContent: 'Continuar actividad' }),
+    cerrarModalFin: crearNodo({ textContent: '×' }),
+    modalComentariosFin: crearNodo({ className: 'modal hidden' }),
+    comentariosFin: crearNodo({ tagName: 'TEXTAREA', value: '' }),
+    botonGrabarComentarios: crearNodo({ textContent: 'Grabar' }),
+    botonCancelarComentarios: crearNodo({ textContent: 'Cancelar' }),
+    cerrarModalComentarios: crearNodo({ textContent: '×' }),
   };
+  nodos.modalFinActividad.classList.add('hidden');
+  nodos.modalComentariosFin.classList.add('hidden');
   if (opciones.sinNodos) {
     for (const clave of opciones.sinNodos) delete nodos[clave];
   }
@@ -407,6 +426,43 @@ function crearContexto(opciones = {}) {
   };
 }
 
+function crearContextoHistorial(opciones = {}) {
+  const nodos = {
+    estadoHistorial: crearNodo({ textContent: '' }),
+    botonReintentarHistorial: crearNodo({ hidden: true }),
+    listaHistorial: crearNodo(),
+  };
+  const document = {
+    getElementById: (id) => nodos[id] || null,
+    createElement: (tag) => crearNodo({ tagName: String(tag).toUpperCase() }),
+    addEventListener() {},
+  };
+  const ctx = {
+    ROOT_URL: 'http://back.test',
+    window: { addEventListener() {} },
+    document,
+    localStorage: {
+      getItem: (clave) => (clave === 'token' ? opciones.token ?? 'tok-hist' : null),
+    },
+    fetch: opciones.fetch || (async () => respuestaOk({ registros: [] })),
+    AbortController: class {
+      constructor() {
+        this.signal = { aborted: false };
+      }
+      abort() {
+        this.signal.aborted = true;
+      }
+    },
+    setTimeout: (fn, ms) => setTimeout(fn, ms),
+    clearTimeout: (id) => clearTimeout(id),
+    Intl,
+    console: { error: () => {} },
+  };
+  vm.createContext(ctx);
+  vm.runInContext(FUENTE_HISTORIAL + EXPORTS_HISTORIAL, ctx, { filename: 'historial.js' });
+  return { ctx, ctxTest: ctx.__test, nodos };
+}
+
 // ------------------------------------------------------------- helpers UI
 
 // Campos del stepper de Tiempo -> nodos del DOM
@@ -440,6 +496,14 @@ function fijarTiempo(t, esperado = {}) {
     const boton = t.nodos[hasta >= desde ? STEPPER[campo].mas : STEPPER[campo].menos];
     for (let i = 0; i < Math.abs(hasta - desde); i++) boton.disparar('click');
   }
+}
+
+// DETENER ahora abre modales: confirma el fin y graba para ejecutar el stop.
+function detenerConModal(t, comentarios = '') {
+  t.nodos.botonIniciar.disparar('click'); // abre el modal de fin
+  t.nodos.botonConfirmarFin.disparar('click'); // abre el modal de comentarios
+  if (comentarios) t.nodos.comentariosFin.value = comentarios;
+  t.nodos.botonGrabarComentarios.disparar('click');
 }
 
 function assertTiempoValores(t, esperado, mensaje = '') {
@@ -697,9 +761,22 @@ test('el HTML tiene los tres triggers con su título, paneles y stepper; sin sel
     'listaAvisos',
     'botonCompartirAviso',
     'botonCerrarAvisos',
+    'modalFinActividad',
+    'botonConfirmarFin',
+    'botonContinuarActividad',
+    'cerrarModalFin',
+    'modalComentariosFin',
+    'comentariosFin',
+    'botonGrabarComentarios',
+    'botonCancelarComentarios',
+    'cerrarModalComentarios',
   ]) {
     assert.ok(html.includes(`id="${id}"`), `falta el nodo #${id}`);
   }
+  assert.ok(html.includes('Finalizar actividad'), 'falta el título del modal de fin');
+  assert.ok(html.includes('Continuar actividad'), 'falta el botón continuar');
+  assert.ok(html.includes('maxlength="2000"'), 'el textarea debe limitar a 2000');
+  assert.ok(html.includes('href="../pages/historial.html"'), 'falta el enlace Historial en el nav');
   assert.ok(html.includes('Mandar WhatsApp de inicio'), 'falta el título inicial del panel');
   assert.ok(html.includes('Compartir…'), 'falta el botón Compartir…');
   assert.ok(html.includes('id="panelAvisos" hidden'), 'el panel de avisos arranca oculto');
@@ -1204,7 +1281,7 @@ await testAsync('INICIAR corre con wall-clock; DETENER resetea (REL-002)', async
   t.tick();
   assert.equal(t.nodos.etiquetaTiempo.textContent, '00:05:00', 'wall-clock, no cuenta de ticks');
 
-  t.nodos.botonIniciar.disparar('click'); // DETENER
+  detenerConModal(t);
   assert.equal(t.nodos.etiquetaBoton.textContent, 'INICIAR');
   assert.equal(t.nodos.etiquetaTiempo.textContent, '00:15:00', 'vuelve al total');
 });
@@ -1370,7 +1447,7 @@ await testAsync('los tres triggers deshabilitados mientras corre; se reactivan a
   t.nodos.botonIniciar.disparar('click');
   assertTriggersDeshabilitados(t, true, 'al INICIAR (REL-103)');
 
-  t.nodos.botonIniciar.disparar('click'); // DETENER
+  detenerConModal(t);
   assertTriggersDeshabilitados(t, false, 'al DETENER');
 
   t.nodos.botonIniciar.disparar('click');
@@ -1802,7 +1879,7 @@ await testAsync('con la sesión corriendo los triggers ignoran clicks, steppers 
   assert.equal(t.nodos.filaValorActividad.textContent, 'Windsurf', 'la selección se ignora');
   assert.deepEqual(lineasEquipo(t), ['Goya verde 5.0'], 'el equipo no cambia');
 
-  t.nodos.botonIniciar.disparar('click'); // DETENER
+  detenerConModal(t);
   assertTriggersDeshabilitados(t, false, 'al DETENER');
   t.nodos.triggerTiempo.disparar('click');
   assertSoloPanelAbierto(t, 'tiempo', 'tras DETENER vuelve a abrir');
@@ -2133,7 +2210,7 @@ await testAsync('DETENER: POST /session/<id>/stop y limpia el id persistido', as
     return Boolean(crudo && JSON.parse(crudo).sessionId === 'sess-7');
   });
 
-  t.nodos.botonIniciar.disparar('click'); // DETENER
+  detenerConModal(t);
   await esperar(() => t.fetchLog.some((l) => l.url.endsWith('/session/sess-7/stop')));
 
   const stop = t.fetchLog.find((l) => l.url.endsWith('/session/sess-7/stop'));
@@ -2209,7 +2286,7 @@ await testAsync('REL-002: DETENER antes de que resuelva el registro espera y env
 
   t.nodos.botonIniciar.disparar('click');
   await esperar(() => createCalls === 1); // el POST de registro sigue en vuelo
-  t.nodos.botonIniciar.disparar('click'); // DETENER inmediato
+  detenerConModal(t); // DETENER inmediato
   assert.equal(t.nodos.etiquetaBoton.textContent, 'INICIAR', 'la UI se detiene al instante');
 
   liberarCreacion();
@@ -2283,7 +2360,7 @@ await testAsync('el stop fallido se reintenta una vez con el mismo id', async ()
     return Boolean(crudo && JSON.parse(crudo).sessionId === 'sess-retry');
   });
 
-  t.nodos.botonIniciar.disparar('click'); // DETENER
+  detenerConModal(t);
   await esperar(() => stopCalls === 2);
 
   const stops = t.fetchLog.filter((l) => l.url.endsWith('/session/sess-retry/stop'));
@@ -2323,7 +2400,7 @@ await testAsync('REL-004: el stop usa el sessionId en memoria, no el valor viejo
   payload.sessionId = 'id-viejo';
   t.store.set(clave, JSON.stringify(payload));
 
-  t.nodos.botonIniciar.disparar('click'); // DETENER
+  detenerConModal(t);
   await esperar(() => t.fetchLog.some((l) => l.url.includes('/stop')));
 
   const stops = t.fetchLog.filter((l) => l.url.includes('/stop'));
@@ -2520,7 +2597,7 @@ await testAsync('DETENER muestra el panel con el texto de fin y sigue cerrando l
   t.nodos.botonIniciar.disparar('click');
   await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
 
-  t.nodos.botonIniciar.disparar('click'); // DETENER
+  detenerConModal(t);
   assert.equal(t.nodos.etiquetaBoton.textContent, 'INICIAR');
   assert.equal(t.ctxTest.tipoAvisoActual, 'fin');
   assert.deepEqual(
@@ -2595,7 +2672,7 @@ await testAsync('el panel cambia de título según inicio/fin y el botón × lo 
   t.nodos.botonCerrarAvisos.disparar('click');
   assert.equal(t.nodos.panelAvisos.hidden, true, 'el × oculta el panel al instante');
 
-  t.nodos.botonIniciar.disparar('click'); // DETENER
+  detenerConModal(t);
   assert.equal(t.nodos.panelAvisos.hidden, false);
   assert.equal(t.nodos.tituloAvisos.textContent, 'Mandar WhatsApp de fin');
 
@@ -2670,7 +2747,7 @@ await testAsync('la ubicación se agrega al texto de inicio y nunca al de fin', 
     'la ubicación va después del cierre, separada por un solo espacio'
   );
 
-  t.nodos.botonIniciar.disparar('click'); // DETENER
+  detenerConModal(t);
   await esperar(() => t.nodos.listaAvisos.hijos.length === 2);
   t.nodos.listaAvisos.hijos[0].disparar('click');
   const fin = textoDesdeWa(t.ventanas[t.ventanas.length - 1][0]);
@@ -2736,7 +2813,7 @@ await testAsync('el refresco de ubicación solo corre con la página visible y s
   assert.deepEqual(JSON.parse(patch.init.body), { lat: -34.7, lng: -58.4 });
 
   const patchesAntes = t.fetchLog.filter((l) => l.init && l.init.method === 'PATCH').length;
-  t.nodos.botonIniciar.disparar('click'); // DETENER
+  detenerConModal(t);
   assert.equal(t.ctxTest.temporizadorUbicacion, null, 'el timer se corta al detener');
 
   t.ctx.document.visibilityState = 'visible';
@@ -2859,7 +2936,7 @@ await testAsync('el pre-aviso parpadea y hace beep en el umbral y se corta al DE
   t.tick();
   assert.equal(audio.registro.osciladores.length, 2, 'beep intermitente cada 2 s');
 
-  t.nodos.botonIniciar.disparar('click'); // DETENER
+  detenerConModal(t);
   assert.equal(t.nodos.etiquetaTiempo.classList.contains('parpadeando'), false);
   assert.equal(t.ctxTest.temporizadorBeep, null, 'DETENER corta el beep');
 
@@ -3358,6 +3435,214 @@ await testAsync('al iniciar una nueva sesión la caja vuelve a mostrarse al conf
   t.tick();
   await esperar(() => t.nodos.avisoAlarmaEnviada.hidden === false);
   assert.equal(t.ctxTest.alarmaConfirmada, true);
+});
+
+// ------------------------------- fin de actividad con comentarios
+
+await testAsync('DETENER abre el modal y no detiene; Continuar mantiene la cuenta', async () => {
+  const t = crearContexto({ fetch: fetchNormal() });
+  await t.domListo();
+  fijarTiempo(t, { minutos: 15 });
+  t.nodos.botonIniciar.disparar('click');
+
+  t.nodos.botonIniciar.disparar('click'); // DETENER -> modal
+  assert.equal(t.nodos.modalFinActividad.classList.contains('hidden'), false);
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'DETENER', 'sigue corriendo');
+
+  t.reloj.ahora += 60000;
+  t.tick();
+  assert.equal(t.nodos.etiquetaTiempo.textContent, '00:14:00');
+
+  t.nodos.botonContinuarActividad.disparar('click');
+  assert.equal(t.nodos.modalFinActividad.classList.contains('hidden'), true);
+  t.reloj.ahora += 60000;
+  t.tick();
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'DETENER');
+  assert.equal(t.nodos.etiquetaTiempo.textContent, '00:13:00');
+
+  t.nodos.botonIniciar.disparar('click');
+  t.nodos.botonConfirmarFin.disparar('click');
+  assert.equal(t.nodos.modalFinActividad.classList.contains('hidden'), true);
+  assert.equal(t.nodos.modalComentariosFin.classList.contains('hidden'), false);
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'DETENER', 'confirmar no detiene');
+
+  t.nodos.botonCancelarComentarios.disparar('click');
+  assert.equal(t.nodos.modalComentariosFin.classList.contains('hidden'), true);
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'DETENER');
+});
+
+await testAsync('Escape y × cierran los modales sin detener la sesión', async () => {
+  const t = crearContexto({ fetch: fetchNormal() });
+  await t.domListo();
+  fijarTiempo(t, { minutos: 15 });
+  t.nodos.botonIniciar.disparar('click');
+
+  t.nodos.botonIniciar.disparar('click');
+  t.dispararDocumento('keydown', { key: 'Escape' });
+  assert.equal(t.nodos.modalFinActividad.classList.contains('hidden'), true);
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'DETENER');
+
+  t.nodos.botonIniciar.disparar('click');
+  t.nodos.cerrarModalFin.disparar('click');
+  assert.equal(t.nodos.modalFinActividad.classList.contains('hidden'), true);
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'DETENER');
+
+  t.nodos.botonIniciar.disparar('click');
+  t.nodos.botonConfirmarFin.disparar('click');
+  t.dispararDocumento('keydown', { key: 'Escape' });
+  assert.equal(t.nodos.modalComentariosFin.classList.contains('hidden'), true);
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'DETENER');
+
+  t.nodos.botonIniciar.disparar('click');
+  t.nodos.botonConfirmarFin.disparar('click');
+  t.nodos.cerrarModalComentarios.disparar('click');
+  assert.equal(t.nodos.modalComentariosFin.classList.contains('hidden'), true);
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'DETENER');
+});
+
+await testAsync('Grabar detiene la sesión y POSTea el historial esperado', async () => {
+  const ahora = Date.UTC(2026, 4, 18, 12, 0);
+  const token = 'tok-log';
+  const t = crearContexto({
+    ahora,
+    store: new Map([['token', token]]),
+    fetch: async (url, init) => {
+      const metodo = (init && init.method) || 'GET';
+      if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
+      if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+      if (url.includes('/api/contacts')) return respuestaOk({ contactos: [] });
+      if (url.endsWith('/api/message-events/session') && metodo === 'POST') {
+        return respuestaOk({ sessionId: 'sess-log' });
+      }
+      if (url.includes('/session/sess-log/stop')) return respuestaOk({});
+      if (url.endsWith('/api/activity-logs') && metodo === 'POST') return respuestaOk({});
+      throw new Error(`URL inesperada: ${url} ${metodo}`);
+    },
+  });
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.ctxTest.sessionIdEnCurso !== '');
+  t.reloj.ahora += 90 * 1000;
+  t.tick();
+
+  t.nodos.botonIniciar.disparar('click'); // modal
+  t.nodos.botonConfirmarFin.disparar('click');
+  t.nodos.comentariosFin.value = 'Buen día';
+  t.nodos.botonGrabarComentarios.disparar('click');
+
+  await esperar(() => t.fetchLog.some((l) => l.url.endsWith('/api/activity-logs')));
+  const post = t.fetchLog.find((l) => l.url.endsWith('/api/activity-logs'));
+  assert.equal(post.init.method, 'POST');
+  assert.equal(post.init.headers.Authorization, `Bearer ${token}`);
+  assert.deepEqual(JSON.parse(post.init.body), {
+    actividad: 'Windsurf',
+    equipos: ['Goya verde 5.0'],
+    inicio: new Date(ahora).toISOString(),
+    fin: new Date(ahora + 90000).toISOString(),
+    comentarios: 'Buen día',
+  });
+
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'INICIAR', 'la sesión se detuvo');
+  assert.equal(t.nodos.modalFinActividad.classList.contains('hidden'), true);
+  assert.equal(t.nodos.modalComentariosFin.classList.contains('hidden'), true);
+  await esperar(() => t.fetchLog.some((l) => l.url.endsWith('/session/sess-log/stop')));
+  assert.equal(t.toasts.length, 0, 'sin toast de error');
+});
+
+await testAsync('sin actividad no envía el historial aunque la sesión se detenga', async () => {
+  const t = crearContexto({ fetch: fetchNormal({ actividades: [] }) });
+  await t.domListo();
+  t.nodos.botonIniciar.disparar('click');
+
+  t.nodos.botonIniciar.disparar('click');
+  t.nodos.botonConfirmarFin.disparar('click');
+  t.nodos.botonGrabarComentarios.disparar('click');
+  await new Promise((resolver) => setTimeout(resolver, 20));
+
+  assert.equal(t.nodos.etiquetaBoton.textContent, 'INICIAR');
+  assert.equal(
+    t.fetchLog.filter((l) => l.url.includes('/api/activity-logs')).length,
+    0,
+    'no se POSTea sin actividad'
+  );
+  assert.ok(
+    t.toasts.some((toast) => toast.mensaje.includes('actividad vacía')),
+    'avisa que no se guardó el historial'
+  );
+});
+
+// ------------------------------- historial.js
+
+console.log('# historial.js — listado');
+
+test('historial.html incluye lista, estado, reintento y el script', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'pages', 'historial.html'), 'utf8');
+  for (const id of ['estadoHistorial', 'botonReintentarHistorial', 'listaHistorial']) {
+    assert.ok(html.includes(`id="${id}"`), `falta #${id}`);
+  }
+  assert.ok(html.includes('../JS/historial.js'), 'falta el script de historial');
+  assert.ok(html.includes('href="../pages/iniciarDetener.html"'), 'falta el acceso a Inicio');
+});
+
+test('el historial ordena por más reciente y muestra el estado vacío', () => {
+  const t = crearContextoHistorial();
+  const registros = [
+    {
+      usuario: 'Ana',
+      actividad: 'Surf',
+      equipos: ['Tabla'],
+      inicio: '2026-01-01T10:00:00.000Z',
+      fin: '2026-01-01T11:00:00.000Z',
+      comentarios: '',
+    },
+    {
+      usuario: 'Ana',
+      actividad: 'Windsurf',
+      equipos: ['Goya'],
+      inicio: '2026-01-02T10:00:00.000Z',
+      fin: '2026-01-02T11:00:00.000Z',
+      comentarios: '',
+    },
+  ];
+
+  const ordenados = t.ctxTest.ordenarHistorial(registros);
+  assert.deepEqual(
+    ordenados.map((registro) => registro.actividad),
+    ['Windsurf', 'Surf'],
+    'más reciente primero'
+  );
+
+  t.ctxTest.renderizarHistorial(ordenados);
+  assert.equal(t.nodos.listaHistorial.hijos.length, 2);
+  const textos = [];
+  (function recorrer(nodo) {
+    if (!nodo) return;
+    if (typeof nodo.textContent === 'string' && nodo.textContent) textos.push(nodo.textContent);
+    for (const hijo of nodo.hijos || []) recorrer(hijo);
+  })(t.nodos.listaHistorial.hijos[0]);
+  assert.ok(textos.includes('WINDSURF'), 'la primera fila es la más nueva');
+  assert.ok(textos.includes('Ana'), 'la fila muestra el usuario');
+
+  t.ctxTest.renderizarHistorial([]);
+  assert.equal(t.nodos.listaHistorial.hijos.length, 0, 'sin registros no hay filas');
+  assert.ok(
+    t.nodos.estadoHistorial.textContent.includes('actividades registradas'),
+    'estado vacío visible'
+  );
+});
+
+await testAsync('el historial muestra error y reintento si falla el GET', async () => {
+  const t = crearContextoHistorial({
+    fetch: async () => {
+      throw new Error('sin red');
+    },
+  });
+
+  await t.ctxTest.cargarHistorial();
+  assert.ok(t.nodos.estadoHistorial.textContent.includes('No se pudo cargar el historial'));
+  assert.equal(t.nodos.botonReintentarHistorial.hidden, false, 'botón de reintento visible');
+  assert.equal(t.nodos.listaHistorial.hijos.length, 0);
 });
 }
 

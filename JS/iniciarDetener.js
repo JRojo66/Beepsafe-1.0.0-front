@@ -190,6 +190,15 @@ let listaCancelacionAlarma = null;
 let botonCompartirCancelacion = null;
 let iconoActividad = null;
 let anilloProgreso = null;
+let modalFinActividad = null;
+let botonConfirmarFin = null;
+let botonContinuarActividad = null;
+let cerrarModalFin = null;
+let modalComentariosFin = null;
+let comentariosFin = null;
+let botonGrabarComentarios = null;
+let botonCancelarComentarios = null;
+let cerrarModalComentarios = null;
 let panelAvisos = null;
 let tituloAvisos = null;
 let listaAvisos = null;
@@ -1668,9 +1677,114 @@ function contarSegundo() {
   actualizarVisualizacion();
 }
 
+// ------------------------------------------ fin de actividad con comentarios
+
+function abrirModalFinActividad() {
+  if (estadoContador !== 'corriendo' || !modalFinActividad) return;
+  if (modalComentariosFin) modalComentariosFin.classList.add('hidden');
+  modalFinActividad.classList.remove('hidden');
+}
+
+function cerrarModalFinActividad() {
+  if (modalFinActividad) modalFinActividad.classList.add('hidden');
+}
+
+function abrirModalComentariosFin() {
+  if (!modalComentariosFin) return;
+  if (modalFinActividad) modalFinActividad.classList.add('hidden');
+  if (comentariosFin) {
+    comentariosFin.value = '';
+    if (typeof comentariosFin.focus === 'function') comentariosFin.focus();
+  }
+  modalComentariosFin.classList.remove('hidden');
+}
+
+function cerrarModalComentariosFin() {
+  if (modalComentariosFin) modalComentariosFin.classList.add('hidden');
+}
+
+function cerrarModalesFin() {
+  cerrarModalFinActividad();
+  cerrarModalComentariosFin();
+}
+
+function manejarTeclaModales(evento) {
+  if (!evento || evento.key !== 'Escape') return;
+  if (modalComentariosFin && !modalComentariosFin.classList.contains('hidden')) {
+    cerrarModalComentariosFin();
+    return;
+  }
+  if (modalFinActividad && !modalFinActividad.classList.contains('hidden')) {
+    cerrarModalFinActividad();
+  }
+}
+
+async function registrarActividadLog(cuerpo) {
+  const url = `${ROOT_URL}/api/activity-logs`;
+  try {
+    const respuesta = await fetchConTimeout(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify(cuerpo),
+    });
+    if (!respuesta.ok) {
+      console.error(
+        `[iniciarDetener] POST activity-logs falló: ${url} status=${respuesta.status}`
+      );
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error(`[iniciarDetener] POST activity-logs falló: ${url} — ${mensajeDeError(err)}`);
+    return false;
+  }
+}
+
+async function grabarFinActividad() {
+  if (estadoContador !== 'corriendo') {
+    cerrarModalesFin();
+    return;
+  }
+  const comentarios =
+    comentariosFin && typeof comentariosFin.value === 'string' ? comentariosFin.value.trim() : '';
+  if (comentarios.length > 2000) {
+    mostrarToastAviso('Los comentarios no pueden superar los 2000 caracteres.', 'error');
+    return;
+  }
+  const actividad = estadoSesion.actividad;
+  const equipos = Array.isArray(estadoSesion.equipo) ? estadoSesion.equipo.slice() : [];
+  const inicioMs = inicioContadorMs;
+  const finMs = Date.now();
+
+  // Cierra los diálogos y ejecuta el stop existente (incluye panel de fin)
+  cerrarModalesFin();
+  detenerContador();
+
+  if (!actividad) {
+    console.error('[iniciarDetener] no se registra el historial: actividad vacía');
+    mostrarToastAviso('No se pudo guardar el historial: actividad vacía.', 'error');
+    return;
+  }
+
+  const cuerpo = {
+    actividad,
+    equipos,
+    inicio: new Date(inicioMs).toISOString(),
+    fin: new Date(finMs).toISOString(),
+    comentarios,
+  };
+  const guardado = await registrarActividadLog(cuerpo);
+  if (!guardado) {
+    mostrarToastAviso('No se pudo guardar el historial de la actividad.', 'error');
+  }
+}
+
 function alternarContador() {
   if (estadoContador === 'corriendo') {
-    detenerContador();
+    abrirModalFinActividad();
   } else {
     iniciarContador();
   }
@@ -1723,6 +1837,15 @@ function inicializarUI() {
   botonCompartirCancelacion = document.getElementById('botonCompartirCancelacion');
   iconoActividad = document.getElementById('iconoActividad');
   anilloProgreso = document.getElementById('anilloProgreso');
+  modalFinActividad = document.getElementById('modalFinActividad');
+  botonConfirmarFin = document.getElementById('botonConfirmarFin');
+  botonContinuarActividad = document.getElementById('botonContinuarActividad');
+  cerrarModalFin = document.getElementById('cerrarModalFin');
+  modalComentariosFin = document.getElementById('modalComentariosFin');
+  comentariosFin = document.getElementById('comentariosFin');
+  botonGrabarComentarios = document.getElementById('botonGrabarComentarios');
+  botonCancelarComentarios = document.getElementById('botonCancelarComentarios');
+  cerrarModalComentarios = document.getElementById('cerrarModalComentarios');
   panelAvisos = document.getElementById('panelAvisos');
   tituloAvisos = document.getElementById('tituloAvisos');
   listaAvisos = document.getElementById('listaAvisos');
@@ -1761,6 +1884,15 @@ function inicializarUI() {
     botonCompartirCancelacion,
     iconoActividad,
     anilloProgreso,
+    modalFinActividad,
+    botonConfirmarFin,
+    botonContinuarActividad,
+    cerrarModalFin,
+    modalComentariosFin,
+    comentariosFin,
+    botonGrabarComentarios,
+    botonCancelarComentarios,
+    cerrarModalComentarios,
     panelAvisos,
     tituloAvisos,
     listaAvisos,
@@ -1797,6 +1929,13 @@ function inicializarUI() {
   botonCerrarAvisos.addEventListener('click', cerrarPanelAvisos);
   botonCompartirCancelacion.addEventListener('click', manejarCompartirCancelacion);
   botonCerrarAlarma.addEventListener('click', cerrarAvisoAlarma);
+  botonConfirmarFin.addEventListener('click', abrirModalComentariosFin);
+  botonContinuarActividad.addEventListener('click', cerrarModalFinActividad);
+  cerrarModalFin.addEventListener('click', cerrarModalFinActividad);
+  botonGrabarComentarios.addEventListener('click', grabarFinActividad);
+  botonCancelarComentarios.addEventListener('click', cerrarModalesFin);
+  cerrarModalComentarios.addEventListener('click', cerrarModalesFin);
+  document.addEventListener('keydown', manejarTeclaModales);
 
   // Al abandonar la página se corta el refresco de ubicación (no queda timer)
   if (typeof window !== 'undefined' && window && typeof window.addEventListener === 'function') {

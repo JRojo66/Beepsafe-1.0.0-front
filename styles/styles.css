@@ -1374,6 +1374,31 @@ a {
   background-color: var(--color-fondo2);
 }
 
+.historial-lista {
+  width: 80%;
+  max-width: 440px;
+  margin: 0 auto 20px;
+}
+
+.historial-lista .containerActividad {
+  width: 100%;
+}
+
+.historial-equipos {
+  margin: 4px 0 0;
+  color: var(--color-texto-suave, rgba(255, 255, 255, 0.8));
+  font-size: 13px;
+  text-align: left;
+}
+
+.historial-comentarios summary {
+  margin: 6px 0;
+  color: var(--color-principal);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
 /* Mis mensajes*/
 .perfilb {
   font-size: 1.8rem;
@@ -1752,6 +1777,93 @@ a {
 }
 .modal-btn:hover {
   opacity: 0.9;
+}
+
+/* Modales de fin de actividad (Iniciar/Detener) */
+.modal-fin,
+.modal-comentarios {
+  position: relative;
+  min-width: 280px;
+  max-width: 360px;
+}
+
+.modal-titulo {
+  margin: 0 0 14px;
+  padding-right: 28px;
+  color: #222222;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: left;
+}
+
+.modal-cerrar {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: transparent;
+  color: #333333;
+  font-family: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-cerrar:hover,
+.modal-cerrar:focus-visible {
+  background-color: rgba(0, 0, 0, 0.08);
+  outline: none;
+}
+
+.modal-fin .modal-buttons {
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-fin .modal-btn {
+  width: 100%;
+}
+
+.modal-comentarios label {
+  display: block;
+  margin-bottom: 6px;
+  color: #222222;
+  font-weight: bold;
+  text-align: left;
+}
+
+.modal-comentarios textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cccccc;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.modal-comentarios .modal-buttons {
+  gap: 10px;
+}
+
+.modal-comentarios .modal-btn {
+  flex: 1;
+}
+
+.modal-btn.grabar {
+  background-color: #4caf50;
+  color: #ffffff;
+}
+
+/* Navegación inferior con tres accesos */
+.nav-tres > .inicio,
+.nav-tres > .enlaceDiv {
+  width: 33.333%;
 }
 
 .add-equipment-form {
