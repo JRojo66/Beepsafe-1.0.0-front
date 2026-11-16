@@ -35,23 +35,36 @@
         <p class="encabezadoBajada">Acá vas a encontrar el registro de la información de las actividades que realizaste, para que puedas revisar todos los detalles.</p>
         <div class="break"></div>
 
+        <label class="historial-toggle">
+            <input type="checkbox" id="toggleEliminadas">
+            <span>Ver eliminadas</span>
+        </label>
+
         <p id="estadoHistorial" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
+        <p id="estadoAccionHistorial" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
         <button id="botonReintentarHistorial" class="btn-confirm" type="button" hidden>Reintentar</button>
         <div id="listaHistorial" class="historial-lista"></div>
     </div>
 
-    <div class="contenedor-padre2">
-        <div class="flex-container2">
-            <div class="inicio">
-                <img class="imagenHome" src="../imagenes/homeFondoVerde.jpg" alt="Home">
-                <a href="../pages/iniciarDetener.html" class="botonInicio">Inicio</a>
+    <div id="modalEliminarActividad" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="tituloModalEliminarActividad">
+        <div class="modal-content modal-confirmacion">
+            <button id="cerrarModalEliminarActividad" type="button" class="modal-cerrar" aria-label="Cerrar">×</button>
+            <h2 id="tituloModalEliminarActividad" class="modal-titulo">¿Eliminar esta actividad?</h2>
+            <div class="modal-buttons">
+                <button id="cancelarEliminarActividad" type="button" class="modal-btn cancelar">Cancelar</button>
+                <button id="continuarEliminarActividad" type="button" class="modal-btn confirmar">Continuar</button>
             </div>
-            <a href="../pages/perfil.html" class="enlaceDiv">
-                <div class="miPerfil">
-                    <img class="imagenPerfil" src="../imagenes/perfilFondoBlanco.png" alt="Perfil">
-                    <span class="botonPerfil">Mi Perfil</span>
-                </div>
-            </a>
+        </div>
+    </div>
+
+    <div id="modalConfirmarEliminarActividad" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="tituloModalConfirmarEliminarActividad">
+        <div class="modal-content modal-confirmacion">
+            <button id="cerrarModalConfirmarEliminarActividad" type="button" class="modal-cerrar" aria-label="Cerrar">×</button>
+            <h2 id="tituloModalConfirmarEliminarActividad" class="modal-titulo">¿Desea continuar?</h2>
+            <div class="modal-buttons">
+                <button id="cancelarConfirmarEliminarActividad" type="button" class="modal-btn cancelar">Cancelar</button>
+                <button id="eliminarActividad" type="button" class="modal-btn confirmar">Eliminar</button>
+            </div>
         </div>
     </div>
 

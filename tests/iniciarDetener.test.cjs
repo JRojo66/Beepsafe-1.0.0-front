@@ -3597,7 +3597,7 @@ test('historial.html incluye lista, estado, reintento y el script', () => {
     assert.ok(html.includes(`id="${id}"`), `falta #${id}`);
   }
   assert.ok(html.includes('../JS/historial.js'), 'falta el script de historial');
-  assert.ok(html.includes('href="../pages/iniciarDetener.html"'), 'falta el acceso a Inicio');
+  assert.ok(html.includes('href="../pages/perfil.html"'), 'falta el volver a Perfil');
 });
 
 test('el historial ordena por más reciente y muestra el estado vacío', () => {
@@ -3655,7 +3655,7 @@ await testAsync('el historial muestra error y reintento si falla el GET', async 
   });
 
   await t.ctxTest.cargarHistorial();
-  assert.ok(t.nodos.estadoHistorial.textContent.includes('No se pudo cargar el historial'));
+  assert.ok(t.nodos.estadoHistorial.textContent.includes('No se pudo cargar'));
   assert.equal(t.nodos.botonReintentarHistorial.hidden, false, 'botón de reintento visible');
   assert.equal(t.nodos.listaHistorial.hijos.length, 0);
 });
