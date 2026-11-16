@@ -17,6 +17,8 @@ const CLAVE_ULTIMA_SESION = 'beepsafe_ultima_sesion';
 const CLAVE_SESION_EN_CURSO = 'beepsafe_sesion_en_curso';
 // Selección actual de Actividad/Equipo/Tiempo, persistida por usuario
 const CLAVE_SELECCION = 'beepsafe_seleccion';
+// Cola de sesiones cuyo stop no llegó al backend (se reintenta al volver/recargar)
+const CLAVE_STOPS_PENDIENTES = 'beepsafe_stops_pendientes';
 
 // Valores por defecto del stepper de Tiempo: 0 días, 3 horas, 0 minutos
 // (= 180 minutos, la duración histórica por defecto de la pantalla)
@@ -730,6 +732,57 @@ function leerObjetoReconciliado(base) {
     return payload;
   }
   return null;
+}
+
+function leerStopsPendientes() {
+  const datos = leerObjetoReconciliado(CLAVE_STOPS_PENDIENTES);
+  if (!Array.isArray(datos)) return [];
+  return datos.filter((id) => typeof id === 'string' && id);
+}
+
+function guardarStopsPendientes(ids) {
+  const limpios = Array.isArray(ids) ? ids.filter((id) => typeof id === 'string' && id) : [];
+  const clave = claveConUsuario(CLAVE_STOPS_PENDIENTES);
+  try {
+    if (limpios.length === 0) localStorage.removeItem(clave);
+    else localStorage.setItem(clave, JSON.stringify(limpios));
+  } catch (err) {
+    console.error(
+      `[iniciarDetener] no se pudo guardar la cola de stops pendientes: ${mensajeDeError(err)}`
+    );
+  }
+}
+
+function encolarStopPendiente(sessionId) {
+  if (!sessionId) return;
+  const pendientes = leerStopsPendientes();
+  if (!pendientes.includes(sessionId)) {
+    pendientes.push(sessionId);
+    guardarStopsPendientes(pendientes);
+  }
+}
+
+function quitarStopPendiente(sessionId) {
+  if (!sessionId) return;
+  const pendientes = leerStopsPendientes().filter((id) => id !== sessionId);
+  guardarStopsPendientes(pendientes);
+}
+
+let flushStopsEnCurso = false;
+
+async function flushStopsPendientes() {
+  if (flushStopsEnCurso) return;
+  const pendientes = leerStopsPendientes();
+  if (pendientes.length === 0) return;
+  flushStopsEnCurso = true;
+  try {
+    for (const sessionId of pendientes) {
+      const ok = await enviarStopSesionEnBackend(sessionId);
+      if (!ok) break;
+    }
+  } finally {
+    flushStopsEnCurso = false;
+  }
 }
 
 function logDebugSeleccion(mensaje) {
@@ -1782,8 +1835,9 @@ function detenerContador() {
     if (!sessionId && promesaCreacion) {
       sessionId = await esperarConTiempoLimite(promesaCreacion, TIMEOUT_ESPERA_SESION_MS);
     }
-    if (!sessionId) return false;
-    return enviarStopSesionEnBackend(sessionId);
+    if (!sessionId) return { ok: false, sessionId: '' };
+    const ok = await enviarStopSesionEnBackend(sessionId);
+    return { ok, sessionId };
   })();
 }
 
@@ -1894,12 +1948,20 @@ async function grabarFinActividad() {
   const inicioMs = inicioContadorMs;
   const finMs = Date.now();
 
-  // Cierra los diálogos y ejecuta el stop existente (incluye panel de fin)
+  // Cierra los diálogos y ejecuta el stop existente (incluye panel de fin).
+  // El stop arranca ya y se espera junto con el POST del historial.
   cerrarModalesFin();
-  detenerContador();
+  const parada = detenerContador();
 
   if (!actividad) {
     console.error('[iniciarDetener] no se registra el historial: actividad vacía');
+    const cierre = await parada;
+    if (cierre && !cierre.ok && cierre.sessionId) {
+      mostrarToastAviso(
+        'No se pudo cerrar la sesión en el servidor. Se reintentará.',
+        'aviso'
+      );
+    }
     mostrarToastAviso('No se pudo guardar el historial: actividad vacía.', 'error');
     return;
   }
@@ -1911,9 +1973,12 @@ async function grabarFinActividad() {
     fin: new Date(finMs).toISOString(),
     comentarios,
   };
-  const guardado = await registrarActividadLog(cuerpo);
+  const [guardado, cierre] = await Promise.all([registrarActividadLog(cuerpo), parada]);
   if (!guardado) {
     mostrarToastAviso('No se pudo guardar el historial de la actividad.', 'error');
+  }
+  if (cierre && !cierre.ok && cierre.sessionId) {
+    mostrarToastAviso('No se pudo cerrar la sesión en el servidor. Se reintentará.', 'aviso');
   }
 }
 
@@ -2077,12 +2142,14 @@ function inicializarUI() {
     window.addEventListener('beforeunload', detenerRefrescoUbicacion);
     window.addEventListener('pagehide', detenerRefrescoUbicacion);
     window.addEventListener('pagehide', detenerPollAlarma);
+    window.addEventListener('pagehide', flushStopsPendientes);
     // bfcache: al volver con pageshow se reintenta la confirmación pendiente
     window.addEventListener('pageshow', reanudarPollAlarmaSiCorresponde);
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       reanudarPollAlarmaSiCorresponde();
+      flushStopsPendientes(); // reintenta stops pendientes al volver
     } else {
       detenerPollAlarma(); // oculta: se corta el polling (batería)
     }
@@ -2272,7 +2339,10 @@ async function enviarStopSesionEnBackend(sessionId) {
           Authorization: `Bearer ${localStorage.getItem('token')}`, // iOS
         },
       });
-      if (respuesta.ok) return true;
+      if (respuesta.ok) {
+        quitarStopPendiente(sessionId);
+        return true;
+      }
       console.error(
         `[iniciarDetener] POST message-events/session stop falló (intento ${intento}/${MAX_INTENTOS_PETICION}): ${url} status=${respuesta.status}`
       );
@@ -2282,6 +2352,7 @@ async function enviarStopSesionEnBackend(sessionId) {
       );
     }
   }
+  encolarStopPendiente(sessionId);
   return false;
 }
 
@@ -2435,6 +2506,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (usuarioJWT && typeof usuarioJWT.name === 'string') {
     nombreUsuarioAvisos = usuarioJWT.name;
   }
+
+  // Antes de cargar el resto: terminar stops que quedaron pendientes de otra
+  // visita (per-user, ya resuelto el email de la sesión).
+  await flushStopsPendientes();
 
   if (!uiLista) return; // la UI no se inicializó: no tocar nodos inexistentes
   // Las actividades se piden por el email disponible, no por el éxito del call

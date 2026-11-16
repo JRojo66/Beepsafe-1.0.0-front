@@ -21,6 +21,8 @@ const EXPORTS = `;globalThis.__test = {
   resumenTiempoCorto, IMAGENES_POR_DEFECTO, IMAGEN_POR_ACTIVIDAD,
   CLAVE_ULTIMA_SESION, CLAVE_SESION_EN_CURSO, CLAVE_SELECCION,
   guardarSeleccionActual, restaurarSeleccionGuardada,
+  CLAVE_STOPS_PENDIENTES, leerStopsPendientes, encolarStopPendiente,
+  quitarStopPendiente, flushStopsPendientes, enviarStopSesionEnBackend,
   cerrarPaneles, manejarPasoTiempo,
   manejarSeleccionActividad, manejarSeleccionEquipo,
   manejarClickTriggerActividad, manejarClickTriggerEquipo,
@@ -3794,6 +3796,128 @@ await testAsync('el logout no borra la selección y al volver se restaura', asyn
   await t2.domListo();
   assert.deepEqual([...t2.ctxTest.equiposSeleccionados], ['Goya verde 5.0', 'Naish 5.8']);
   assert.equal(t2.nodos.etiquetaTiempo.textContent, '03:00:00');
+});
+
+// ------------------------------- stops pendientes
+
+function contextoStop(fetchImpl) {
+  return crearContexto({
+    ahora: Date.UTC(2026, 4, 18, 12, 0),
+    store: new Map([['token', 'tok-stop']]),
+    fetch: fetchImpl,
+  });
+}
+
+await testAsync('Grabar arranca el stop antes del historial y limpia la cola al tener éxito', async () => {
+  const t = contextoStop(async (url, init) => {
+    const metodo = (init && init.method) || 'GET';
+    if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
+    if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+    if (url.includes('/api/contacts')) return respuestaOk({ contactos: [] });
+    if (url.endsWith('/api/message-events/session') && metodo === 'POST') {
+      return respuestaOk({ sessionId: 'sess-stop' });
+    }
+    if (url.endsWith('/session/sess-stop/stop')) return respuestaOk({});
+    if (url.endsWith('/api/activity-logs') && metodo === 'POST') return respuestaOk({});
+    throw new Error(`URL inesperada: ${url} ${metodo}`);
+  });
+  await t.domListo();
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.ctxTest.sessionIdEnCurso !== '');
+
+  t.nodos.botonIniciar.disparar('click');
+  t.nodos.botonConfirmarFin.disparar('click');
+  t.nodos.botonGrabarComentarios.disparar('click');
+  await esperar(() => t.fetchLog.some((l) => l.url.endsWith('/api/activity-logs')));
+  await esperar(() => t.fetchLog.some((l) => l.url.endsWith('/session/sess-stop/stop')));
+
+  const stopIndex = t.fetchLog.findIndex((l) => l.url.endsWith('/session/sess-stop/stop'));
+  const logIndex = t.fetchLog.findIndex((l) => l.url.endsWith('/api/activity-logs'));
+  assert.ok(stopIndex > -1 && logIndex > -1 && stopIndex < logIndex, 'stop antes del POST del log');
+  assert.deepEqual([...t.ctxTest.leerStopsPendientes()], []);
+  assert.equal(t.store.has('beepsafe_stops_pendientes:marcelo@test.com'), false);
+});
+
+await testAsync('si el stop falla dos veces se encola y se avisa', async () => {
+  const t = contextoStop(async (url, init) => {
+    const metodo = (init && init.method) || 'GET';
+    if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
+    if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+    if (url.includes('/api/contacts')) return respuestaOk({ contactos: [] });
+    if (url.endsWith('/api/message-events/session') && metodo === 'POST') {
+      return respuestaOk({ sessionId: 'sess-fail' });
+    }
+    if (url.endsWith('/session/sess-fail/stop')) {
+      return { ok: false, status: 500, json: async () => ({}) };
+    }
+    if (url.endsWith('/api/activity-logs') && metodo === 'POST') return respuestaOk({});
+    throw new Error(`URL inesperada: ${url} ${metodo}`);
+  });
+  await t.domListo();
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(() => t.ctxTest.sessionIdEnCurso !== '');
+
+  t.nodos.botonIniciar.disparar('click');
+  t.nodos.botonConfirmarFin.disparar('click');
+  t.nodos.botonGrabarComentarios.disparar('click');
+  await esperar(
+    () => t.fetchLog.filter((l) => l.url.endsWith('/session/sess-fail/stop')).length === 2
+  );
+  await esperar(() =>
+    t.toasts.some(
+      (toast) => toast.mensaje === 'No se pudo cerrar la sesión en el servidor. Se reintentará.'
+    )
+  );
+
+  assert.equal(
+    t.fetchLog.filter((l) => l.url.endsWith('/session/sess-fail/stop')).length,
+    2,
+    'un intento y un reintento'
+  );
+  assert.deepEqual([...t.ctxTest.leerStopsPendientes()], ['sess-fail']);
+  assert.ok(
+    t.fetchLog.some((l) => l.url.endsWith('/api/activity-logs') && l.init.method === 'POST'),
+    'el historial se guardó igual'
+  );
+});
+
+await testAsync('la cola se flusha al cargar y al volver visible / pagehide', async () => {
+  const store = new Map([
+    ['token', 'tok-stop-queue'],
+    [
+      'beepsafe_stops_pendientes:marcelo@test.com',
+      JSON.stringify(['sess-old']),
+    ],
+  ]);
+  const t = crearContexto({
+    ahora: Date.UTC(2026, 4, 18, 12, 0),
+    store,
+    fetch: async (url, init) => {
+      const metodo = (init && init.method) || 'GET';
+      if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
+      if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+      if (url.includes('/api/contacts')) return respuestaOk({ contactos: [] });
+      if (url.includes('/stop')) return respuestaOk({});
+      throw new Error(`URL inesperada: ${url} ${metodo}`);
+    },
+  });
+  await t.domListo();
+  assert.ok(t.fetchLog.some((l) => l.url.endsWith('/session/sess-old/stop')), 'flush al cargar');
+  const claveCola = 'beepsafe_stops_pendientes:marcelo@test.com';
+  await esperar(() => !store.has(claveCola));
+  assert.equal(store.has(claveCola), false);
+  t.ctxTest.encolarStopPendiente('sess-vis');
+  t.ctx.document.visibilityState = 'visible';
+  t.dispararDocumento('visibilitychange', {});
+  await esperar(() => t.fetchLog.some((l) => l.url.endsWith('/session/sess-vis/stop')));
+  await esperar(() => !store.has(claveCola));
+  assert.equal(store.has(claveCola), false);
+
+  t.ctxTest.encolarStopPendiente('sess-page');
+  t.dispararWindow('pagehide', {});
+  await esperar(() => t.fetchLog.some((l) => l.url.endsWith('/session/sess-page/stop')));
+  await esperar(() => !store.has(claveCola));
+  assert.equal(store.has(claveCola), false);
 });
 }
 
