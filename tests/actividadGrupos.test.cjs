@@ -386,6 +386,44 @@ await testAsync('un vencido se marca en rojo y muestra el estado de la alarma', 
   assert.equal(etiqueta.textContent, 'Alarma: enviada');
 });
 
+await testAsync('un registro muestra el Fin real y nunca "Fin previsto"', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  const registro = t.nodos.listaTerminados.hijos[0];
+  const horas = buscarPorClase(registro, 'grupo-miembro-horas');
+  assert.ok(horas.textContent.includes('Fin: 07:30'), horas.textContent);
+  assert.ok(!horas.textContent.includes('Fin previsto'), horas.textContent);
+});
+
+await testAsync('una sesión sigue mostrando "Fin previsto"', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  const sesion = t.nodos.listaEnCurso.hijos[0];
+  const horas = buscarPorClase(sesion, 'grupo-miembro-horas');
+  assert.ok(horas.textContent.includes('Fin previsto: 09:30'), horas.textContent);
+  assert.ok(!horas.textContent.includes('Fin: 09:30'), horas.textContent);
+});
+
+await testAsync('un registro sin fin muestra el guion', async () => {
+  const sinFin = { ...MIEMBRO_TERMINADO, fin: null };
+  const t = crearContextoActividadGrupos({
+    fetch: async () =>
+      respuestaOk({ activityState: { vencidos: [], enCurso: [], terminados: [sinFin] } }),
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  const registro = t.nodos.listaTerminados.hijos[0];
+  const horas = buscarPorClase(registro, 'grupo-miembro-horas');
+  assert.ok(horas.textContent.includes('Fin: —'), horas.textContent);
+  assert.ok(!horas.textContent.includes('Fin previsto'), horas.textContent);
+});
+
 await testAsync('la barra de progreso usa la proporción y los vencidos quedan al 100%', async () => {
   const t = crearContextoActividadGrupos({
     fetch: async () => respuestaOk({ activityState: estadoCompleto() }),

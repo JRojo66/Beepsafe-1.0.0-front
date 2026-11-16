@@ -331,14 +331,12 @@ function crearTarjetaMiembro(miembro, esVencido, lista) {
     );
   }
 
-  tarjeta.appendChild(
-    crearTextoActividad(
-      'grupo-miembro-horas',
-      `Inicio: ${formatearHoraActividad(datos.inicio)} · Fin previsto: ${formatearHoraActividad(
-        datos.finPrevisto
-      )}`
-    )
-  );
+  const inicioTexto = formatearHoraActividad(datos.inicio);
+  const horasTexto =
+    datos.tipo === 'registro'
+      ? `Inicio: ${inicioTexto} · Fin: ${formatearHoraActividad(datos.fin) || '—'}`
+      : `Inicio: ${inicioTexto} · Fin previsto: ${formatearHoraActividad(datos.finPrevisto)}`;
+  tarjeta.appendChild(crearTextoActividad('grupo-miembro-horas', horasTexto));
 
   const progreso = calcularProgreso(datos.inicio, datos.finPrevisto, datos.fin, esVencido);
   const barra = document.createElement('div');
