@@ -1503,24 +1503,68 @@ a {
 }
 
 /* Actividad Grupos */
+.actividad-grupos-vista {
+  width: 100%;
+}
+
 .actividad-grupos-vista[hidden] {
   display: none;
 }
 
+/* Cabeceras fijas al scrollear (las páginas no llevan nav inferior). */
+.historial-pagina,
+.actividad-grupos-pagina {
+  padding-bottom: 110px;
+}
+
+.historial-cabecera-sticky,
+.actividad-grupos-cabecera-sticky,
+.actividad-grupos-detalle-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  width: 100%;
+  background-color: var(--color-fondo2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+  transition: box-shadow 0.15s ease;
+}
+
+.actividad-grupos-detalle-sticky {
+  padding-bottom: 10px;
+}
+
+.actividad-grupos-detalle-sticky .actividad-grupos-volver {
+  margin: 0 0 8px;
+}
+
+.actividad-grupos-detalle-sticky .actividad-grupos-titulo {
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .historial-cabecera-sticky,
+  .actividad-grupos-cabecera-sticky,
+  .actividad-grupos-detalle-sticky {
+    transition: none;
+  }
+}
+
 .actividad-grupos-lista {
   width: 100%;
-  max-width: 380px;
-  margin: 0 auto 16px;
+  max-width: none;
+  margin: 0 0 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.grupo-actividad-card {
+.grupo-actividad-card,
+.grupo-actividad-card-full {
   box-sizing: border-box;
   display: block;
   width: 100%;
-  max-width: 380px;
+  max-width: none;
   height: auto;
   min-height: 4rem;
   padding: 6px 0;
@@ -1531,6 +1575,13 @@ a {
   font-family: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.grupo-actividad-card .containerPerfil {
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 14px;
+  padding-right: 14px;
 }
 
 .grupo-actividad-card:hover,
@@ -1581,10 +1632,15 @@ a {
 }
 
 .actividad-grupos-titulo {
+  box-sizing: border-box;
+  width: 100%;
   margin: 0 0 10px;
   color: #ffffff;
   font-size: 20px;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .grupo-actividad-seccion {
@@ -1596,7 +1652,13 @@ a {
 }
 
 .grupo-actividad-seccion-titulo {
+  position: sticky;
+  top: 78px; /* debajo de la cabecera sticky del detalle */
+  z-index: 14;
   margin: 0 0 8px;
+  padding: 6px 0;
+  background-color: var(--color-fondo2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--color-principal);
   font-size: 16px;
   text-align: left;

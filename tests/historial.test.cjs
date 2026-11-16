@@ -404,6 +404,7 @@ async function tests() {
     ]) {
       assert.ok(html.includes(fragmento), `falta ${fragmento}`);
     }
+    assert.ok(html.includes('historial-cabecera-sticky'), 'falta la cabecera sticky');
     assert.ok(!html.includes('contenedor-padre2'), 'historial no lleva nav inferior');
     const actividad = fs.readFileSync(
       path.join(__dirname, '..', 'pages', 'actividadGrupos.html'),

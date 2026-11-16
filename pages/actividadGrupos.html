@@ -24,26 +24,29 @@
     <link rel="stylesheet" href="../styles/styles.css">
 </head>
 <body>
-    <div class="configuracion">
-        <a href="../pages/perfil.html" class="perfil">
-            <div class="containerPerfil">
-                <img src="../imagenes/volver.PNG" alt="Volver">
-                <img src="../imagenes/amigosSinFondoBlanco.png" alt="Actividad Grupos" class="encabezado">
-                <div class="opciones">Actividad Grupos</div>
-            </div>
-        </a>
-        <p class="encabezadoBajada">Mirá el estado de las actividades de tus grupos: alarmas vencidas, sesiones en curso y finalizadas.</p>
-        <div class="break"></div>
-
+    <div class="configuracion actividad-grupos-pagina">
         <div id="vistaListaActividadGrupos" class="actividad-grupos-vista">
+            <div class="actividad-grupos-cabecera-sticky">
+                <a href="../pages/perfil.html" class="perfil">
+                    <div class="containerPerfil">
+                        <img src="../imagenes/volver.PNG" alt="Volver">
+                        <img src="../imagenes/amigosSinFondoBlanco.png" alt="Actividad Grupos" class="encabezado">
+                        <div class="opciones">Actividad Grupos</div>
+                    </div>
+                </a>
+                <p class="encabezadoBajada">Mirá el estado de las actividades de tus grupos: alarmas vencidas, sesiones en curso y finalizadas.</p>
+                <div class="break"></div>
+            </div>
             <p id="estadoListaGrupos" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
             <button id="botonReintentarGrupos" class="btn-confirm" type="button" hidden>Reintentar</button>
             <div id="listaGrupos" class="actividad-grupos-lista"></div>
         </div>
 
         <div id="vistaDetalleActividadGrupos" class="actividad-grupos-vista" hidden>
-            <button id="volverListaGrupos" class="actividad-grupos-volver" type="button">&lt; Volver a mis grupos</button>
-            <h2 id="tituloDetalleGrupo" class="actividad-grupos-titulo"></h2>
+            <div class="actividad-grupos-detalle-sticky">
+                <button id="volverListaGrupos" class="actividad-grupos-volver" type="button">&lt; Volver a mis grupos</button>
+                <h2 id="tituloDetalleGrupo" class="actividad-grupos-titulo"></h2>
+            </div>
             <p id="estadoDetalleActividad" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
             <p id="estadoEliminarSesion" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
             <button id="botonReintentarDetalle" class="btn-confirm" type="button" hidden>Reintentar</button>

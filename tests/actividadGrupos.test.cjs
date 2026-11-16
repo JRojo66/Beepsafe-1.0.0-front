@@ -454,6 +454,11 @@ await testAsync('la barra de progreso usa la proporción y los vencidos quedan a
   );
   assert.equal(barraEnCurso.style.width, '50%');
   assert.equal(barraVencido.style.width, '100%');
+  assert.equal(
+    buscarPorClase(t.nodos.listaTerminados.hijos[0], 'grupo-progreso'),
+    null,
+    'finalizadas no muestran barra'
+  );
 });
 
 await testAsync('el teléfono arranca oculto y el icono lo muestra', async () => {
@@ -664,6 +669,36 @@ test('la hora incluye la fecha cuando no es hoy', () => {
     t.ctxTest.formatearHoraActividad(new Date(AHORA - 24 * 60 * 60 * 1000).toISOString()),
     '17/05 09:00'
   );
+});
+
+test('las filas de grupo usan el ancho completo y muestran el chevron', () => {
+  const t = crearContextoActividadGrupos();
+  t.ctxTest.renderizarGrupos([GRUPO]);
+  const card = t.nodos.listaGrupos.hijos[0];
+  assert.ok(card.classList.contains('grupo-actividad-card'));
+  assert.ok(card.classList.contains('grupo-actividad-card-full'));
+  assert.ok(buscarPorClase(card, 'grupo-actividad-chevron'));
+});
+
+test('las cabeceras sticky existen en el markup y el CSS', () => {
+  const actividad = fs.readFileSync(
+    path.join(__dirname, '..', 'pages', 'actividadGrupos.html'),
+    'utf8'
+  );
+  assert.ok(actividad.includes('actividad-grupos-cabecera-sticky'));
+  assert.ok(actividad.includes('actividad-grupos-detalle-sticky'));
+  const css = fs.readFileSync(path.join(__dirname, '..', 'styles', 'styles.css'), 'utf8');
+  for (const clase of [
+    'historial-cabecera-sticky',
+    'actividad-grupos-cabecera-sticky',
+    'actividad-grupos-detalle-sticky',
+    'grupo-actividad-seccion-titulo',
+  ]) {
+    assert.ok(css.includes(clase), `falta ${clase} en el CSS`);
+  }
+  assert.ok(css.includes('position: sticky'));
+  assert.ok(css.includes('top: 78px'));
+  assert.ok(css.includes('prefers-reduced-motion'));
 });
 
 test('la página y el menú de perfil enlazan Actividad Grupos', () => {

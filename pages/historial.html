@@ -24,21 +24,23 @@
     <link rel="stylesheet" href="../styles/styles.css">
 </head>
 <body>
-    <div class="configuracion">
-        <a href="../pages/perfil.html" class="perfil">
-            <div class="containerPerfil">
-                <img src="../imagenes/volver.PNG" alt="Volver">
-                <img src="../imagenes/historial.PNG" alt="Mi Historial" class="encabezado">
-                <div class="opciones">Mi Historial</div>
-            </div>
-        </a>
-        <p class="encabezadoBajada">Acá vas a encontrar el registro de la información de las actividades que realizaste, para que puedas revisar todos los detalles.</p>
-        <div class="break"></div>
+    <div class="configuracion historial-pagina">
+        <div class="historial-cabecera-sticky">
+            <a href="../pages/perfil.html" class="perfil">
+                <div class="containerPerfil">
+                    <img src="../imagenes/volver.PNG" alt="Volver">
+                    <img src="../imagenes/historial.PNG" alt="Mi Historial" class="encabezado">
+                    <div class="opciones">Mi Historial</div>
+                </div>
+            </a>
+            <p class="encabezadoBajada">Acá vas a encontrar el registro de la información de las actividades que realizaste, para que puedas revisar todos los detalles.</p>
+            <div class="break"></div>
 
-        <label class="historial-toggle">
-            <input type="checkbox" id="toggleEliminadas">
-            <span>Ver eliminadas</span>
-        </label>
+            <label class="historial-toggle">
+                <input type="checkbox" id="toggleEliminadas">
+                <span>Ver eliminadas</span>
+            </label>
+        </div>
 
         <p id="estadoHistorial" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
         <p id="estadoAccionHistorial" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>

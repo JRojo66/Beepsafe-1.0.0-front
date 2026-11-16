@@ -338,18 +338,20 @@ function crearTarjetaMiembro(miembro, esVencido, lista) {
       : `Inicio: ${inicioTexto} · Fin previsto: ${formatearHoraActividad(datos.finPrevisto)}`;
   tarjeta.appendChild(crearTextoActividad('grupo-miembro-horas', horasTexto));
 
-  const progreso = calcularProgreso(datos.inicio, datos.finPrevisto, datos.fin, esVencido);
-  const barra = document.createElement('div');
-  barra.className = 'grupo-progreso';
-  barra.setAttribute('role', 'progressbar');
-  barra.setAttribute('aria-valuemin', '0');
-  barra.setAttribute('aria-valuemax', '100');
-  barra.setAttribute('aria-valuenow', String(Math.round(progreso)));
-  const relleno = document.createElement('div');
-  relleno.className = 'grupo-progreso-barra';
-  relleno.style.width = `${progreso}%`;
-  barra.appendChild(relleno);
-  tarjeta.appendChild(barra);
+  if (datos.tipo !== 'registro') {
+    const progreso = calcularProgreso(datos.inicio, datos.finPrevisto, datos.fin, esVencido);
+    const barra = document.createElement('div');
+    barra.className = 'grupo-progreso';
+    barra.setAttribute('role', 'progressbar');
+    barra.setAttribute('aria-valuemin', '0');
+    barra.setAttribute('aria-valuemax', '100');
+    barra.setAttribute('aria-valuenow', String(Math.round(progreso)));
+    const relleno = document.createElement('div');
+    relleno.className = 'grupo-progreso-barra';
+    relleno.style.width = `${progreso}%`;
+    barra.appendChild(relleno);
+    tarjeta.appendChild(barra);
+  }
 
   const equipos = Array.isArray(datos.equipos)
     ? datos.equipos
@@ -501,7 +503,7 @@ function volverListaActividadGrupos() {
 function crearTarjetaGrupo(grupo) {
   const boton = document.createElement('button');
   boton.type = 'button';
-  boton.className = 'perfil grupo-actividad-card';
+  boton.className = 'perfil grupo-actividad-card grupo-actividad-card-full';
 
   const contenido = document.createElement('div');
   contenido.className = 'containerPerfil';
