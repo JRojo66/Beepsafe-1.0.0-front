@@ -2128,6 +2128,8 @@ a {
 .grupo-telefono-numero {
   display: block;
   margin-top: 6px;
+  text-align: right;
+  padding-right: 6px;
   color: #ffffff;
   font-size: 13px;
 }
