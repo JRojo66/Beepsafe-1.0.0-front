@@ -44,6 +44,9 @@ const TEXTO_TIEMPO_EN_CERO = '0h';
 // degradado no sea indistinguible de una cuenta sin datos (RES-001)
 const TEXTO_ERROR_ACTIVIDADES = 'No se pudieron cargar las actividades';
 
+const MARGEN_PANEL = 8;
+const SEPARACION_PANEL = 4;
+
 // Timeout por petición de red (mismo patrón de 8000 ms que ya usaba el fetch
 // de sessions/current) y tope de intentos: 1 fallo -> 1 reintento. Acota el
 // tiempo hasta que la UI queda usable y garantiza que nada queda colgado sin
@@ -492,6 +495,116 @@ function refrescarTriggers() {
   actualizarDisponibilidadTriggers();
 }
 
+function calcularPosicionPanel({ triggerRect, panelRect, anchoVista, limiteInferior }) {
+  const margen = MARGEN_PANEL;
+  const separacion = SEPARACION_PANEL;
+  const anchoVentana = Number(anchoVista) || 0;
+  const anchoDisponible = Math.max(0, anchoVentana - margen * 2);
+  const ancho = Math.min(Number(panelRect && panelRect.width) || 0, anchoDisponible);
+  const alto = Number(panelRect && panelRect.height) || 0;
+  const triggerTop = Number(triggerRect && triggerRect.top) || 0;
+  const triggerBottom = Number(triggerRect && triggerRect.bottom) || 0;
+  const triggerLeft = Number(triggerRect && triggerRect.left) || 0;
+  const limite = Number(limiteInferior) || 0;
+
+  let left = triggerLeft;
+  if (left + ancho > anchoVentana - margen) left = anchoVentana - margen - ancho;
+  if (left < margen) left = margen;
+
+  const topAbajo = triggerBottom + separacion;
+  const espacioAbajo = Math.max(0, limite - topAbajo);
+  const bordeArriba = Math.max(0, Math.min(triggerTop - separacion, limite));
+  const espacioArriba = Math.max(0, bordeArriba - margen);
+
+  let top;
+  let maxHeight;
+  let flip = false;
+  if (alto <= espacioAbajo) {
+    top = topAbajo;
+    maxHeight = alto;
+  } else if (alto <= espacioArriba) {
+    top = bordeArriba - alto;
+    maxHeight = alto;
+    flip = true;
+  } else if (espacioAbajo >= espacioArriba) {
+    top = topAbajo;
+    maxHeight = espacioAbajo;
+  } else {
+    maxHeight = espacioArriba;
+    top = bordeArriba - maxHeight;
+    flip = true;
+  }
+
+  const topFinal = Math.max(margen, top);
+  const maxHeightFinal = Math.max(0, Math.min(maxHeight, limite - topFinal));
+  return {
+    left,
+    top: topFinal,
+    width: ancho,
+    maxHeight: maxHeightFinal,
+    flip,
+    needsScroll: alto > maxHeightFinal + 0.5,
+  };
+}
+
+function posicionarPanel(panel, trigger) {
+  if (!panel || !trigger) return;
+  if (
+    typeof panel.getBoundingClientRect !== 'function' ||
+    typeof trigger.getBoundingClientRect !== 'function'
+  ) {
+    return;
+  }
+  panel.style.top = '';
+  panel.style.left = '';
+  panel.style.right = '';
+  panel.style.width = '';
+  panel.style.maxHeight = '';
+  panel.style.overflowX = '';
+  panel.style.overflowY = '';
+  panel.classList.remove('panelArriba');
+
+  const triggerRect = trigger.getBoundingClientRect();
+  const panelRect = panel.getBoundingClientRect();
+  const anchoVista =
+    (typeof window !== 'undefined' && Number(window.innerWidth)) || 0;
+  const altoVista =
+    (typeof window !== 'undefined' && Number(window.innerHeight)) || 0;
+  if (!anchoVista || !altoVista) return;
+
+  const nav =
+    document.querySelector('.contenedor-padre2') ||
+    document.querySelector('.contenedor-padre3');
+  let limite = altoVista - MARGEN_PANEL;
+  if (nav && typeof nav.getBoundingClientRect === 'function') {
+    const navRect = nav.getBoundingClientRect();
+    if (navRect && navRect.height > 0 && navRect.top > 0) {
+      limite = Math.min(limite, navRect.top - MARGEN_PANEL);
+    }
+  }
+
+  const pos = calcularPosicionPanel({
+    triggerRect,
+    panelRect,
+    anchoVista,
+    limiteInferior: limite,
+  });
+  const offsetParent = panel.offsetParent || trigger.parentElement || trigger;
+  const offsetRect =
+    offsetParent && typeof offsetParent.getBoundingClientRect === 'function'
+      ? offsetParent.getBoundingClientRect()
+      : { top: 0, left: 0 };
+
+  panel.style.width = `${pos.width}px`;
+  panel.style.left = `${pos.left - (Number(offsetRect.left) || 0)}px`;
+  panel.style.top = `${pos.top - (Number(offsetRect.top) || 0)}px`;
+  panel.style.right = 'auto';
+  panel.style.maxHeight = `${pos.maxHeight}px`;
+  panel.style.overflowX = 'hidden';
+  panel.style.overflowY = 'auto';
+  panel.classList.toggle('panelArriba', pos.flip);
+}
+
 // Cierra cualquier panel desplegable abierto (click fuera o segundo click)
 function cerrarPaneles() {
   const paneles = [panelActividad, panelEquipo, panelTiempo];
@@ -528,6 +641,7 @@ function alternarPanel(nombre) {
   panel.classList.add('abierto');
   trigger.classList.add('activo');
   trigger.setAttribute('aria-expanded', 'true');
+  posicionarPanel(panel, trigger);
 }
 
 // Un click originado dentro de un panel abierto no debe alternarlo: las

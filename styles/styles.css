@@ -981,20 +981,24 @@ a {
   outline: none;
 }
 
-/* panel blanco con borde y sombra, consistente con el resto de la app */
 .panelDesplegable {
+  box-sizing: border-box;
   display: none;
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
   right: 0;
   z-index: 20;
-  background-color: #fff;
-  color: var(--color-fondo);
-  border: 1px solid var(--color-principal);
-  border-radius: 12px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  background-color: var(--color-fondo);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
   overflow: hidden;
+}
+
+.panelDesplegableElevado {
+  z-index: 30;
 }
 
 .panelDesplegable.abierto {
@@ -1022,7 +1026,7 @@ a {
   border: none;
   border-radius: 8px;
   padding: 6px 8px;
-  color: var(--color-fondo);
+  color: #ffffff;
   font-size: 14px;
   text-align: left;
   cursor: pointer;
@@ -1033,7 +1037,8 @@ a {
 
 .opcionDesplegable:hover,
 .opcionDesplegable:focus-visible {
-  background-color: var(--color-principal);
+  background-color: rgba(144, 255, 239, 0.15);
+  color: var(--color-principal);
   outline: none;
 }
 
@@ -1061,7 +1066,7 @@ a {
 .etiquetaFilaTiempo {
   font-size: 13px;
   font-weight: bold;
-  color: var(--color-fondo);
+  color: #ffffff;
 }
 
 .stepperTiempo {
@@ -1075,8 +1080,8 @@ a {
   height: 26px;
   border: 1px solid var(--color-principal);
   border-radius: 50%;
-  background-color: var(--color-fondo);
-  color: white;
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
   font-size: 11px;
   line-height: 1;
   display: flex;
@@ -1087,7 +1092,7 @@ a {
 }
 
 .botonStepper:hover {
-  background-color: var(--color-fondo-hover);
+  background-color: rgba(144, 255, 239, 0.15);
 }
 
 .valorStepper {
@@ -1095,7 +1100,7 @@ a {
   text-align: center;
   font-size: 15px;
   font-weight: bold;
-  color: var(--color-fondo);
+  color: #ffffff;
 }
 
 .flex-container {
@@ -2302,6 +2307,19 @@ a {
   text-align: left;
 }
 
+.actividades-wrapper {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.fila-ancho-completo {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
 .accordion {
   background: #fff;
   border: 1px solid #ccc;
@@ -2396,19 +2414,21 @@ a {
   cursor: pointer;
 }
 
-.accordion-header-activity{
-  margin-top: 20px;
-  /* margin-left: 5px; */
-  padding: 10px 20px 15px 20px;
-  margin-bottom: 10px;
-  background-color: var(--color-fondo);
-  color: white;
-  border: solid;
-  border-color:#ccc;
+.accordion-header-activity {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  height: auto;
+  margin: 20px 0 10px;
+  padding: 10px 20px;
+  border: 1px dashed var(--color-principal);
   border-radius: 20px;
-  border-width: 1px;
-  height: 32px;
-  width: 50%;
+  background-color: var(--color-fondo);
+  color: var(--color-principal);
+  cursor: pointer;
 }
 
 .accordion-header-activity .toggle-icon {
@@ -2635,23 +2655,25 @@ a {
 }
 
 .toggle-add-equipment {
-  font-weight: bold;
-  color: var(--color-fondo);
-  background-color: var(--color-principal);
-  margin: 20px auto;
-  padding: 10px 20px;
-  border: 1px solid white;
-  border-radius: 20px;
-  width: fit-content;
-  display: inline-flex;               /* ✅ importante para centrar texto verticalmente */
-  align-items: center;               /* ✅ centra el texto verticalmente */
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  height: auto;
+  margin: 12px 0;
+  padding: 10px 16px;
+  border: 1px dashed var(--color-principal);
+  border-radius: 16px;
+  background-color: var(--color-fondo);
+  color: var(--color-principal);
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1.2;
   text-align: center;
   cursor: pointer;
-  line-height: 1;                    /* ✅ elimina el “aire” extra */
-  vertical-align: middle;
-  height: 16px;
-
 }
 
 

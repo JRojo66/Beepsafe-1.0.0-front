@@ -95,7 +95,7 @@ async function fetchUserActivities(
     // Crear los elementos del acordeón
     activities.forEach((activity) => {
       const accordion = document.createElement("div");
-      accordion.classList.add("accordion");
+      accordion.classList.add("accordion", "fila-ancho-completo");
 
       accordion.innerHTML = `
                 <div class="accordion-header">
@@ -109,7 +109,7 @@ async function fetchUserActivities(
               ${activity.equipment
                 .map(
                   (eq) => `
-                  <div class="equipment-item">
+                  <div class="equipment-item fila-ancho-completo">
                     <div class="equipment-text">
                       <strong>${eq.name}</strong>
                       <span>${eq.description}</span>
@@ -129,7 +129,7 @@ async function fetchUserActivities(
                   </div>`
                 )
                 .join("")}
-                <span class="toggle-add-equipment botonActividad">
+                <span class="toggle-add-equipment botonActividad fila-ancho-completo">
                 <i class="fas fa-chevron-down toggle-icon"></i>Agregar equipo</span>
                 <div class="add-equipment-form hidden">
                     <input type="text" placeholder="Nombre equipo" class="input-name" />
@@ -346,14 +346,14 @@ async function fetchUserActivities(
 document.addEventListener("DOMContentLoaded", () => fetchUserActivities([]));
 
 // Despliega el formulario para agregar Actividades
-const mostrarBtn = document.getElementById("mostrarFormularioActividad");
+const mostrarControl = document.querySelector(".accordion-header-activity");
 const formContainer = document.getElementById("actividadFormContainer");
 const actividadForm = document.getElementById("actividadForm");
 const errorDiv = document.getElementById("actividadError");
 
 formContainer.style.display = "none";
 
-mostrarBtn.addEventListener("click", () => {
+mostrarControl.addEventListener("click", () => {
   const toggleIcon = document.querySelector(
     ".accordion-header-activity .toggle-icon i"
   );

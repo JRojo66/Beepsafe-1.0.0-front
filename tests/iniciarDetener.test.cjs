@@ -23,7 +23,7 @@ const EXPORTS = `;globalThis.__test = {
   guardarSeleccionActual, restaurarSeleccionGuardada,
   CLAVE_STOPS_PENDIENTES, leerStopsPendientes, encolarStopPendiente,
   quitarStopPendiente, flushStopsPendientes, enviarStopSesionEnBackend,
-  cerrarPaneles, manejarPasoTiempo,
+  cerrarPaneles, calcularPosicionPanel, manejarPasoTiempo,
   manejarSeleccionActividad, manejarSeleccionEquipo,
   manejarClickTriggerActividad, manejarClickTriggerEquipo,
   manejarClickTriggerTiempo,
@@ -837,6 +837,87 @@ test('el HTML tiene los tres triggers con su título, paneles y stepper; sin sel
     assert.ok(html.includes(`id="${id}"`), `falta la fila de valor #${id}`);
     assert.ok(html.includes(`>${placeholder}</button>`), `#${id} arranca con "${placeholder}"`);
   }
+});
+
+test('el botón Agregar actividad comparte el ancho completo con las filas', () => {
+  const html = fs.readFileSync(
+    path.join(__dirname, '..', 'pages', 'misEquiposActividades.html'),
+    'utf8'
+  );
+  const js = fs.readFileSync(
+    path.join(__dirname, '..', 'JS', 'misEquiposActividades.js'),
+    'utf8'
+  );
+  const css = fs.readFileSync(path.join(__dirname, '..', 'styles', 'styles.css'), 'utf8');
+
+  assert.ok(
+    html.includes('class="accordion-header-activity fila-ancho-completo"'),
+    'Agregar actividad debe llevar la clase de ancho completo'
+  );
+  assert.ok(
+    js.includes('accordion.classList.add("accordion", "fila-ancho-completo")'),
+    'las filas de actividad deben compartir la clase'
+  );
+  assert.ok(
+    js.includes('class="equipment-item fila-ancho-completo"'),
+    'las filas de equipo deben compartir la clase'
+  );
+  assert.ok(
+    js.includes('class="toggle-add-equipment botonActividad fila-ancho-completo"'),
+    'Agregar equipo debe llevar la clase de ancho completo'
+  );
+  assert.ok(/\.fila-ancho-completo\s*\{[^}]*width:\s*100%;/.test(css));
+  assert.ok(/\.fila-ancho-completo\s*\{[^}]*box-sizing:\s*border-box;/.test(css));
+});
+
+test('los paneles elevan el z-index y el clamp los mantiene visibles', () => {
+  const html = fs.readFileSync(
+    path.join(__dirname, '..', 'pages', 'iniciarDetener.html'),
+    'utf8'
+  );
+  const css = fs.readFileSync(path.join(__dirname, '..', 'styles', 'styles.css'), 'utf8');
+
+  assert.equal(
+    (html.match(/panelDesplegableElevado/g) || []).length,
+    3,
+    'los tres paneles deben llevar la clase elevada'
+  );
+  assert.ok(
+    /\.panelDesplegableElevado\s*\{[^}]*z-index:\s*30;/.test(css),
+    'la clase elevada debe usar z-index 30'
+  );
+
+  const t = crearContexto();
+  const abajo = t.ctxTest.calcularPosicionPanel({
+    triggerRect: { top: 100, bottom: 150, left: 20 },
+    panelRect: { width: 200, height: 180 },
+    anchoVista: 400,
+    limiteInferior: 600,
+  });
+  assert.equal(abajo.flip, false, 'cabe abajo: no debe voltearse');
+  assert.deepEqual([abajo.left, abajo.top, abajo.maxHeight], [20, 154, 180]);
+
+  const arriba = t.ctxTest.calcularPosicionPanel({
+    triggerRect: { top: 500, bottom: 550, left: 260 },
+    panelRect: { width: 200, height: 240 },
+    anchoVista: 400,
+    limiteInferior: 600,
+  });
+  assert.equal(arriba.flip, true, 'sin lugar abajo: debe abrir arriba');
+  assert.equal(arriba.top, 256);
+  assert.equal(arriba.maxHeight, 240);
+  assert.equal(arriba.left, 192, 'debe clampearse horizontalmente');
+
+  const scroll = t.ctxTest.calcularPosicionPanel({
+    triggerRect: { top: 100, bottom: 150, left: 20 },
+    panelRect: { width: 200, height: 400 },
+    anchoVista: 400,
+    limiteInferior: 300,
+  });
+  assert.equal(scroll.flip, false);
+  assert.equal(scroll.top, 154);
+  assert.equal(scroll.maxHeight, 146);
+  assert.equal(scroll.needsScroll, true, 'si no cabe debe limitarse y scrollear');
 });
 
 test('componerTextoAviso usa María/Marcelo/windsurf y la hora prevista', () => {
