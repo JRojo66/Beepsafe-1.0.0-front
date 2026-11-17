@@ -49,6 +49,7 @@
             </div>
             <p id="estadoDetalleActividad" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
             <p id="estadoEliminarSesion" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
+            <p id="estadoCorreccionCierre" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
             <button id="botonReintentarDetalle" class="btn-confirm" type="button" hidden>Reintentar</button>
 
             <section id="seccionVencidos" class="grupo-actividad-seccion">
@@ -86,6 +87,20 @@
             <div class="modal-buttons">
                 <button id="cancelarConfirmarEliminar" type="button" class="modal-btn cancelar">Cancelar</button>
                 <button id="eliminarSesion" type="button" class="modal-btn confirmar">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalCorregirCierre" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="tituloModalCorregirCierre">
+        <div class="modal-content modal-confirmacion">
+            <button id="cerrarModalCorregirCierre" type="button" class="modal-cerrar" aria-label="Cerrar">×</button>
+            <h2 id="tituloModalCorregirCierre" class="modal-titulo">Corregir hora de cierre</h2>
+            <label for="horaCierreCorreccion" class="modal-campo-label">Hora de cierre</label>
+            <input type="datetime-local" id="horaCierreCorreccion" class="modal-input">
+            <p id="errorCorreccionCierre" class="modal-error" role="alert"></p>
+            <div class="modal-buttons">
+                <button id="cancelarCorregirCierre" type="button" class="modal-btn cancelar">Cancelar</button>
+                <button id="guardarCorregirCierre" type="button" class="modal-btn confirmar">Guardar</button>
             </div>
         </div>
     </div>

@@ -10,6 +10,12 @@ let tarjetaPendienteEliminar = null;
 let listaPendienteEliminar = null;
 let modalesEliminarCableados = false;
 
+let modalCorregirCierre = null;
+let horaCierreCorreccion = null;
+let errorCorreccionCierre = null;
+let estadoCorreccionCierre = null;
+let miembroCorreccionCierre = null;
+
 function tokenActividadGrupos() {
   try {
     return localStorage.getItem('token') || '';
@@ -211,10 +217,121 @@ function cerrarModalesEliminar() {
 
 function manejarTeclaEliminar(evento) {
   if (!evento || evento.key !== 'Escape') return;
+  if (modalCorregirCierre && !modalCorregirCierre.classList.contains('hidden')) {
+    cerrarModalCorregirCierre();
+    return;
+  }
   const abierto =
     (modalEliminarSesion && !modalEliminarSesion.classList.contains('hidden')) ||
     (modalConfirmarEliminar && !modalConfirmarEliminar.classList.contains('hidden'));
   if (abierto) cerrarModalesEliminar();
+}
+
+function valorDatetimeLocal(valor) {
+  const fecha = valor != null && valor !== '' ? new Date(valor) : new Date();
+  const valida = Number.isNaN(fecha.getTime()) ? new Date() : fecha;
+  const pad = (numero) => String(numero).padStart(2, '0');
+  return `${valida.getFullYear()}-${pad(valida.getMonth() + 1)}-${pad(valida.getDate())}T${pad(
+    valida.getHours()
+  )}:${pad(valida.getMinutes())}`;
+}
+
+async function leerErrorRespuestaActividad(respuesta) {
+  try {
+    const datos = await respuesta.json();
+    if (datos && typeof datos.error === 'string' && datos.error.trim()) {
+      return datos.error.trim();
+    }
+    if (datos && typeof datos.message === 'string' && datos.message.trim()) {
+      return datos.message.trim();
+    }
+  } catch (err) {
+    // Se intenta leer como texto.
+  }
+  try {
+    const texto = await respuesta.text();
+    if (typeof texto === 'string' && texto.trim()) return texto.trim();
+  } catch (err) {
+    // Sin cuerpo legible.
+  }
+  return '';
+}
+
+function mostrarErrorCorreccion(mensaje) {
+  if (errorCorreccionCierre) errorCorreccionCierre.textContent = mensaje;
+}
+
+function abrirModalCorregirCierre(miembro) {
+  if (!modalCorregirCierre) return;
+  miembroCorreccionCierre = miembro;
+  mostrarErrorCorreccion('');
+  if (estadoCorreccionCierre) estadoCorreccionCierre.textContent = '';
+  if (horaCierreCorreccion) {
+    horaCierreCorreccion.value = valorDatetimeLocal(miembro && miembro.fin);
+  }
+  const guardar = document.getElementById('guardarCorregirCierre');
+  if (guardar) guardar.disabled = false;
+  modalCorregirCierre.classList.remove('hidden');
+  if (horaCierreCorreccion && typeof horaCierreCorreccion.focus === 'function') {
+    horaCierreCorreccion.focus();
+  }
+}
+
+function cerrarModalCorregirCierre() {
+  if (modalCorregirCierre) modalCorregirCierre.classList.add('hidden');
+  miembroCorreccionCierre = null;
+  mostrarErrorCorreccion('');
+}
+
+async function confirmarCorregirCierre() {
+  const miembro = miembroCorreccionCierre;
+  if (!miembro) {
+    cerrarModalCorregirCierre();
+    return;
+  }
+  const id = miembro.id;
+  if (!id) {
+    mostrarErrorCorreccion('No se pudo corregir: falta el identificador.');
+    return;
+  }
+  const valor =
+    horaCierreCorreccion && typeof horaCierreCorreccion.value === 'string'
+      ? horaCierreCorreccion.value
+      : '';
+  const fecha = valor ? new Date(valor) : null;
+  if (!fecha || Number.isNaN(fecha.getTime())) {
+    mostrarErrorCorreccion('Elegí una hora válida.');
+    return;
+  }
+  const url = `${ROOT_URL}/api/message-events/session/${encodeURIComponent(id)}/cierre`;
+  const token = tokenActividadGrupos();
+  const boton = document.getElementById('guardarCorregirCierre');
+  if (boton) boton.disabled = true;
+  mostrarErrorCorreccion('');
+  try {
+    const respuesta = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ detenidaEn: fecha.toISOString() }),
+    });
+    if (respuesta.status === 200) {
+      cerrarModalCorregirCierre();
+      if (estadoCorreccionCierre) estadoCorreccionCierre.textContent = 'Cierre corregido.';
+      await cargarDetalleGrupo(grupoDetalleActual);
+      return;
+    }
+    const mensaje = await leerErrorRespuestaActividad(respuesta);
+    mostrarErrorCorreccion(mensaje || 'No se pudo corregir el cierre.');
+  } catch (err) {
+    const detalle = err && err.message ? err.message : String(err);
+    console.error(`[actividadGrupos] PATCH cierre falló: ${detalle}`);
+    mostrarErrorCorreccion('No se pudo corregir el cierre. Intentá de nuevo.');
+  } finally {
+    if (boton) boton.disabled = false;
+  }
 }
 
 function actualizarVacioLista(lista) {
@@ -293,6 +410,20 @@ function inicializarModalesEliminar() {
   if (eliminar) eliminar.addEventListener('click', confirmarEliminarSesion);
   if (cancelar2) cancelar2.addEventListener('click', cerrarModalesEliminar);
   if (cerrar2) cerrar2.addEventListener('click', cerrarModalesEliminar);
+
+  modalCorregirCierre = document.getElementById('modalCorregirCierre');
+  horaCierreCorreccion = document.getElementById('horaCierreCorreccion');
+  errorCorreccionCierre = document.getElementById('errorCorreccionCierre');
+  estadoCorreccionCierre = document.getElementById('estadoCorreccionCierre');
+  const guardarCorreccion = document.getElementById('guardarCorregirCierre');
+  const cancelarCorreccion = document.getElementById('cancelarCorregirCierre');
+  const cerrarCorreccion = document.getElementById('cerrarModalCorregirCierre');
+  if (guardarCorreccion) guardarCorreccion.addEventListener('click', confirmarCorregirCierre);
+  if (cancelarCorreccion) {
+    cancelarCorreccion.addEventListener('click', cerrarModalCorregirCierre);
+  }
+  if (cerrarCorreccion) cerrarCorreccion.addEventListener('click', cerrarModalCorregirCierre);
+
   document.addEventListener('keydown', manejarTeclaEliminar);
 }
 
@@ -309,6 +440,18 @@ function crearTarjetaMiembro(miembro, esVencido, lista) {
   cabecera.appendChild(
     crearTextoActividad('grupo-miembro-actividad', datos.actividad || 'Sin actividad', 'span')
   );
+  const accionesCabecera = document.createElement('div');
+  accionesCabecera.className = 'grupo-miembro-acciones';
+  let tieneAcciones = false;
+  if (datos.tipo === 'sesion' && datos.puedeEliminar === true) {
+    const botonCorregir = document.createElement('button');
+    botonCorregir.type = 'button';
+    botonCorregir.className = 'grupo-corregir-boton';
+    botonCorregir.textContent = 'Corregir cierre';
+    botonCorregir.addEventListener('click', () => abrirModalCorregirCierre(datos));
+    accionesCabecera.appendChild(botonCorregir);
+    tieneAcciones = true;
+  }
   if (datos.puedeEliminar === true) {
     const botonEliminar = document.createElement('button');
     botonEliminar.type = 'button';
@@ -317,8 +460,10 @@ function crearTarjetaMiembro(miembro, esVencido, lista) {
     botonEliminar.addEventListener('click', () => {
       abrirModalEliminarSesion(datos, tarjeta, lista);
     });
-    cabecera.appendChild(botonEliminar);
+    accionesCabecera.appendChild(botonEliminar);
+    tieneAcciones = true;
   }
+  if (tieneAcciones) cabecera.appendChild(accionesCabecera);
   tarjeta.appendChild(cabecera);
 
   if (esVencido) {

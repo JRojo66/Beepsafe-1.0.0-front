@@ -1707,17 +1707,40 @@ a {
   font-size: 13px;
 }
 
-.grupo-eliminar-boton {
+.grupo-miembro-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
+}
+
+.grupo-eliminar-boton,
+.grupo-corregir-boton {
+  margin-left: 0;
   padding: 4px 10px;
-  border: 1px solid #ff5a5a;
   border-radius: 999px;
   background-color: transparent;
-  color: #ff8a8a;
   font-family: inherit;
   font-size: 12px;
   font-weight: bold;
   cursor: pointer;
+}
+
+.grupo-eliminar-boton {
+  border: 1px solid #ff5a5a;
+  color: #ff8a8a;
+}
+
+.grupo-corregir-boton {
+  border: 1px solid var(--color-principal);
+  color: var(--color-principal);
+}
+
+.grupo-corregir-boton:hover,
+.grupo-corregir-boton:focus-visible {
+  background-color: rgba(144, 255, 239, 0.15);
+  outline: none;
 }
 
 .grupo-eliminar-boton:hover,
@@ -1747,6 +1770,36 @@ a {
 
 .modal-confirmacion .modal-btn {
   flex: 1;
+}
+
+.modal-campo-label {
+  display: block;
+  margin: 0 0 6px;
+  color: #222222;
+  font-weight: bold;
+  text-align: left;
+}
+
+.modal-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cccccc;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.modal-error {
+  min-height: 1.2em;
+  margin: 8px 0 0;
+  color: #c62828;
+  font-size: 13px;
+  text-align: left;
+}
+
+#estadoCorreccionCierre {
+  color: var(--color-principal);
 }
 
 .grupo-alarma-estado {
