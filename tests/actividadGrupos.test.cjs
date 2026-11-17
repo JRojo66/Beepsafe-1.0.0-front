@@ -157,10 +157,15 @@ function crearContextoActividadGrupos(opciones = {}) {
     guardarCorregirCierre: crearNodo({ textContent: 'Guardar' }),
     cancelarCorregirCierre: crearNodo({ textContent: 'Cancelar' }),
     cerrarModalCorregirCierre: crearNodo({ textContent: '×' }),
+    visorFotoEquipo: crearNodo({ className: 'visor-foto hidden' }),
+    imagenVisorFotoEquipo: crearNodo({ tagName: 'IMG', src: '', alt: '' }),
+    cerrarVisorFotoEquipo: crearNodo({ textContent: '×' }),
+    body: crearNodo({ style: {} }),
   };
   nodos.modalEliminarSesion.classList.add('hidden');
   nodos.modalConfirmarEliminarSesion.classList.add('hidden');
   nodos.modalCorregirCierre.classList.add('hidden');
+  nodos.visorFotoEquipo.classList.add('hidden');
 
   const documentHandlers = {};
   const document = {
@@ -169,6 +174,7 @@ function crearContextoActividadGrupos(opciones = {}) {
     addEventListener(tipo, fn) {
       (documentHandlers[tipo] ||= []).push(fn);
     },
+    body: nodos.body,
   };
 
   const DateReal = Date;
@@ -539,6 +545,89 @@ await testAsync('los equipos muestran foto o placeholder según foto', async () 
   assert.equal(fotos.length, 1);
   assert.equal(fotos[0].src, 'tabla.png');
   assert.equal(placeholders.length, 1);
+});
+
+await testAsync('la foto del equipo abre el visor y Escape/×/backdrop lo cierran', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  const card = t.nodos.listaVencidos.hijos[0];
+  const botonFoto = buscarPorClase(card, 'grupo-equipo-foto-boton');
+  assert.ok(botonFoto, 'la foto real se envuelve en un botón');
+  assert.equal(botonFoto.getAttribute('aria-label'), 'Ver foto de Tabla');
+  assert.equal(t.nodos.visorFotoEquipo.classList.contains('hidden'), true);
+
+  botonFoto.disparar('click');
+  assert.equal(t.nodos.visorFotoEquipo.classList.contains('hidden'), false);
+  assert.equal(t.nodos.imagenVisorFotoEquipo.src, 'tabla.png');
+  assert.equal(t.nodos.imagenVisorFotoEquipo.alt, 'Foto de Tabla');
+  assert.equal(t.nodos.visorFotoEquipo.getAttribute('aria-label'), 'Foto de Tabla');
+  assert.equal(t.nodos.cerrarVisorFotoEquipo.focused, true);
+  assert.equal(t.ctx.document.body.style.overflow, 'hidden');
+
+  t.dispararDocumento('keydown', { key: 'Escape' });
+  assert.equal(t.nodos.visorFotoEquipo.classList.contains('hidden'), true);
+  assert.equal(t.ctx.document.body.style.overflow, '');
+  assert.equal(t.nodos.imagenVisorFotoEquipo.src, '');
+
+  botonFoto.disparar('click');
+  t.nodos.cerrarVisorFotoEquipo.disparar('click');
+  assert.equal(t.nodos.visorFotoEquipo.classList.contains('hidden'), true);
+  assert.equal(t.ctx.document.body.style.overflow, '');
+
+  botonFoto.disparar('click');
+  t.nodos.visorFotoEquipo.disparar('click', { target: t.nodos.visorFotoEquipo });
+  assert.equal(t.nodos.visorFotoEquipo.classList.contains('hidden'), true);
+
+  const placeholder = buscarPorClase(card, 'grupo-equipo-placeholder');
+  assert.ok(placeholder);
+  assert.equal(buscarTodosPorClase(card, 'grupo-equipo-foto-boton').length, 1);
+  placeholder.disparar('click');
+  assert.equal(t.nodos.visorFotoEquipo.classList.contains('hidden'), true);
+  assert.equal(t.ctx.document.body.style.overflow, '');
+});
+
+test('la flecha volver y los diálogos comparten clases entre páginas', () => {
+  const actividad = fs.readFileSync(
+    path.join(__dirname, '..', 'pages', 'actividadGrupos.html'),
+    'utf8'
+  );
+  const historial = fs.readFileSync(
+    path.join(__dirname, '..', 'pages', 'historial.html'),
+    'utf8'
+  );
+  const css = fs.readFileSync(path.join(__dirname, '..', 'styles', 'styles.css'), 'utf8');
+
+  assert.equal((actividad.match(/class="volver-arrow"/g) || []).length, 2);
+  assert.ok(actividad.includes('class="perfil actividad-grupos-volver"'));
+  assert.ok(actividad.includes('aria-label="Volver a mis grupos"'));
+  for (const clase of [
+    'modal-content',
+    'modal-confirmacion',
+    'modal-titulo',
+    'modal-buttons',
+    'modal-btn',
+    'modal-cerrar',
+  ]) {
+    assert.ok(actividad.includes(clase), `falta ${clase} en actividadGrupos.html`);
+    assert.ok(historial.includes(clase), `falta ${clase} en historial.html`);
+  }
+  assert.ok(actividad.includes('class="modal-content modal-confirmacion"'));
+  assert.ok(historial.includes('class="modal-content modal-confirmacion"'));
+  assert.ok(css.includes('.modal-content.modal-confirmacion'));
+  assert.ok(css.includes('.volver-arrow'));
+
+  for (const fragmento of [
+    'id="visorFotoEquipo"',
+    'role="dialog"',
+    'aria-modal="true"',
+    'id="cerrarVisorFotoEquipo"',
+    'id="imagenVisorFotoEquipo"',
+  ]) {
+    assert.ok(actividad.includes(fragmento), `falta ${fragmento}`);
+  }
 });
 
 await testAsync('un activity-state vacío muestra el mensaje y las secciones vacías', async () => {
@@ -1033,7 +1122,7 @@ test('las cabeceras sticky existen en el markup y el CSS', () => {
     assert.ok(css.includes(clase), `falta ${clase} en el CSS`);
   }
   assert.ok(css.includes('position: sticky'));
-  assert.ok(css.includes('top: 104px'));
+  assert.ok(css.includes('top: 132px'));
   assert.ok(css.includes('prefers-reduced-motion'));
 });
 

@@ -16,6 +16,12 @@ let errorCorreccionCierre = null;
 let estadoCorreccionCierre = null;
 let miembroCorreccionCierre = null;
 
+let visorFotoEquipo = null;
+let imagenVisorFotoEquipo = null;
+let botonCerrarVisorFoto = null;
+let disparadorVisorFoto = null;
+let scrollPrevioVisorFoto = '';
+
 function tokenActividadGrupos() {
   try {
     return localStorage.getItem('token') || '';
@@ -158,17 +164,57 @@ function nombreEquipoActividad(equipo) {
   return equipo == null ? '' : String(equipo);
 }
 
+function abrirVisorFotoEquipo(foto, nombre, disparador) {
+  if (!visorFotoEquipo || !imagenVisorFotoEquipo) return;
+  const etiqueta = `Foto de ${nombre}`;
+  imagenVisorFotoEquipo.src = foto;
+  imagenVisorFotoEquipo.alt = etiqueta;
+  visorFotoEquipo.setAttribute('aria-label', etiqueta);
+  disparadorVisorFoto = disparador || null;
+  if (document.body && document.body.style) {
+    scrollPrevioVisorFoto = document.body.style.overflow || '';
+    document.body.style.overflow = 'hidden';
+  }
+  visorFotoEquipo.classList.remove('hidden');
+  if (botonCerrarVisorFoto && typeof botonCerrarVisorFoto.focus === 'function') {
+    botonCerrarVisorFoto.focus();
+  }
+}
+
+function cerrarVisorFotoEquipo() {
+  if (!visorFotoEquipo) return;
+  visorFotoEquipo.classList.add('hidden');
+  if (imagenVisorFotoEquipo) {
+    imagenVisorFotoEquipo.src = '';
+    imagenVisorFotoEquipo.alt = '';
+  }
+  if (document.body && document.body.style) {
+    document.body.style.overflow = scrollPrevioVisorFoto || '';
+  }
+  if (disparadorVisorFoto && typeof disparadorVisorFoto.focus === 'function') {
+    disparadorVisorFoto.focus();
+  }
+  disparadorVisorFoto = null;
+}
+
 function crearItemEquipo(equipo) {
   const item = document.createElement('div');
   item.className = 'grupo-equipo';
+  const nombre = nombreEquipoActividad(equipo);
 
   const foto = equipo && typeof equipo === 'object' ? equipo.foto : null;
   if (foto != null && foto !== '') {
+    const botonFoto = document.createElement('button');
+    botonFoto.type = 'button';
+    botonFoto.className = 'grupo-equipo-foto-boton';
+    botonFoto.setAttribute('aria-label', `Ver foto de ${nombre}`);
     const imagen = document.createElement('img');
     imagen.className = 'grupo-equipo-foto';
     imagen.src = foto;
-    imagen.alt = `Foto de ${nombreEquipoActividad(equipo)}`;
-    item.appendChild(imagen);
+    imagen.alt = '';
+    botonFoto.appendChild(imagen);
+    botonFoto.addEventListener('click', () => abrirVisorFotoEquipo(foto, nombre, botonFoto));
+    item.appendChild(botonFoto);
   } else {
     const marcador = document.createElement('span');
     marcador.className = 'grupo-equipo-placeholder';
@@ -176,9 +222,7 @@ function crearItemEquipo(equipo) {
     item.appendChild(marcador);
   }
 
-  item.appendChild(
-    crearTextoActividad('grupo-equipo-nombre', nombreEquipoActividad(equipo), 'span')
-  );
+  item.appendChild(crearTextoActividad('grupo-equipo-nombre', nombre, 'span'));
   return item;
 }
 
@@ -821,8 +865,26 @@ function inicializarControlesActividad() {
   if (volver) volver.addEventListener('click', volverListaActividadGrupos);
 }
 
+function inicializarVisorFotoEquipo() {
+  visorFotoEquipo = document.getElementById('visorFotoEquipo');
+  imagenVisorFotoEquipo = document.getElementById('imagenVisorFotoEquipo');
+  botonCerrarVisorFoto = document.getElementById('cerrarVisorFotoEquipo');
+  if (!visorFotoEquipo || !imagenVisorFotoEquipo) return;
+  if (botonCerrarVisorFoto) {
+    botonCerrarVisorFoto.addEventListener('click', cerrarVisorFotoEquipo);
+  }
+  visorFotoEquipo.addEventListener('click', (evento) => {
+    if (evento && evento.target === visorFotoEquipo) cerrarVisorFotoEquipo();
+  });
+  document.addEventListener('keydown', (evento) => {
+    if (!evento || evento.key !== 'Escape') return;
+    if (!visorFotoEquipo.classList.contains('hidden')) cerrarVisorFotoEquipo();
+  });
+}
+
 inicializarModalesEliminar();
 inicializarControlesActividad();
+inicializarVisorFotoEquipo();
 
 if (typeof window !== 'undefined' && window.addEventListener) {
   window.addEventListener('DOMContentLoaded', () => {

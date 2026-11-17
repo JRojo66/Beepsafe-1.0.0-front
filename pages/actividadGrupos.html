@@ -29,7 +29,7 @@
             <div class="actividad-grupos-cabecera-sticky">
                 <a href="../pages/perfil.html" class="perfil">
                     <div class="containerPerfil">
-                        <img src="../imagenes/volver.PNG" alt="Volver">
+                        <img src="../imagenes/volver.PNG" alt="Volver" class="volver-arrow">
                         <img src="../imagenes/amigosSinFondoBlanco.png" alt="Actividad Grupos" class="encabezado">
                         <div class="opciones">Actividad Grupos</div>
                     </div>
@@ -44,7 +44,11 @@
 
         <div id="vistaDetalleActividadGrupos" class="actividad-grupos-vista" hidden>
             <div class="actividad-grupos-detalle-sticky">
-                <button id="volverListaGrupos" class="actividad-grupos-volver" type="button">&lt; Volver a mis grupos</button>
+                <button id="volverListaGrupos" class="perfil actividad-grupos-volver" type="button" aria-label="Volver a mis grupos">
+                    <span class="containerPerfil">
+                        <img src="../imagenes/volver.PNG" alt="" class="volver-arrow">
+                    </span>
+                </button>
                 <h2 id="tituloDetalleGrupo" class="actividad-grupos-titulo"></h2>
                 <label class="historial-toggle">
                     <input type="checkbox" id="toggleEliminadosGrupo">
@@ -107,6 +111,11 @@
                 <button id="guardarCorregirCierre" type="button" class="modal-btn confirmar">Guardar</button>
             </div>
         </div>
+    </div>
+
+    <div id="visorFotoEquipo" class="visor-foto hidden" role="dialog" aria-modal="true" aria-label="Foto del equipo">
+        <button id="cerrarVisorFotoEquipo" class="visor-foto-cerrar" type="button" aria-label="Cerrar foto">×</button>
+        <img id="imagenVisorFotoEquipo" class="visor-foto-imagen" src="" alt="">
     </div>
 
     <script src="../JS/config.js"></script>
