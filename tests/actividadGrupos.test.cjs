@@ -135,6 +135,7 @@ function crearContextoActividadGrupos(opciones = {}) {
     listaGrupos: crearNodo(),
     volverListaGrupos: crearNodo(),
     tituloDetalleGrupo: crearNodo(),
+    toggleEliminadosGrupo: crearNodo({ tagName: 'INPUT', checked: false }),
     estadoDetalleActividad: crearNodo(),
     botonReintentarDetalle: crearNodo({ hidden: true }),
     listaVencidos: crearNodo(),
@@ -294,6 +295,35 @@ const MIEMBRO_TERMINADO = {
   finPrevisto: new Date(AHORA - 60 * 60 * 1000).toISOString(),
   fin: new Date(AHORA - 90 * 60 * 1000).toISOString(),
   telefono: '+54 11 2222-3333',
+  equipos: [{ nombre: 'Vela', foto: 'vela.png' }],
+};
+
+const SESION_ELIMINADA = {
+  id: 'e1',
+  tipo: 'sesion',
+  eliminado: true,
+  puedeEliminar: true,
+  usuario: 'Dani',
+  actividad: 'Surf',
+  inicio: new Date(AHORA - 60 * 60 * 1000).toISOString(),
+  finPrevisto: new Date(AHORA - 30 * 60 * 1000).toISOString(),
+  fin: new Date(AHORA - 45 * 60 * 1000).toISOString(),
+  estadoAlarma: 'enviada',
+  telefono: '+54 9 11 5555-1111',
+  equipos: [{ nombre: 'Tabla', foto: 'tabla.png' }],
+};
+
+const REGISTRO_ELIMINADO = {
+  id: 'e2',
+  tipo: 'registro',
+  eliminado: true,
+  puedeEliminar: true,
+  usuario: 'Eva',
+  actividad: 'Windsurf',
+  inicio: new Date(AHORA - 120 * 60 * 1000).toISOString(),
+  finPrevisto: new Date(AHORA - 60 * 60 * 1000).toISOString(),
+  fin: new Date(AHORA - 90 * 60 * 1000).toISOString(),
+  telefono: '+54 9 11 6666-2222',
   equipos: [{ nombre: 'Vela', foto: 'vela.png' }],
 };
 
@@ -786,6 +816,159 @@ await testAsync('Escape, × y Cancelar cierran la corrección sin PATCH', async 
   assert.equal(t.fetchLog.filter((l) => l.init && l.init.method === 'PATCH').length, 0);
 });
 
+console.log('# actividadGrupos.js — eliminadas');
+
+await testAsync('el toggle pide incluirEliminados y muestra la tarjeta eliminada', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async (url) => {
+      if (url.includes('incluirEliminados=1')) {
+        return respuestaOk({
+          activityState: { vencidos: [SESION_ELIMINADA], enCurso: [], terminados: [] },
+        });
+      }
+      return respuestaOk({
+        activityState: { vencidos: [MIEMBRO_VENCIDO], enCurso: [], terminados: [] },
+      });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+  assert.equal(t.fetchLog[0].url, 'http://back.test/api/groups/g1/activity-state');
+  const normal = t.nodos.listaVencidos.hijos[0];
+  assert.equal(buscarPorClase(normal, 'grupo-eliminada-label'), null);
+  assert.ok(buscarPorClase(normal, 'grupo-eliminar-boton'));
+
+  t.nodos.toggleEliminadosGrupo.checked = true;
+  t.nodos.toggleEliminadosGrupo.disparar('change');
+  await esperar(() => buscarPorClase(t.nodos.listaVencidos, 'grupo-eliminada-label'));
+
+  const solicitud = t.fetchLog.find((l) => l.url.includes('incluirEliminados=1'));
+  assert.equal(
+    solicitud.url,
+    'http://back.test/api/groups/g1/activity-state?incluirEliminados=1'
+  );
+  assert.equal(solicitud.init.headers.Authorization, 'Bearer tok-grupos');
+  assert.equal(t.nodos.toggleEliminadosGrupo.checked, true);
+
+  const card = t.nodos.listaVencidos.hijos[0];
+  assert.ok(card.classList.contains('grupo-miembro-card-eliminada'));
+  const label = buscarPorClase(card, 'grupo-eliminada-label');
+  assert.equal(label.textContent, 'Eliminada');
+  const restaurar = buscarPorClase(card, 'grupo-restaurar-boton');
+  assert.equal(restaurar.textContent, 'Restaurar');
+  assert.equal(buscarPorClase(card, 'grupo-eliminar-boton'), null);
+  assert.equal(buscarPorClase(card, 'grupo-corregir-boton'), null);
+  assert.ok(textosDe(card).includes('Dani'));
+  assert.ok(textosDe(card).includes('Surf'));
+  assert.ok(textosDe(card).includes('Tabla'));
+  assert.ok(textosDe(card).some((texto) => texto.includes('Inicio:')));
+});
+
+await testAsync('Restaurar una sesión usa message-events y refresca el detalle', async () => {
+  let restaurado = false;
+  const t = crearContextoActividadGrupos({
+    fetch: async (url, init) => {
+      const metodo = (init && init.method) || 'GET';
+      if (metodo === 'PATCH') {
+        restaurado = true;
+        return respuestaOk({});
+      }
+      return respuestaOk({
+        activityState: {
+          vencidos: [{ ...SESION_ELIMINADA, eliminado: !restaurado }],
+          enCurso: [],
+          terminados: [],
+        },
+      });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+  t.nodos.toggleEliminadosGrupo.checked = true;
+  t.nodos.toggleEliminadosGrupo.disparar('change');
+  await esperar(() => buscarPorClase(t.nodos.listaVencidos, 'grupo-restaurar-boton'));
+
+  const card = t.nodos.listaVencidos.hijos[0];
+  buscarPorClase(card, 'grupo-restaurar-boton').disparar('click');
+  await esperar(() => t.fetchLog.some((l) => l.init && l.init.method === 'PATCH'));
+
+  const patch = t.fetchLog.find((l) => l.init && l.init.method === 'PATCH');
+  assert.equal(
+    patch.url,
+    'http://back.test/api/message-events/session/e1/restaurar'
+  );
+  assert.equal(patch.init.headers.Authorization, 'Bearer tok-grupos');
+  await esperar(() => !buscarPorClase(t.nodos.listaVencidos, 'grupo-eliminada-label'));
+  assert.equal(t.nodos.toggleEliminadosGrupo.checked, true);
+  assert.equal(t.nodos.estadoEliminarSesion.textContent, '');
+  assert.ok(buscarPorClase(t.nodos.listaVencidos, 'grupo-corregir-boton'));
+});
+
+await testAsync('Restaurar un registro usa activity-logs y refresca el detalle', async () => {
+  let restaurado = false;
+  const t = crearContextoActividadGrupos({
+    fetch: async (url, init) => {
+      const metodo = (init && init.method) || 'GET';
+      if (metodo === 'PATCH') {
+        restaurado = true;
+        return respuestaOk({});
+      }
+      return respuestaOk({
+        activityState: {
+          vencidos: [],
+          enCurso: [],
+          terminados: [{ ...REGISTRO_ELIMINADO, eliminado: !restaurado }],
+        },
+      });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+  t.nodos.toggleEliminadosGrupo.checked = true;
+  t.nodos.toggleEliminadosGrupo.disparar('change');
+  await esperar(() => buscarPorClase(t.nodos.listaTerminados, 'grupo-restaurar-boton'));
+
+  const card = t.nodos.listaTerminados.hijos[0];
+  buscarPorClase(card, 'grupo-restaurar-boton').disparar('click');
+  await esperar(() => t.fetchLog.some((l) => l.init && l.init.method === 'PATCH'));
+
+  const patch = t.fetchLog.find((l) => l.init && l.init.method === 'PATCH');
+  assert.equal(patch.url, 'http://back.test/api/activity-logs/e2/restaurar');
+  await esperar(() => !buscarPorClase(t.nodos.listaTerminados, 'grupo-eliminada-label'));
+  assert.ok(buscarPorClase(t.nodos.listaTerminados, 'grupo-eliminar-boton'));
+});
+
+await testAsync('si falla Restaurar muestra el mensaje y mantiene la tarjeta', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async (url, init) => {
+      const metodo = (init && init.method) || 'GET';
+      if (metodo === 'PATCH') {
+        return { ok: false, status: 500, json: async () => ({ error: 'No autorizado' }) };
+      }
+      return respuestaOk({
+        activityState: { vencidos: [SESION_ELIMINADA], enCurso: [], terminados: [] },
+      });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+  t.nodos.toggleEliminadosGrupo.checked = true;
+  t.nodos.toggleEliminadosGrupo.disparar('change');
+  await esperar(() => buscarPorClase(t.nodos.listaVencidos, 'grupo-restaurar-boton'));
+
+  const card = t.nodos.listaVencidos.hijos[0];
+  const boton = buscarPorClase(card, 'grupo-restaurar-boton');
+  boton.disparar('click');
+  await esperar(() => t.nodos.estadoEliminarSesion.textContent === 'No autorizado');
+  assert.ok(buscarPorClase(t.nodos.listaVencidos, 'grupo-eliminada-label'));
+  assert.equal(boton.disabled, false);
+});
+
+test('el toggle de eliminadas se apaga al volver a la lista', () => {
+  const t = crearContextoActividadGrupos();
+  t.nodos.toggleEliminadosGrupo.checked = true;
+  t.nodos.volverListaGrupos.disparar('click');
+  assert.equal(t.nodos.toggleEliminadosGrupo.checked, false);
+  assert.equal(t.nodos.vistaDetalleActividadGrupos.hidden, true);
+  assert.equal(t.nodos.vistaListaActividadGrupos.hidden, false);
+});
+
 test('la página declara los diálogos de eliminación y corrección', () => {
   const html = fs.readFileSync(
     path.join(__dirname, '..', 'pages', 'actividadGrupos.html'),
@@ -805,6 +988,8 @@ test('la página declara los diálogos de eliminación y corrección', () => {
     'Corregir hora de cierre',
     'id="guardarCorregirCierre"',
     'id="errorCorreccionCierre"',
+    'id="toggleEliminadosGrupo"',
+    'Ver eliminadas',
   ]) {
     assert.ok(html.includes(texto), `falta ${texto}`);
   }
@@ -848,7 +1033,7 @@ test('las cabeceras sticky existen en el markup y el CSS', () => {
     assert.ok(css.includes(clase), `falta ${clase} en el CSS`);
   }
   assert.ok(css.includes('position: sticky'));
-  assert.ok(css.includes('top: 78px'));
+  assert.ok(css.includes('top: 104px'));
   assert.ok(css.includes('prefers-reduced-motion'));
 });
 

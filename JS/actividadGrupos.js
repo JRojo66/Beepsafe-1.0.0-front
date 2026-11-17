@@ -187,6 +187,16 @@ function mostrarErrorEliminar(mensaje) {
   estadoEliminarSesion.textContent = mensaje;
 }
 
+function miembroEliminado(datos) {
+  return Boolean(
+    datos &&
+      typeof datos === 'object' &&
+      (datos.eliminado === true ||
+        datos.deleted === true ||
+        datos.estado === 'eliminado')
+  );
+}
+
 function abrirModalEliminarSesion(miembro, tarjeta, lista) {
   if (!modalEliminarSesion) return;
   miembroPendienteEliminar = miembro;
@@ -391,6 +401,41 @@ async function confirmarEliminarSesion() {
   }
 }
 
+async function restaurarMiembro(miembro, boton) {
+  const datos = miembro && typeof miembro === 'object' ? miembro : {};
+  const id = datos.id;
+  const tipo = datos.tipo;
+  if (!id || (tipo !== 'sesion' && tipo !== 'registro')) {
+    mostrarErrorEliminar('No se pudo restaurar: datos incompletos.');
+    return;
+  }
+  const url =
+    tipo === 'sesion'
+      ? `${ROOT_URL}/api/message-events/session/${encodeURIComponent(id)}/restaurar`
+      : `${ROOT_URL}/api/activity-logs/${encodeURIComponent(id)}/restaurar`;
+  const token = tokenActividadGrupos();
+  if (boton) boton.disabled = true;
+  mostrarErrorEliminar('');
+  try {
+    const respuesta = await fetch(url, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (respuesta.status === 200) {
+      if (grupoDetalleActual) await cargarDetalleGrupo(grupoDetalleActual);
+      return;
+    }
+    const mensaje = await leerErrorRespuestaActividad(respuesta);
+    mostrarErrorEliminar(mensaje || 'No se pudo restaurar. Intentá de nuevo.');
+  } catch (err) {
+    const detalle = err && err.message ? err.message : String(err);
+    console.error(`[actividadGrupos] PATCH restaurar falló: ${detalle}`);
+    mostrarErrorEliminar('No se pudo restaurar. Intentá de nuevo.');
+  } finally {
+    if (boton) boton.disabled = false;
+  }
+}
+
 function inicializarModalesEliminar() {
   if (modalesEliminarCableados) return;
   modalEliminarSesion = document.getElementById('modalEliminarSesion');
@@ -429,8 +474,11 @@ function inicializarModalesEliminar() {
 
 function crearTarjetaMiembro(miembro, esVencido, lista) {
   const datos = miembro && typeof miembro === 'object' ? miembro : {};
+  const eliminado = miembroEliminado(datos);
   const tarjeta = document.createElement('div');
-  tarjeta.className = `grupo-miembro-card${esVencido ? ' grupo-miembro-card-vencido' : ''}`;
+  tarjeta.className = `grupo-miembro-card${esVencido ? ' grupo-miembro-card-vencido' : ''}${
+    eliminado ? ' grupo-miembro-card-eliminada' : ''
+  }`;
 
   const cabecera = document.createElement('div');
   cabecera.className = 'grupo-miembro-cabecera';
@@ -443,25 +491,40 @@ function crearTarjetaMiembro(miembro, esVencido, lista) {
   const accionesCabecera = document.createElement('div');
   accionesCabecera.className = 'grupo-miembro-acciones';
   let tieneAcciones = false;
-  if (datos.tipo === 'sesion' && datos.puedeEliminar === true) {
-    const botonCorregir = document.createElement('button');
-    botonCorregir.type = 'button';
-    botonCorregir.className = 'grupo-corregir-boton';
-    botonCorregir.textContent = 'Corregir cierre';
-    botonCorregir.addEventListener('click', () => abrirModalCorregirCierre(datos));
-    accionesCabecera.appendChild(botonCorregir);
+  if (eliminado) {
+    accionesCabecera.appendChild(
+      crearTextoActividad('grupo-eliminada-label', 'Eliminada', 'span')
+    );
+    if (datos.id && (datos.tipo === 'sesion' || datos.tipo === 'registro')) {
+      const botonRestaurar = document.createElement('button');
+      botonRestaurar.type = 'button';
+      botonRestaurar.className = 'grupo-restaurar-boton';
+      botonRestaurar.textContent = 'Restaurar';
+      botonRestaurar.addEventListener('click', () => restaurarMiembro(datos, botonRestaurar));
+      accionesCabecera.appendChild(botonRestaurar);
+    }
     tieneAcciones = true;
-  }
-  if (datos.puedeEliminar === true) {
-    const botonEliminar = document.createElement('button');
-    botonEliminar.type = 'button';
-    botonEliminar.className = 'grupo-eliminar-boton';
-    botonEliminar.textContent = 'Eliminar';
-    botonEliminar.addEventListener('click', () => {
-      abrirModalEliminarSesion(datos, tarjeta, lista);
-    });
-    accionesCabecera.appendChild(botonEliminar);
-    tieneAcciones = true;
+  } else {
+    if (datos.tipo === 'sesion' && datos.puedeEliminar === true) {
+      const botonCorregir = document.createElement('button');
+      botonCorregir.type = 'button';
+      botonCorregir.className = 'grupo-corregir-boton';
+      botonCorregir.textContent = 'Corregir cierre';
+      botonCorregir.addEventListener('click', () => abrirModalCorregirCierre(datos));
+      accionesCabecera.appendChild(botonCorregir);
+      tieneAcciones = true;
+    }
+    if (datos.puedeEliminar === true) {
+      const botonEliminar = document.createElement('button');
+      botonEliminar.type = 'button';
+      botonEliminar.className = 'grupo-eliminar-boton';
+      botonEliminar.textContent = 'Eliminar';
+      botonEliminar.addEventListener('click', () => {
+        abrirModalEliminarSesion(datos, tarjeta, lista);
+      });
+      accionesCabecera.appendChild(botonEliminar);
+      tieneAcciones = true;
+    }
   }
   if (tieneAcciones) cabecera.appendChild(accionesCabecera);
   tarjeta.appendChild(cabecera);
@@ -602,10 +665,15 @@ async function cargarDetalleGrupo(grupo) {
     return null;
   }
   try {
-    const respuesta = await fetch(
-      `${ROOT_URL}/api/groups/${encodeURIComponent(groupId)}/activity-state`,
-      { method: 'GET', headers: { Authorization: `Bearer ${token}` } }
-    );
+    const toggle = document.getElementById('toggleEliminadosGrupo');
+    const incluirEliminados = Boolean(toggle && toggle.checked);
+    const url = `${ROOT_URL}/api/groups/${encodeURIComponent(
+      groupId
+    )}/activity-state${incluirEliminados ? '?incluirEliminados=1' : ''}`;
+    const respuesta = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
     if (!respuesta.ok) {
       mostrarErrorDetalleActividad();
       return null;
@@ -639,6 +707,8 @@ function abrirDetalleGrupo(grupo) {
 
 function volverListaActividadGrupos() {
   grupoDetalleActual = null;
+  const toggle = document.getElementById('toggleEliminadosGrupo');
+  if (toggle) toggle.checked = false;
   const vistaLista = document.getElementById('vistaListaActividadGrupos');
   const vistaDetalle = document.getElementById('vistaDetalleActividadGrupos');
   if (vistaLista) vistaLista.hidden = false;
@@ -740,7 +810,19 @@ async function cargarGrupos() {
   }
 }
 
+function inicializarControlesActividad() {
+  const toggle = document.getElementById('toggleEliminadosGrupo');
+  if (toggle) {
+    toggle.addEventListener('change', () => {
+      if (grupoDetalleActual) cargarDetalleGrupo(grupoDetalleActual);
+    });
+  }
+  const volver = document.getElementById('volverListaGrupos');
+  if (volver) volver.addEventListener('click', volverListaActividadGrupos);
+}
+
 inicializarModalesEliminar();
+inicializarControlesActividad();
 
 if (typeof window !== 'undefined' && window.addEventListener) {
   window.addEventListener('DOMContentLoaded', () => {
@@ -752,8 +834,6 @@ if (typeof window !== 'undefined' && window.addEventListener) {
         if (grupoDetalleActual) cargarDetalleGrupo(grupoDetalleActual);
       });
     }
-    const volver = document.getElementById('volverListaGrupos');
-    if (volver) volver.addEventListener('click', volverListaActividadGrupos);
     cargarGrupos();
   });
 }
