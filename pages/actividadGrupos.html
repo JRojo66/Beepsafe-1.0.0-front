@@ -44,36 +44,39 @@
 
         <div id="vistaDetalleActividadGrupos" class="actividad-grupos-vista" hidden>
             <div class="actividad-grupos-detalle-sticky">
-                <button id="volverListaGrupos" class="perfil actividad-grupos-volver" type="button" aria-label="Volver a mis grupos">
-                    <span class="containerPerfil">
+                <div class="actividad-grupos-detalle-fila">
+                    <button id="volverListaGrupos" class="perfil actividad-grupos-volver" type="button" aria-label="Volver a mis grupos">
                         <img src="../imagenes/volver.PNG" alt="" class="volver-arrow">
-                    </span>
-                </button>
-                <h2 id="tituloDetalleGrupo" class="actividad-grupos-titulo"></h2>
-                <label class="historial-toggle">
-                    <input type="checkbox" id="toggleEliminadosGrupo">
-                    <span>Ver eliminadas</span>
-                </label>
+                    </button>
+                    <h2 id="tituloDetalleGrupo" class="actividad-grupos-titulo"></h2>
+                </div>
             </div>
             <p id="estadoDetalleActividad" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
             <p id="estadoEliminarSesion" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
             <p id="estadoCorreccionCierre" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
             <button id="botonReintentarDetalle" class="btn-confirm" type="button" hidden>Reintentar</button>
 
-            <section id="seccionVencidos" class="grupo-actividad-seccion">
-                <h3 class="grupo-actividad-seccion-titulo">Alarmas vencidas</h3>
-                <div id="listaVencidos" class="grupo-actividad-miembros"></div>
-            </section>
+            <div class="actividad-grupos-detalle-contenido">
+                <label class="historial-toggle actividad-grupos-toggle-eliminadas">
+                    <input type="checkbox" id="toggleEliminadosGrupo">
+                    <span>Ver eliminadas</span>
+                </label>
 
-            <section id="seccionEnCurso" class="grupo-actividad-seccion">
-                <h3 class="grupo-actividad-seccion-titulo">En actividad</h3>
-                <div id="listaEnCurso" class="grupo-actividad-miembros"></div>
-            </section>
+                <section id="seccionVencidos" class="grupo-actividad-seccion">
+                    <h3 class="grupo-actividad-seccion-titulo">Alarmas vencidas</h3>
+                    <div id="listaVencidos" class="grupo-actividad-miembros"></div>
+                </section>
 
-            <section id="seccionTerminados" class="grupo-actividad-seccion">
-                <h3 class="grupo-actividad-seccion-titulo">Finalizadas</h3>
-                <div id="listaTerminados" class="grupo-actividad-miembros"></div>
-            </section>
+                <section id="seccionEnCurso" class="grupo-actividad-seccion">
+                    <h3 class="grupo-actividad-seccion-titulo">En actividad</h3>
+                    <div id="listaEnCurso" class="grupo-actividad-miembros"></div>
+                </section>
+
+                <section id="seccionTerminados" class="grupo-actividad-seccion">
+                    <h3 class="grupo-actividad-seccion-titulo">Finalizadas</h3>
+                    <div id="listaTerminados" class="grupo-actividad-miembros"></div>
+                </section>
+            </div>
         </div>
     </div>
 

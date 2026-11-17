@@ -630,6 +630,74 @@ test('la flecha volver y los diálogos comparten clases entre páginas', () => {
   }
 });
 
+test('la cabecera del detalle comparte fila entre la flecha y el nombre', () => {
+  const html = fs.readFileSync(
+    path.join(__dirname, '..', 'pages', 'actividadGrupos.html'),
+    'utf8'
+  );
+  const fila = html.match(/<div class="actividad-grupos-detalle-fila">([\s\S]*?)<\/div>/);
+  assert.ok(fila, 'falta la fila de la cabecera del detalle');
+  assert.ok(fila[1].includes('id="volverListaGrupos"'), 'falta la flecha en la fila');
+  assert.ok(fila[1].includes('id="tituloDetalleGrupo"'), 'falta el nombre en la fila');
+  assert.ok(html.includes('aria-label="Volver a mis grupos"'));
+});
+
+test('el toggle de eliminadas se renderiza antes de Alarmas vencidas', () => {
+  const html = fs.readFileSync(
+    path.join(__dirname, '..', 'pages', 'actividadGrupos.html'),
+    'utf8'
+  );
+  const contenido = html.indexOf('class="actividad-grupos-detalle-contenido"');
+  const toggle = html.indexOf('id="toggleEliminadosGrupo"');
+  const seccion = html.indexOf('id="seccionVencidos"');
+  const heading = html.indexOf('>Alarmas vencidas</h3>');
+
+  assert.ok(contenido > -1, 'falta el bloque de contenido');
+  assert.ok(toggle > contenido, 'el toggle debe ir dentro del bloque de contenido');
+  assert.ok(toggle < seccion && seccion < heading, 'el toggle debe ir antes de Alarmas vencidas');
+  assert.ok(
+    !html.slice(contenido, toggle).includes('<section'),
+    'el toggle debe ser el primer elemento del bloque'
+  );
+});
+
+await testAsync('el teléfono comparte fila con los equipos y el número aparece debajo', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  const card = t.nodos.listaVencidos.hijos[0];
+  const filaEquipos = buscarPorClase(card, 'grupo-equipos-fila');
+  const bloqueEquipos = buscarPorClase(card, 'grupo-equipos');
+  const boton = buscarPorClase(card, 'grupo-telefono-boton');
+  const numero = buscarPorClase(card, 'grupo-telefono-numero');
+  const filaNumero = buscarPorClase(card, 'grupo-telefono');
+
+  assert.ok(filaEquipos, 'falta la fila de equipos y teléfono');
+  assert.ok(filaEquipos.hijos.includes(bloqueEquipos), 'los equipos deben estar en la fila');
+  assert.ok(filaEquipos.hijos.includes(boton), 'el teléfono debe estar en la fila de equipos');
+  assert.ok(filaNumero && filaNumero.hijos.includes(numero), 'el número debe tener su línea');
+  assert.ok(!filaNumero.hijos.includes(boton), 'el icono no debe compartir línea con el número');
+  assert.ok(
+    card.hijos.indexOf(filaNumero) > card.hijos.indexOf(filaEquipos),
+    'el número debe ir debajo de la fila'
+  );
+  assert.equal(numero.hidden, true);
+
+  boton.disparar('click');
+  assert.equal(numero.hidden, false);
+  assert.equal(boton.getAttribute('aria-label'), 'Ocultar teléfono');
+
+  boton.disparar('click');
+  assert.equal(numero.hidden, true);
+  assert.equal(boton.getAttribute('aria-label'), 'Mostrar teléfono');
+
+  const css = fs.readFileSync(path.join(__dirname, '..', 'styles', 'styles.css'), 'utf8');
+  assert.ok(css.includes('.grupo-equipos-fila'));
+  assert.ok(/\.grupo-telefono\s*\{[^}]*display:\s*block;/.test(css));
+});
+
 await testAsync('un activity-state vacío muestra el mensaje y las secciones vacías', async () => {
   const t = crearContextoActividadGrupos({
     fetch: async () =>
@@ -1122,7 +1190,7 @@ test('las cabeceras sticky existen en el markup y el CSS', () => {
     assert.ok(css.includes(clase), `falta ${clase} en el CSS`);
   }
   assert.ok(css.includes('position: sticky'));
-  assert.ok(css.includes('top: 132px'));
+  assert.ok(css.includes('top: 55px'));
   assert.ok(css.includes('prefers-reduced-motion'));
 });
 

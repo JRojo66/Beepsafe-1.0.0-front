@@ -621,8 +621,6 @@ function crearTarjetaMiembro(miembro, esVencido, lista) {
       bloqueEquipos.appendChild(crearItemEquipo(equipo));
     }
   }
-  tarjeta.appendChild(bloqueEquipos);
-
   const telefono = crearTextoActividad(
     'grupo-telefono-numero',
     datos.telefono == null ? '' : String(datos.telefono),
@@ -642,9 +640,15 @@ function crearTarjetaMiembro(miembro, esVencido, lista) {
       estabaOculto ? 'Ocultar teléfono' : 'Mostrar teléfono'
     );
   });
+
+  const filaEquiposTelefono = document.createElement('div');
+  filaEquiposTelefono.className = 'grupo-equipos-fila';
+  filaEquiposTelefono.appendChild(bloqueEquipos);
+  filaEquiposTelefono.appendChild(botonTelefono);
+  tarjeta.appendChild(filaEquiposTelefono);
+
   const filaTelefono = document.createElement('div');
   filaTelefono.className = 'grupo-telefono';
-  filaTelefono.appendChild(botonTelefono);
   filaTelefono.appendChild(telefono);
   tarjeta.appendChild(filaTelefono);
 
