@@ -2425,7 +2425,7 @@ a {
   height: 88px;
   margin: 20px 0 10px;
   padding: 10px 20px;
-  border: 1px dashed var(--color-principal);
+  border: 1px solid var(--color-principal);
   border-radius: 20px;
   background-color: var(--color-fondo);
   color: white;
