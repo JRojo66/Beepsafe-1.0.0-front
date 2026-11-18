@@ -5195,6 +5195,23 @@ margin: 10px 0;
   .grp-configuracion .invitacion-actions > button {
     flex: 1 1 100%;
   }
-}.mis-contactos-pagina {
+}
+
+.mis-contactos-pagina {
   background-color: var(--color-fondo);
+}
+
+/* Las opciones de esta pagina son tarjetas violetas, no el boton de agregar. */
+.mis-contactos-pagina .accordion-header-activity {
+  height: 4rem;
+  min-height: 4rem;
+  margin: 0 0 10px;
+  padding: 0 20px;
+  justify-content: flex-start;
+  border: none;
+  border-radius: 20px;
+  background-color: var(--color-fondo2);
+  color: #ffffff;
+  font-weight: bold;
+  text-align: left;
 }
