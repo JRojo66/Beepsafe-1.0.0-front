@@ -1520,6 +1520,7 @@ a {
 .historial-pagina,
 .actividad-grupos-pagina {
   padding-bottom: 110px;
+  background-color: var(--color-fondo);
 }
 
 .historial-cabecera-sticky,
