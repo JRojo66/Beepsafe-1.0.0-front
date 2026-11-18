@@ -1585,7 +1585,7 @@ a {
   margin: 0 0 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .grupo-actividad-card,
@@ -1594,8 +1594,11 @@ a {
   display: block;
   width: 100%;
   max-width: none;
+  height: auto;
+  min-height: 4rem;
   margin: 0;
   padding: 0;
+  overflow: hidden;
   border: none;
   border-radius: 20px;
   background-color: var(--color-fondo2);
