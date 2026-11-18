@@ -451,10 +451,6 @@ test('las cinco páginas de mensaje cumplen el contrato de HTML', () => {
     assert.ok(html.includes('maxlength="1000"'), `${archivo}: falta maxlength=1000`);
     assert.ok(html.includes('id="botonGrabar" type="button"'), `${archivo}: el botón debe ser type=button`);
     assert.ok(
-      !html.includes('Quiero que reciba mis mensajes'),
-      `${archivo}: no debe quedar el texto viejo del checkbox`
-    );
-    assert.ok(
       html.includes('id="contactoMensajes" name="mensajes" checked hidden'),
       `${archivo}: #contactoMensajes debe seguir existiendo, oculto`
     );
@@ -729,7 +725,6 @@ async function testsAsync() {
           cancelacion: true,
           prueba: true,
         },
-        visibilidad: false,
       },
     ]);
     assert.equal(t.fetchLog[0].url, 'http://back.test/api/contacts');
@@ -757,8 +752,6 @@ async function testsAsync() {
     assert.deepEqual(JSON.parse(llamada.init.body), {
       nombre: 'Ana',
       telefono: '123',
-      mensajes: true,
-      visibilidad: false,
     });
   });
 
@@ -780,8 +773,6 @@ async function testsAsync() {
     assert.equal(llamada.init.headers.Authorization, `Bearer ${token}`);
     assert.deepEqual(JSON.parse(llamada.init.body), {
       nombre: 'Ana',
-      mensajes: false,
-      visibilidad: true,
     });
   });
 
@@ -1028,11 +1019,17 @@ async function testsAsync() {
 
   await testAsync('los contactos renderizan fila y los clicks disparan POST/PUT/DELETE', async () => {
     let contactos = [
-      { nombre: 'Ana', telefono: '+54911 1234 5678', mensajes: true, visibilidad: true },
+      {
+        nombre: 'Ana',
+        telefono: '+54911 1234 5678',
+        mensajes: true,
+        mensajesPorTipo: { inicio: true },
+      },
     ];
     const token = crearToken({ email: 'ana@test.com' });
     const store = new Map([['token', token]]);
     const t = crearContexto({
+      dataset: { tipo: 'inicio' },
       store,
       fetch: async (url, init) => {
         const metodo = (init && init.method) || 'GET';
@@ -1070,8 +1067,7 @@ async function testsAsync() {
     assert.deepEqual(JSON.parse(post.init.body), {
       nombre: 'Beto',
       telefono: '555',
-      mensajes: true,
-      visibilidad: true,
+      mensajesPorTipo: { inicio: true },
     });
 
     const filaBeto = t.nodos.listaContactos.hijos.find((nodo) => textosDe(nodo).includes('Beto'));
@@ -1084,8 +1080,7 @@ async function testsAsync() {
     assert.equal(put.url, 'http://back.test/api/contacts');
     assert.deepEqual(JSON.parse(put.init.body), {
       nombre: 'Beto',
-      mensajes: true,
-      visibilidad: true,
+      mensajesPorTipo: { inicio: true },
     });
 
     const filaActual = t.nodos.listaContactos.hijos.find((nodo) => textosDe(nodo).includes('Beto'));
@@ -1128,10 +1123,11 @@ async function testsAsync() {
 
   await testAsync('desmarcar "Recibe mis mensajes" oculta la fila y conserva el aviso', async () => {
     let contactos = [
-      { nombre: 'Ana', telefono: '111', mensajes: true, visibilidad: true },
+      { nombre: 'Ana', telefono: '111', mensajes: true, mensajesPorTipo: { inicio: true } },
     ];
     const token = crearToken({ email: 'ana@test.com' });
     const t = crearContexto({
+      dataset: { tipo: 'inicio' },
       store: new Map([['token', token]]),
       fetch: async (url, init) => {
         const metodo = (init && init.method) || 'GET';
@@ -1155,7 +1151,7 @@ async function testsAsync() {
     const ayuda = buscarPorTexto(fila, 'Si lo desactivás, dejará de aparecer en esta lista.');
     assert.ok(ayuda, 'el editor muestra el aviso de consecuencias');
     const checks = buscarTodos(fila, (nodo) => nodo.type === 'checkbox');
-    assert.equal(checks.length, 2, 'el editor tiene los dos checks');
+    assert.equal(checks.length, 1, 'el editor tiene el check de mensajes');
     checks[0].checked = false;
 
     await buscarPorTexto(fila, 'Guardar').disparar('click');
@@ -1166,10 +1162,11 @@ async function testsAsync() {
 
   await testAsync('agregar un contacto sin el check no lo agrega a la lista visible', async () => {
     let contactos = [
-      { nombre: 'Ana', telefono: '111', mensajes: true, visibilidad: true },
+      { nombre: 'Ana', telefono: '111', mensajes: true, mensajesPorTipo: { inicio: true } },
     ];
     const token = crearToken({ email: 'ana@test.com' });
     const t = crearContexto({
+      dataset: { tipo: 'inicio' },
       store: new Map([['token', token]]),
       fetch: async (url, init) => {
         const metodo = (init && init.method) || 'GET';
@@ -1193,8 +1190,7 @@ async function testsAsync() {
     assert.deepEqual(JSON.parse(post.init.body), {
       nombre: 'Beto',
       telefono: '222',
-      mensajes: false,
-      visibilidad: true,
+      mensajesPorTipo: { inicio: false },
     });
     assert.equal(t.nodos.listaContactos.hijos.length, 1, 'solo sigue visible Ana');
     assert.ok(
@@ -1294,7 +1290,6 @@ async function testsAsync() {
     assert.deepEqual(JSON.parse(post.init.body), {
       nombre: 'Beto',
       telefono: '555',
-      visibilidad: true,
       mensajesPorTipo: { alarma: true },
     });
     const cuerpo = JSON.parse(post.init.body);
@@ -1328,7 +1323,7 @@ async function testsAsync() {
     const fila = t.nodos.listaContactos.hijos[0];
     await buscarPorTexto(fila, 'Editar').disparar('click');
     const checks = buscarTodos(fila, (nodo) => nodo.type === 'checkbox');
-    assert.equal(checks.length, 2, 'el editor tiene los dos checks');
+    assert.equal(checks.length, 1, 'el editor tiene el check de mensajes');
     assert.equal(checks[0].checked, true, 'el check refleja el tipo de la página');
     checks[0].checked = false;
 
@@ -1337,7 +1332,6 @@ async function testsAsync() {
     assert.ok(put, 'se hizo PUT al editar');
     assert.deepEqual(JSON.parse(put.init.body), {
       nombre: 'Ana',
-      visibilidad: true,
       mensajesPorTipo: { inicio: false },
     });
     const cuerpo = JSON.parse(put.init.body);

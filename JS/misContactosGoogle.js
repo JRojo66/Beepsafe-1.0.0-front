@@ -1,7 +1,5 @@
 import {
   showToast,
-  renderizarCabeceraContactos,
-  renderizarFilasContactos,
   renderizarContactosConPaginado,
   renderizarBuscadorYBotonRefrescar,
   sanitizarTelefonoE164,
@@ -66,14 +64,8 @@ async function actualizarGoogleContacts() {
       contactos: filtrados,
       paginaActual: paginaGoogle,
       pageSize: PAGE_SIZE_GOOGLE,
-      columnas: [
-        "Nombre",
-        "Quiero que reciba mis mensajes",
-        "Quiero que me vea",
-        "Acción",
-      ],
-      onAccionClick: (contacto, mensajes, visibilidad) =>
-        agregarContactoDesdeGoogle(contacto, mensajes, visibilidad),
+      columnas: ["Nombre", "Acción"],
+      onAccionClick: (contacto) => agregarContactoDesdeGoogle(contacto),
       onPaginaChange: (nueva) => {
         paginaGoogle = nueva;
         renderGoogle();
@@ -114,7 +106,7 @@ async function esperarOk(mensaje) {
 }
 
 // Función reutilizable para el click de "Agregar" en cada fila
-async function agregarContactoDesdeGoogle(c, mensajes, visibilidad) {
+async function agregarContactoDesdeGoogle(c) {
   const endpoint = `${ROOT_URL}/api/contacts`;
 
   const telefonoOriginal = c.telefono || "";
@@ -148,8 +140,6 @@ async function agregarContactoDesdeGoogle(c, mensajes, visibilidad) {
   const payload = {
     nombre: c.nombre,
     telefono: telefonoOriginal,
-    mensajes,
-    visibilidad,
   };
 
   try {

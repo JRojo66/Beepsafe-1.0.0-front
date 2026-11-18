@@ -572,7 +572,6 @@ function normalizarContactoCargado(contacto) {
     telefono: typeof origen.telefono === 'string' ? origen.telefono : String(origen.telefono ?? ''),
     mensajes: origen.mensajes === true,
     mensajesPorTipo: normalizarMensajesPorTipo(origen),
-    visibilidad: origen.visibilidad === true,
   };
 }
 
@@ -619,10 +618,8 @@ async function agregarContacto(contacto) {
   const cuerpo = {
     nombre: String(origen.nombre ?? ''),
     telefono: String(origen.telefono ?? ''),
-    visibilidad: origen.visibilidad !== false,
   };
   if (tipo) cuerpo.mensajesPorTipo = { [tipo]: origen.mensajes !== false };
-  else cuerpo.mensajes = origen.mensajes !== false;
   const url = `${ROOT_URL}/api/contacts`;
   if (!hayToken()) {
     console.error(`[mensajes] POST contacts sin token: ${url}`);
@@ -655,10 +652,8 @@ async function actualizarContacto(contacto) {
   const tipo = tipoValido(origen.tipo) || tipoValido(tipoDesdePagina());
   const cuerpo = {
     nombre: String(origen.nombre ?? ''),
-    visibilidad: origen.visibilidad === true,
   };
   if (tipo) cuerpo.mensajesPorTipo = { [tipo]: origen.mensajes === true };
-  else cuerpo.mensajes = origen.mensajes === true;
   const url = `${ROOT_URL}/api/contacts`;
   if (!hayToken()) {
     console.error(`[mensajes] PUT contacts sin token: ${url}`);
@@ -850,15 +845,12 @@ function abrirEdicionContacto(fila, contacto) {
   editor.appendChild(telefono);
 
   const checkMensajes = crearCheck('Recibe mis mensajes', contactoAsignadoAlTipo(contacto, tipo));
-  const checkVisibilidad = crearCheck('Quiero que me vea', contacto.visibilidad);
   editor.appendChild(checkMensajes.label);
 
   const ayudaMensajes = document.createElement('p');
   ayudaMensajes.className = 'msj-ayuda msj-edicion-ayuda';
   ayudaMensajes.textContent = 'Si lo desactivás, dejará de aparecer en esta lista.';
   editor.appendChild(ayudaMensajes);
-
-  editor.appendChild(checkVisibilidad.label);
 
   const acciones = document.createElement('div');
   acciones.className = 'mensajes-edicion-acciones';
@@ -872,7 +864,6 @@ function abrirEdicionContacto(fila, contacto) {
     const resultado = await actualizarContacto({
       nombre: contacto.nombre,
       mensajes: checkMensajes.input.checked,
-      visibilidad: checkVisibilidad.input.checked,
       tipo,
     });
     guardar.disabled = false;
@@ -1070,7 +1061,6 @@ async function manejarAltaContacto(evento) {
     nombre,
     telefono,
     mensajes: mensajesInput ? mensajesInput.checked !== false : true,
-    visibilidad: true,
     tipo: tipoDesdePagina(),
   });
   if (boton) boton.disabled = false;

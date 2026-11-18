@@ -56,12 +56,7 @@ async function renderizarCabeceraMisContactos(contactos) {
   header.style.marginBottom = "0.5em";
   header.style.flexWrap = "wrap";
 
-  const columnas = [
-    "Nombre",
-    "Quiero que reciba mis mensajes",
-    "Quiero que me vea",
-    "Eliminar",
-  ];
+  const columnas = ["Nombre", "Eliminar"];
 
   columnas.forEach((title, i) => {
     const col = document.createElement("div");
@@ -134,66 +129,7 @@ function renderizarFilasMisContactos() {
     nombreColMC.appendChild(nombreSpan);
     nombreColMC.appendChild(telefonoSpan);
 
-    const checkboxMensajesMC = document.createElement("input");
-    checkboxMensajesMC.type = "checkbox";
-    checkboxMensajesMC.name = "recibirMensajes";
-    checkboxMensajesMC.className = "checkbox-input";
-    checkboxMensajesMC.checked = c.mensajes !== false; // **
-
-    const mensajesColMC = document.createElement("div");
-    mensajesColMC.appendChild(checkboxMensajesMC);
-    mensajesColMC.style.flex = "1";
-    mensajesColMC.style.textAlign = "center";
-
-    const checkboxVisibilidadMC = document.createElement("input");
-    checkboxVisibilidadMC.type = "checkbox";
-    checkboxVisibilidadMC.name = "verme";
-    checkboxVisibilidadMC.className = "checkbox-input";
-    checkboxVisibilidadMC.checked = c.visibilidad !== false;
-
-    const vermeColMC = document.createElement("div");
-    vermeColMC.appendChild(checkboxVisibilidadMC);
-    vermeColMC.style.flex = "1";
-    vermeColMC.style.textAlign = "center";
-
-    // Actualiza los valores de mensajes en la base
-    checkboxMensajesMC.addEventListener("change", () => {
-      actualizarContacto(
-        c.nombre,
-        checkboxMensajesMC.checked,
-        checkboxVisibilidadMC.checked
-      );
-    });
-
-    checkboxVisibilidadMC.addEventListener("change", () => {
-      actualizarContacto(
-        c.nombre,
-        checkboxMensajesMC.checked,
-        checkboxVisibilidadMC.checked
-      );
-    });
-
     row.appendChild(nombreColMC);
-    row.appendChild(mensajesColMC);
-    row.appendChild(vermeColMC);
-
-    // Actualiza los valores de visibilidad en la base
-
-    // checkboxMensajesMC.addEventListener("change", () => {
-    //   actualizarContacto(
-    //     c.nombre,
-    //     checkboxMensajesMC.checked,
-    //     checkboxVisibilidadMC.checked
-    //   );
-    // });
-
-    // checkboxVisibilidadMC.addEventListener("change", () => {
-    //   actualizarContacto(
-    //     c.nombre,
-    //     checkboxMensajesMC.checked,
-    //     checkboxVisibilidadMC.checked
-    //   );
-    // });
 
     // 🗑️ Botón para eliminar contacto
     const btnEliminar = document.createElement("button");
@@ -257,27 +193,6 @@ function renderizarFilasMisContactos() {
 
     renderizarControlesPaginadoMisContactos();
   });
-}
-
-async function actualizarContacto(nombre, mensajes, visibilidad) {
-  try {
-    const response = await fetch(`${ROOT_URL}/api/contacts`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({ nombre, mensajes, visibilidad }),
-    });
-
-    if (!response.ok) {
-      const err = await response.json();
-      showToast("Error al actualizar contacto: " + err.error, "error");
-    }
-  } catch (err) {
-    console.error("Error al actualizar contacto:", err);
-    showToast("No se pudo conectar con el servidor", "error");
-  }
 }
 
 function renderizarControlesPaginadoMisContactos() {

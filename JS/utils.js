@@ -140,26 +140,6 @@ export function renderizarFilasContactos(containerId, contactos, onAccionClick) 
     nombreCol.appendChild(nombreSpan);
     nombreCol.appendChild(telSpan);
 
-    // Mensajes
-    const mensajesCol = document.createElement("div");
-    mensajesCol.style.flex = "1";
-    mensajesCol.style.textAlign = "center";
-    const chkMensajes = document.createElement("input");
-    chkMensajes.type = "checkbox";
-    chkMensajes.className = "checkbox-input";
-    chkMensajes.checked = c.mensajes !== false;
-    mensajesCol.appendChild(chkMensajes);
-
-    // Visibilidad
-    const vermeCol = document.createElement("div");
-    vermeCol.style.flex = "1";
-    vermeCol.style.textAlign = "center";
-    const chkVerme = document.createElement("input");
-    chkVerme.type = "checkbox";
-    chkVerme.className = "checkbox-input";
-    chkVerme.checked = c.visibilidad !== false;
-    vermeCol.appendChild(chkVerme);
-
     // Botón Agregar
     const accionCol = document.createElement("div");
     accionCol.style.flex = "1";
@@ -173,14 +153,12 @@ export function renderizarFilasContactos(containerId, contactos, onAccionClick) 
     btn.style.display = "inline-block";
     btn.addEventListener("click", () => {
       if (typeof onAccionClick === "function") {
-        onAccionClick(c, chkMensajes.checked, chkVerme.checked);
+        onAccionClick(c);
       }
     });
     accionCol.appendChild(btn);
 
     row.appendChild(nombreCol);
-    row.appendChild(mensajesCol);
-    row.appendChild(vermeCol);
     row.appendChild(accionCol);
 
     body.appendChild(row);

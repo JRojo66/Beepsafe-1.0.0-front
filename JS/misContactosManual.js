@@ -9,8 +9,6 @@ const toggleContactosManual = document.getElementById("toggleContactosManual");
 // Función para limpiar el formulario
 function limpiarFormulario() {
   document.getElementById("form-agregar-contacto").reset();
-  document.getElementById("recibir-mensajes").checked = true;
-  document.getElementById("que-me-vea").checked = true;
 }
 
 // Función para cerrar el acordeón
@@ -36,8 +34,6 @@ async function agregarContactoManual(event) {
   
   const nombre = document.getElementById("nombre-contacto").value.trim();
   const telefono = document.getElementById("telefono-contacto").value.trim();
-  const recibirMensajes = document.getElementById("recibir-mensajes").checked;
-  const queMeVea = document.getElementById("que-me-vea").checked;
   
   // Validaciones
   if (!nombre) {
@@ -61,8 +57,6 @@ async function agregarContactoManual(event) {
   const payload = {
     nombre: nombre,
     telefono: telefono,
-    mensajes: recibirMensajes,
-    visibilidad: queMeVea,
   };
   
   try {

@@ -3091,82 +3091,12 @@ color: white;
   color: white !important;
 }
 
-.checkboxes-container{
-display: flex;
-flex-direction: column;
-gap: 10px;
-margin: 10px 0;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: white;
-  cursor: pointer;
-}
-
 .buttons-container{
   display: flex;
   gap: 10px;
   justify-content: center;
   align-items: center;
   width: 100%;
-}
-
-.checkbox-input {
-  /* Ocultar el checkbox nativo */
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  
-  /* Tamaño y forma */
-  width: 15px;
-  height: 15px;
-  border: 2px solid #ccc;
-  border-radius: 4px;
-  
-  /* Posición relativa para el checkmark */
-  position: relative;
-  cursor: pointer;
-  
-  /* Fondo por defecto */
-  background-color: transparent;
-  
-  /* Transición suave */
-  transition: all 0.3s ease;
-
-  /* Aumento visual del checkbox (antes inline en misContactos.html) */
-  transform: scale(1.2);
-}
-
-/* Checkbox cuando está checked */
-.checkbox-input:checked {
-  background-color: var(--color-principal);
-  border-color: var(--color-principal);
-}
-
-/* Checkmark (✓) cuando está checked */
-.checkbox-input:checked::after {
-  content: '✓';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  color: black;
-  font-size: 14px;
-  font-weight: bold;
-}
-
-/* Hover effect */
-.checkbox-input:hover {
-  border-color: var(--color-principal);
-}
-
-/* Focus effect */
-.checkbox-input:focus {
-  outline: 2px solid var(--color-principal);
-  outline-offset: 2px;
 }
 
 .phone-input-container {
