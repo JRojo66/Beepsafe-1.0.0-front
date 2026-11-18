@@ -2418,16 +2418,19 @@ a {
   box-sizing: border-box;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   width: 100%;
-  min-height: 44px;
-  height: auto;
+  min-height: 88px;
+  height: 88px;
   margin: 20px 0 10px;
   padding: 10px 20px;
   border: 1px dashed var(--color-principal);
   border-radius: 20px;
   background-color: var(--color-fondo);
-  color: var(--color-principal);
+  color: white;
+  font-weight: bold;
+  text-align: center;
   cursor: pointer;
 }
 
