@@ -1173,6 +1173,29 @@ test('las filas de grupo usan el ancho completo y muestran el chevron', () => {
   assert.ok(buscarPorClase(card, 'grupo-actividad-chevron'));
 });
 
+await testAsync('cada grupo usa la tarjeta de Perfil y sigue abriendo el detalle', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
+  });
+  t.ctxTest.renderizarGrupos([GRUPO]);
+  const card = t.nodos.listaGrupos.hijos[0];
+
+  assert.ok(card.classList.contains('perfil'), 'la tarjeta reutiliza la superficie de Perfil');
+  assert.ok(card.classList.contains('grupo-actividad-card'), 'falta la clase de tarjeta');
+  assert.ok(card.classList.contains('grupo-actividad-card-full'), 'la tarjeta debe ser full-width');
+  const contenido = buscarPorClase(card, 'containerPerfil');
+  assert.ok(contenido, 'falta el contenedor interno de Perfil');
+  assert.ok(buscarPorClase(card, 'opciones'), 'falta el texto con el estilo de opciones');
+  assert.ok(textosDe(card).includes('Surf'));
+  const chevron = buscarPorClase(card, 'grupo-actividad-chevron');
+  assert.ok(chevron, 'falta el chevron');
+  assert.equal(contenido.hijos[contenido.hijos.length - 1], chevron, 'el chevron debe ir a la derecha');
+
+  card.disparar('click');
+  await esperar(() => t.nodos.vistaDetalleActividadGrupos.hidden === false);
+  assert.equal(t.nodos.tituloDetalleGrupo.textContent, 'Surf');
+});
+
 test('las cabeceras sticky existen en el markup y el CSS', () => {
   const actividad = fs.readFileSync(
     path.join(__dirname, '..', 'pages', 'actividadGrupos.html'),

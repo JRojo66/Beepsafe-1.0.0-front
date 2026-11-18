@@ -772,15 +772,14 @@ function crearTarjetaGrupo(grupo) {
   contenido.className = 'containerPerfil';
 
   const icono = document.createElement('img');
-  icono.className = 'encabezado';
   icono.src = '../imagenes/amigosSinFondoBlanco.png';
   icono.alt = '';
   contenido.appendChild(icono);
 
-  const textos = document.createElement('div');
-  textos.className = 'msj-fila-textos';
-  textos.appendChild(
-    crearTextoActividad('opciones', (grupo && grupo.name) || '(sin nombre)', 'div')
+  const textos = crearTextoActividad(
+    'opciones',
+    (grupo && grupo.name) || '(sin nombre)',
+    'div'
   );
   textos.appendChild(
     crearTextoActividad('grupo-actividad-secundario', secundarioGrupo(grupo), 'div')

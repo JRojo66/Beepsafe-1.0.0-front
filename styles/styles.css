@@ -1594,9 +1594,8 @@ a {
   display: block;
   width: 100%;
   max-width: none;
-  height: auto;
-  min-height: 4rem;
-  padding: 6px 0;
+  margin: 0;
+  padding: 0;
   border: none;
   border-radius: 20px;
   background-color: var(--color-fondo2);
@@ -1606,27 +1605,9 @@ a {
   cursor: pointer;
 }
 
-.grupo-actividad-card .containerPerfil {
-  margin-left: 0;
-  margin-right: 0;
-  padding-left: 14px;
-  padding-right: 14px;
-}
-
 .grupo-actividad-card:hover,
 .grupo-actividad-card:focus-visible {
   outline: 2px solid var(--color-principal);
-}
-
-.grupo-actividad-card .containerPerfil {
-  gap: 10px;
-}
-
-.grupo-actividad-card .opciones {
-  width: auto;
-  margin-left: 0;
-  font-size: 15px;
-  font-weight: bold;
 }
 
 .grupo-actividad-secundario {
