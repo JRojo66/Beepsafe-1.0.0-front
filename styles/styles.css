@@ -5195,4 +5195,6 @@ margin: 10px 0;
   .grp-configuracion .invitacion-actions > button {
     flex: 1 1 100%;
   }
+}.mis-contactos-pagina {
+  background-color: var(--color-fondo);
 }
