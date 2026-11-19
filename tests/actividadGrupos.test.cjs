@@ -10,8 +10,7 @@ const EXPORTS = `;globalThis.__test = {
   formatearHoraActividad, formatearFechaInteraccion, secundarioGrupo,
   renderizarGrupos, renderizarDetalleActividad, abrirDetalleGrupo,
   cargarGrupos, cargarDetalleGrupo, volverListaActividadGrupos,
-  crearTarjetaMiembro, valorDatetimeLocal, abrirModalCorregirCierre,
-  confirmarCorregirCierre,
+  crearTarjetaMiembro,
 };`;
 
 const AHORA = Date.UTC(2026, 4, 18, 12, 0); // lunes 09:00 en Buenos Aires
@@ -150,13 +149,6 @@ function crearContextoActividadGrupos(opciones = {}) {
     eliminarSesion: crearNodo({ textContent: 'Eliminar' }),
     cancelarConfirmarEliminar: crearNodo({ textContent: 'Cancelar' }),
     cerrarModalConfirmarEliminar: crearNodo({ textContent: '×' }),
-    modalCorregirCierre: crearNodo({ className: 'modal hidden' }),
-    horaCierreCorreccion: crearNodo({ tagName: 'INPUT', value: '' }),
-    errorCorreccionCierre: crearNodo(),
-    estadoCorreccionCierre: crearNodo(),
-    guardarCorregirCierre: crearNodo({ textContent: 'Guardar' }),
-    cancelarCorregirCierre: crearNodo({ textContent: 'Cancelar' }),
-    cerrarModalCorregirCierre: crearNodo({ textContent: '×' }),
     visorFotoEquipo: crearNodo({ className: 'visor-foto hidden' }),
     imagenVisorFotoEquipo: crearNodo({ tagName: 'IMG', src: '', alt: '' }),
     cerrarVisorFotoEquipo: crearNodo({ textContent: '×' }),
@@ -164,7 +156,6 @@ function crearContextoActividadGrupos(opciones = {}) {
   };
   nodos.modalEliminarSesion.classList.add('hidden');
   nodos.modalConfirmarEliminarSesion.classList.add('hidden');
-  nodos.modalCorregirCierre.classList.add('hidden');
   nodos.visorFotoEquipo.classList.add('hidden');
 
   const documentHandlers = {};
@@ -252,14 +243,6 @@ async function esperar(condicion, intentos = 200) {
     await new Promise((resolver) => setTimeout(resolver, 1));
   }
   assert.ok(condicion(), 'la condición esperada no se cumplió');
-}
-
-function datetimeLocalEsperado(epochMs) {
-  const fecha = new Date(epochMs);
-  const pad = (numero) => String(numero).padStart(2, '0');
-  return `${fecha.getFullYear()}-${pad(fecha.getMonth() + 1)}-${pad(fecha.getDate())}T${pad(
-    fecha.getHours()
-  )}:${pad(fecha.getMinutes())}`;
 }
 
 const GRUPO = { _id: 'g1', name: 'Surf', members: [1, 2, 3] };
@@ -735,21 +718,6 @@ await testAsync('solo los miembros con puedeEliminar muestran el botón Eliminar
     null,
     'sin puedeEliminar no hay botón'
   );
-
-  assert.ok(
-    buscarPorClase(t.nodos.listaVencidos.hijos[0], 'grupo-corregir-boton'),
-    'una sesión propia permite corregir el cierre'
-  );
-  assert.equal(
-    buscarPorClase(t.nodos.listaTerminados.hijos[0], 'grupo-corregir-boton'),
-    null,
-    'un registro no permite corregir el cierre'
-  );
-  assert.equal(
-    buscarPorClase(t.nodos.listaEnCurso.hijos[0], 'grupo-corregir-boton'),
-    null,
-    'una sesión ajena no permite corregir el cierre'
-  );
 });
 
 await testAsync('el primer diálogo no elimina y Escape/Cancelar/× abortan', async () => {
@@ -859,120 +827,6 @@ await testAsync('si falla el DELETE se mantiene la tarjeta y se muestra el error
   assert.equal(t.nodos.modalConfirmarEliminarSesion.classList.contains('hidden'), true);
 });
 
-console.log('# actividadGrupos.js — corregir cierre');
-
-await testAsync('el diálogo de corrección precarga el fin o ahora', async () => {
-  const t = crearContextoActividadGrupos({
-    fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
-  });
-  await t.ctxTest.abrirDetalleGrupo(GRUPO);
-  buscarPorClase(t.nodos.listaVencidos.hijos[0], 'grupo-corregir-boton').disparar('click');
-  assert.equal(t.nodos.modalCorregirCierre.classList.contains('hidden'), false);
-  assert.equal(t.nodos.horaCierreCorreccion.value, datetimeLocalEsperado(AHORA));
-
-  t.dispararDocumento('keydown', { key: 'Escape' });
-  assert.equal(t.nodos.modalCorregirCierre.classList.contains('hidden'), true);
-
-  const conFin = { ...MIEMBRO_VENCIDO, fin: '2026-05-18T11:30:00.000Z' };
-  const t2 = crearContextoActividadGrupos({
-    fetch: async () =>
-      respuestaOk({
-        activityState: { vencidos: [conFin], enCurso: [], terminados: [] },
-      }),
-  });
-  await t2.ctxTest.abrirDetalleGrupo(GRUPO);
-  buscarPorClase(t2.nodos.listaVencidos.hijos[0], 'grupo-corregir-boton').disparar('click');
-  assert.equal(
-    t2.nodos.horaCierreCorreccion.value,
-    datetimeLocalEsperado(Date.parse(conFin.fin))
-  );
-});
-
-await testAsync('Guardar convierte la hora local a ISO y refresca el detalle', async () => {
-  let corregido = false;
-  const t = crearContextoActividadGrupos({
-    fetch: async (url, init) => {
-      const metodo = (init && init.method) || 'GET';
-      if (metodo === 'PATCH') {
-        corregido = true;
-        return respuestaOk({});
-      }
-      return respuestaOk({
-        activityState: corregido
-          ? {
-              vencidos: [],
-              enCurso: [],
-              terminados: [{ ...MIEMBRO_VENCIDO, fin: '2026-05-18T10:30:00.000Z' }],
-            }
-          : estadoCompleto(),
-      });
-    },
-  });
-  await t.ctxTest.abrirDetalleGrupo(GRUPO);
-  buscarPorClase(t.nodos.listaVencidos.hijos[0], 'grupo-corregir-boton').disparar('click');
-  t.nodos.horaCierreCorreccion.value = '2026-05-18T10:30';
-  t.nodos.guardarCorregirCierre.disparar('click');
-
-  await esperar(() => t.fetchLog.some((l) => l.init && l.init.method === 'PATCH'));
-  const patch = t.fetchLog.find((l) => l.init && l.init.method === 'PATCH');
-  assert.equal(patch.url, 'http://back.test/api/message-events/session/v1/cierre');
-  assert.equal(patch.init.headers.Authorization, 'Bearer tok-grupos');
-  assert.equal(patch.init.headers['Content-Type'], 'application/json');
-  assert.deepEqual(JSON.parse(patch.init.body), {
-    detenidaEn: new Date('2026-05-18T10:30').toISOString(),
-  });
-
-  await esperar(() => t.nodos.modalCorregirCierre.classList.contains('hidden'));
-  assert.equal(t.nodos.modalCorregirCierre.classList.contains('hidden'), true);
-  assert.equal(t.nodos.estadoCorreccionCierre.textContent, 'Cierre corregido.');
-  await esperar(() => buscarPorClase(t.nodos.listaEnCurso, 'grupo-actividad-vacio'));
-  assert.ok(buscarPorClase(t.nodos.listaEnCurso, 'grupo-actividad-vacio'));
-  assert.equal(t.nodos.listaTerminados.hijos.length, 1);
-});
-
-await testAsync('un error de corrección muestra el mensaje inline y mantiene el diálogo', async () => {
-  const t = crearContextoActividadGrupos({
-    fetch: async (url, init) => {
-      const metodo = (init && init.method) || 'GET';
-      if (metodo === 'PATCH') {
-        return { ok: false, status: 400, json: async () => ({ error: 'Hora inválida' }) };
-      }
-      return respuestaOk({ activityState: estadoCompleto() });
-    },
-  });
-  await t.ctxTest.abrirDetalleGrupo(GRUPO);
-  buscarPorClase(t.nodos.listaVencidos.hijos[0], 'grupo-corregir-boton').disparar('click');
-  t.nodos.horaCierreCorreccion.value = '2026-05-18T10:30';
-  t.nodos.guardarCorregirCierre.disparar('click');
-
-  await esperar(() => t.nodos.errorCorreccionCierre.textContent === 'Hora inválida');
-  assert.equal(t.nodos.modalCorregirCierre.classList.contains('hidden'), false);
-  assert.equal(t.nodos.guardarCorregirCierre.disabled, false);
-});
-
-await testAsync('Escape, × y Cancelar cierran la corrección sin PATCH', async () => {
-  const t = crearContextoActividadGrupos({
-    fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
-  });
-  await t.ctxTest.abrirDetalleGrupo(GRUPO);
-  const abrir = () =>
-    buscarPorClase(t.nodos.listaVencidos.hijos[0], 'grupo-corregir-boton').disparar('click');
-
-  abrir();
-  t.dispararDocumento('keydown', { key: 'Escape' });
-  assert.equal(t.nodos.modalCorregirCierre.classList.contains('hidden'), true);
-
-  abrir();
-  t.nodos.cerrarModalCorregirCierre.disparar('click');
-  assert.equal(t.nodos.modalCorregirCierre.classList.contains('hidden'), true);
-
-  abrir();
-  t.nodos.cancelarCorregirCierre.disparar('click');
-  assert.equal(t.nodos.modalCorregirCierre.classList.contains('hidden'), true);
-
-  assert.equal(t.fetchLog.filter((l) => l.init && l.init.method === 'PATCH').length, 0);
-});
-
 console.log('# actividadGrupos.js — eliminadas');
 
 await testAsync('el toggle pide incluirEliminados y muestra la tarjeta eliminada', async () => {
@@ -1013,7 +867,6 @@ await testAsync('el toggle pide incluirEliminados y muestra la tarjeta eliminada
   const restaurar = buscarPorClase(card, 'grupo-restaurar-boton');
   assert.equal(restaurar.textContent, 'Restaurar');
   assert.equal(buscarPorClase(card, 'grupo-eliminar-boton'), null);
-  assert.equal(buscarPorClase(card, 'grupo-corregir-boton'), null);
   assert.ok(textosDe(card).includes('Dani'));
   assert.ok(textosDe(card).includes('Surf'));
   assert.ok(textosDe(card).includes('Tabla'));
@@ -1056,7 +909,7 @@ await testAsync('Restaurar una sesión usa message-events y refresca el detalle'
   await esperar(() => !buscarPorClase(t.nodos.listaVencidos, 'grupo-eliminada-label'));
   assert.equal(t.nodos.toggleEliminadosGrupo.checked, true);
   assert.equal(t.nodos.estadoEliminarSesion.textContent, '');
-  assert.ok(buscarPorClase(t.nodos.listaVencidos, 'grupo-corregir-boton'));
+  assert.ok(buscarPorClase(t.nodos.listaVencidos, 'grupo-eliminar-boton'));
 });
 
 await testAsync('Restaurar un registro usa activity-logs y refresca el detalle', async () => {
@@ -1140,11 +993,6 @@ test('la página declara los diálogos de eliminación y corrección', () => {
     'id="eliminarSesion"',
     'id="cancelarEliminarSesion"',
     'id="cancelarConfirmarEliminar"',
-    'id="modalCorregirCierre"',
-    'id="horaCierreCorreccion"',
-    'Corregir hora de cierre',
-    'id="guardarCorregirCierre"',
-    'id="errorCorreccionCierre"',
     'id="toggleEliminadosGrupo"',
     'Ver eliminadas',
   ]) {

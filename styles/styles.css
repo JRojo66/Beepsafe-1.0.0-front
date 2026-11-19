@@ -1759,7 +1759,6 @@ a {
 }
 
 .grupo-eliminar-boton,
-.grupo-corregir-boton,
 .grupo-restaurar-boton {
   margin-left: 0;
   padding: 4px 10px;
@@ -1776,14 +1775,11 @@ a {
   color: #ff8a8a;
 }
 
-.grupo-corregir-boton,
 .grupo-restaurar-boton {
   border: 1px solid var(--color-principal);
   color: var(--color-principal);
 }
 
-.grupo-corregir-boton:hover,
-.grupo-corregir-boton:focus-visible,
 .grupo-restaurar-boton:hover,
 .grupo-restaurar-boton:focus-visible {
   background-color: rgba(144, 255, 239, 0.15);
@@ -1818,18 +1814,6 @@ a {
   background-color: var(--color-fondo);
   color: #ffffff;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
-  text-align: left;
-}
-
-.modal-content.modal-confirmacion p {
-  min-width: 0;
-  max-width: none;
-  margin: 0;
-  padding: 0;
-  border-radius: 0;
-  background-color: transparent;
-  box-shadow: none;
-  color: rgba(255, 255, 255, 0.85);
   text-align: left;
 }
 
@@ -1898,59 +1882,6 @@ a {
 .modal-confirmacion .modal-btn:focus-visible {
   outline: 2px solid #ffffff;
   outline-offset: 2px;
-}
-
-.modal-confirmacion .modal-campo-label {
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.modal-confirmacion .modal-input {
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 12px;
-  background-color: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  color-scheme: dark;
-}
-
-.modal-confirmacion .modal-input:focus {
-  outline: 2px solid var(--color-principal);
-  outline-offset: 1px;
-}
-
-.modal-content.modal-confirmacion p.modal-error {
-  margin: 8px 0 0;
-  color: #ff8a8a;
-  font-size: 13px;
-}
-
-.modal-campo-label {
-  display: block;
-  margin: 0 0 6px;
-  color: #222222;
-  font-weight: bold;
-  text-align: left;
-}
-
-.modal-input {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid #cccccc;
-  border-radius: 10px;
-  font-family: inherit;
-  font-size: 14px;
-}
-
-.modal-error {
-  min-height: 1.2em;
-  margin: 8px 0 0;
-  color: #c62828;
-  font-size: 13px;
-  text-align: left;
-}
-
-#estadoCorreccionCierre {
-  color: var(--color-principal);
 }
 
 .grupo-alarma-estado {
