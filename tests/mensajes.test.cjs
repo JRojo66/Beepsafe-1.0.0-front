@@ -477,22 +477,22 @@ test('las cuatro páginas declaran el preview fijo antes y después del textarea
   const paginas = [
     [
       'mensajeDeInicio.html',
-      'Aviso de BeepSafe para María: Marcelo comenzó una sesión de windsurf.',
+      'Aviso de BeepSafe para &lt;tu contacto&gt;: Marcelo comenzó una sesión de windsurf.',
       /^Tiene previsto finalizarla el .+ - Enviado desde BeepSafe\.$/,
     ],
     [
       'mensajeDeFin.html',
-      'Aviso de BeepSafe para María: Marcelo finalizó su sesión de windsurf.',
+      'Aviso de BeepSafe para &lt;tu contacto&gt;: Marcelo finalizó su sesión de windsurf.',
       /^- Enviado desde BeepSafe\.$/,
     ],
     [
       'mensajeDeAlarma.html',
-      'Aviso de BeepSafe para María: Marcelo no detuvo su sesión de windsurf en el tiempo previsto.',
+      'Aviso de BeepSafe para &lt;tu contacto&gt;: Marcelo no detuvo su sesión de windsurf en el tiempo previsto.',
       /^- Enviado desde BeepSafe\.$/,
     ],
     [
       'mensajeDeCancelacion.html',
-      'Aviso de Beepsafe para María. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido.',
+      'Aviso de Beepsafe para &lt;tu contacto&gt;. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido.',
       /^Enviado desde Beepsafe\.$/,
     ],
   ];
@@ -921,7 +921,7 @@ async function testsAsync() {
     );
     assert.equal(
       t.nodos.mensajeFijoAntes.textContent,
-      'Aviso de Beepsafe para María. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido.',
+      'Aviso de Beepsafe para <tu contacto>. Marcelo avisa que está bien, y que el mensaje de alarma ya no es válido.',
       'bloque fijo con fallbacks'
     );
     assert.equal(t.nodos.mensajeFijoDespues.textContent, 'Enviado desde Beepsafe.');
@@ -1799,7 +1799,7 @@ async function testsAsync() {
     inicio.ctxTest.renderizarPreview('inicio');
     assert.equal(
       inicio.nodos.mensajeFijoAntes.textContent,
-      'Aviso de BeepSafe para María: Marcelo comenzó una sesión de windsurf.'
+      'Aviso de BeepSafe para <tu contacto>: Marcelo comenzó una sesión de windsurf.'
     );
     assert.equal(
       inicio.nodos.mensajeFijoDespues.textContent,
@@ -1815,7 +1815,7 @@ async function testsAsync() {
     fin.ctxTest.renderizarPreview('fin');
     assert.equal(
       fin.nodos.mensajeFijoAntes.textContent,
-      'Aviso de BeepSafe para María: Marcelo finalizó su sesión de windsurf.'
+      'Aviso de BeepSafe para <tu contacto>: Marcelo finalizó su sesión de windsurf.'
     );
     assert.equal(fin.nodos.mensajeFijoDespues.textContent, '- Enviado desde BeepSafe.');
     assert.ok(!fin.nodos.mensajeFijoDespues.textContent.includes('Tiene previsto'));
@@ -1824,7 +1824,7 @@ async function testsAsync() {
     alarma.ctxTest.renderizarPreview('alarma');
     assert.equal(
       alarma.nodos.mensajeFijoAntes.textContent,
-      'Aviso de BeepSafe para María: Marcelo no detuvo su sesión de windsurf en el tiempo previsto.'
+      'Aviso de BeepSafe para <tu contacto>: Marcelo no detuvo su sesión de windsurf en el tiempo previsto.'
     );
     assert.equal(alarma.nodos.mensajeFijoDespues.textContent, '- Enviado desde BeepSafe.');
 
@@ -1863,7 +1863,7 @@ async function testsAsync() {
     await t.ctxTest.inicializarEditorMensaje('fin');
     assert.equal(
       t.nodos.mensajeFijoAntes.textContent,
-      'Aviso de BeepSafe para María: Ana finalizó su sesión de windsurf.'
+      'Aviso de BeepSafe para <tu contacto>: Ana finalizó su sesión de windsurf.'
     );
 
     store.set(
@@ -1876,7 +1876,7 @@ async function testsAsync() {
 
     assert.equal(
       t.nodos.mensajeFijoAntes.textContent,
-      'Aviso de BeepSafe para María: Ana finalizó su sesión de Escalada.'
+      'Aviso de BeepSafe para <tu contacto>: Ana finalizó su sesión de Escalada.'
     );
   });
 }

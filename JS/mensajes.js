@@ -2,13 +2,16 @@ const TIPOS_MENSAJE = ['inicio', 'fin', 'alarma', 'cancelacion', 'prueba'];
 
 const CLAVE_MENSAJES = 'beepsafe_mensajes';
 
+const TEXTO_ALARMA_POR_DEFECTO =
+  'Por favor, confirmá que haya terminado mi sesión. Puede ser que esté necesitando ayuda. Gracias!';
+
 const TEXTO_CANCELACION_POR_DEFECTO =
   'Estoy bien! Solo no llegué a cancelar la alarma a tiempo.';
 
 const MENSAJES_POR_DEFECTO = {
   inicio: '',
   fin: '',
-  alarma: '',
+  alarma: TEXTO_ALARMA_POR_DEFECTO,
   cancelacion: TEXTO_CANCELACION_POR_DEFECTO,
   prueba: '',
 };
@@ -45,7 +48,7 @@ const PLANTILLAS_PREVIEW = {
 };
 
 const VALORES_PREVIEW_RESPALDO = {
-  contacto: 'María',
+  contacto: '<tu contacto>',
   usuario: 'Marcelo',
   actividad: 'windsurf',
   hora: '19:00',
@@ -873,7 +876,7 @@ function actualizarSelectDisponibles(tipo, disponibles, bloquear) {
   for (const contacto of disponibles) {
     const opcion = document.createElement('option');
     opcion.value = contacto.nombre;
-    opcion.textContent = `${contacto.nombre} - ${contacto.telefono || "sin tel?fono"}`;
+    opcion.textContent = `${contacto.nombre} - ${contacto.telefono || "sin teléfono"}`;
     select.appendChild(opcion);
   }
   select.disabled = bloquear;
@@ -938,7 +941,7 @@ async function refrescarContactos(mensajeExito) {
     return false;
   }
   if (!resultado.ok) {
-    marcarEstado(estado, 'No se pudieron cargar los contactos. Pod?s seguir escribiendo tu mensaje.', 'error');
+    marcarEstado(estado, 'No se pudieron cargar los contactos. Podés seguir escribiendo tu mensaje.', 'error');
     return false;
   }
   const receptores = aplicarContactos(resultado.contactos);
@@ -946,11 +949,11 @@ async function refrescarContactos(mensajeExito) {
     if (mensajeExito) {
       marcarEstado(estado, mensajeExito, 'ok');
     } else if (resultado.contactos.length === 0) {
-      marcarEstado(estado, 'Todav?a no ten?s contactos.', '');
+      marcarEstado(estado, 'Todavía no tenés contactos.', '');
     } else if (tipoValido(tipoDesdePagina())) {
-      marcarEstado(estado, 'Todav?a no ten?s contactos para este mensaje.', '');
+      marcarEstado(estado, 'Todavía no tenés contactos para este mensaje.', '');
     } else {
-      marcarEstado(estado, 'Todav?a no ten?s contactos que reciban mensajes.', '');
+      marcarEstado(estado, 'Todavía no tenés contactos que reciban mensajes.', '');
     }
     return true;
   }
@@ -1012,7 +1015,7 @@ async function manejarAltaContacto(evento) {
   aplicarContactos(contactosConocidos);
   marcarEstado(
     estado,
-    'Contacto agregado, pero no pudimos actualizar la lista; mostrando la ?ltima informaci?n disponible.',
+    'Contacto agregado, pero no pudimos actualizar la lista; mostrando la última información disponible.',
     'aviso'
   );
 }
