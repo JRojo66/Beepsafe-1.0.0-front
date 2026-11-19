@@ -11,7 +11,8 @@ const EXPORTS = `;globalThis.__test = {
   actualizarContacto, eliminarContacto, claveConUsuario, resumirMensaje,
   emailDesdeToken, guardarDesdeEditor, inicializarEditorMensaje,
   inicializarListaMensajes, inicializarContactos, refrescarContactos,
-  crearFilaContacto, manejarAltaContacto, abrirEdicionContacto,
+  crearFilaContacto, manejarAltaContacto, actualizarAsignacionContacto, quitarContactoDeLista,
+  contactoAsignado, contactosAsignados, campoAsignacion, limiteContactos,
   actualizarContador, marcarSesionExpirada, enviarMensajeDePrueba,
   inicializarBotonPrueba, nombreDesdeToken, leerUltimaSesionPreview,
   actividadPreview, formatearHoraPreview, horaPreview, contactoPreview,
@@ -190,9 +191,7 @@ function crearNodosBase() {
     contadorContactos: crearNodo({ textContent: '0 de 3' }),
     mensajeLimiteContactos: crearNodo(),
     formAgregarContacto: crearNodo({ tagName: 'FORM' }),
-    contactoNombre: crearNodo({ tagName: 'INPUT' }),
-    contactoTelefono: crearNodo({ tagName: 'INPUT' }),
-    contactoMensajes: crearNodo({ tagName: 'INPUT', checked: true }),
+    contactoDisponible: crearNodo({ tagName: 'SELECT', value: '' }),
     botonAgregarContacto: crearNodo({ tagName: 'BUTTON' }),
     estadoContactos: crearNodo(),
     listaMensajes: crearNodo({ tagName: 'NAV' }),
@@ -406,9 +405,7 @@ test('las cinco páginas de mensaje cumplen el contrato de HTML', () => {
     'seccionContactos',
     'listaContactos',
     'formAgregarContacto',
-    'contactoNombre',
-    'contactoTelefono',
-    'contactoMensajes',
+    'contactoDisponible',
     'botonAgregarContacto',
     'estadoContactos',
   ];
@@ -451,10 +448,18 @@ test('las cinco páginas de mensaje cumplen el contrato de HTML', () => {
     assert.ok(html.includes('maxlength="1000"'), `${archivo}: falta maxlength=1000`);
     assert.ok(html.includes('id="botonGrabar" type="button"'), `${archivo}: el botón debe ser type=button`);
     assert.ok(
-      html.includes('id="contactoMensajes" name="mensajes" checked hidden'),
-      `${archivo}: #contactoMensajes debe seguir existiendo, oculto`
+      html.includes('id="contactoDisponible" name="contacto" required'),
+      `${archivo}: falta el selector de contactos disponibles`
     );
-    assert.ok(html.includes('>0 de 3</span>'), `${archivo}: el contador arranca en 0 de 3`);
+    const limiteInicial = tipo === 'prueba' ? 1 : 3;
+    assert.ok(
+      html.includes(`>0 de ${limiteInicial}</span>`),
+      `${archivo}: el contador arranca en 0 de ${limiteInicial}`
+    );
+    assert.ok(
+      !html.includes('mensajesPorTipo'),
+      `${archivo}: no debe quedar la asignación por tipo`
+    );
     assert.ok(html.includes('../JS/config.js'), `${archivo}: falta config.js`);
     assert.ok(html.includes('../JS/mensajes.js'), `${archivo}: falta mensajes.js`);
     if (tipo === 'cancelacion') {
@@ -705,7 +710,7 @@ async function testsAsync() {
       fetch: async () =>
         respuestaOk({
           contactos: [
-            { nombre: 'Ana', telefono: '123', mensajes: true, visibilidad: false },
+            { nombre: 'Ana', telefono: '123', mensajesCompartidos: true, mensajePrueba: false },
             { nombre: 42 },
           ],
         }),
@@ -717,14 +722,8 @@ async function testsAsync() {
       {
         nombre: 'Ana',
         telefono: '123',
-        mensajes: true,
-        mensajesPorTipo: {
-          inicio: true,
-          fin: true,
-          alarma: true,
-          cancelacion: true,
-          prueba: true,
-        },
+        mensajesCompartidos: true,
+        mensajePrueba: false,
       },
     ]);
     assert.equal(t.fetchLog[0].url, 'http://back.test/api/contacts');
@@ -951,28 +950,12 @@ async function testsAsync() {
               {
                 nombre: 'SoloCancelacion',
                 telefono: '000',
-                mensajes: true,
-                mensajesPorTipo: {
-                  inicio: false,
-                  fin: false,
-                  alarma: false,
-                  cancelacion: true,
-                  prueba: false,
-                },
-                visibilidad: true,
+                mensajesCompartidos: false,
               },
               {
                 nombre: 'Carla',
                 telefono: '111',
-                mensajes: true,
-                mensajesPorTipo: {
-                  inicio: false,
-                  fin: false,
-                  alarma: true,
-                  cancelacion: false,
-                  prueba: false,
-                },
-                visibilidad: true,
+                mensajesCompartidos: true,
               },
             ],
           });
@@ -1017,296 +1000,100 @@ async function testsAsync() {
     assert.equal(t.nodos.previewPrueba.textContent, 'Este es un mensaje de prueba');
   });
 
-  await testAsync('los contactos renderizan fila y los clicks disparan POST/PUT/DELETE', async () => {
-    let contactos = [
-      {
-        nombre: 'Ana',
-        telefono: '+54911 1234 5678',
-        mensajes: true,
-        mensajesPorTipo: { inicio: true },
-      },
+  const contactoAsignable = (nombre, extra = {}) => ({
+    nombre,
+    telefono: `+54911${nombre.length}${nombre.length}`,
+    mensajesCompartidos: false,
+    mensajePrueba: false,
+    ...extra,
+  });
+
+  const nombresDeLista = (t) => t.nodos.listaContactos.hijos.map((nodo) => textosDe(nodo)[0]);
+
+  await testAsync('las cuatro pantallas comparten la misma lista de contactos', async () => {
+    const contactos = [
+      contactoAsignable('Ana', { mensajesCompartidos: true }),
+      contactoAsignable('Beto', { mensajesCompartidos: true }),
+      contactoAsignable('Carla'),
     ];
-    const token = crearToken({ email: 'ana@test.com' });
-    const store = new Map([['token', token]]);
+    for (const tipo of ['inicio', 'fin', 'alarma', 'cancelacion']) {
+      const t = crearContexto({
+        dataset: { tipo },
+        store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
+        fetch: async () => respuestaOk({ contactos }),
+      });
+      await t.ctxTest.inicializarContactos();
+      assert.deepEqual(nombresDeLista(t), ['Ana', 'Beto'], tipo);
+      assert.equal(t.nodos.contadorContactos.textContent, '2 de 3', tipo);
+    }
+  });
+
+  await testAsync('prueba usa mensajePrueba y bloquea el segundo contacto', async () => {
+    const contactos = [
+      contactoAsignable('Ana', { mensajesCompartidos: true }),
+      contactoAsignable('Beto', { mensajePrueba: true }),
+      contactoAsignable('Carla'),
+    ];
     const t = crearContexto({
-      dataset: { tipo: 'inicio' },
-      store,
+      dataset: { tipo: 'prueba' },
+      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
       fetch: async (url, init) => {
         const metodo = (init && init.method) || 'GET';
-        if (!url.includes('/api/contacts')) throw new Error(`URL inesperada: ${url}`);
         if (metodo === 'GET') return respuestaOk({ contactos });
-        if (metodo === 'POST') {
-          contactos = [...contactos, JSON.parse(init.body)];
-          return respuestaOk({});
-        }
         if (metodo === 'PUT') return respuestaOk({});
-        if (metodo === 'DELETE') {
-          contactos = [];
-          return respuestaOk({});
-        }
         throw new Error(`método inesperado: ${metodo}`);
       },
     });
-
     await t.ctxTest.inicializarContactos();
-    assert.equal(t.nodos.listaContactos.hijos.length, 1);
-    const fila = t.nodos.listaContactos.hijos[0];
-    const textos = textosDe(fila);
-    assert.ok(textos.includes('Ana'), 'la fila muestra el nombre');
-    assert.ok(textos.includes('+54911 1234 5678'), 'la fila muestra el teléfono');
-    assert.ok(textos.includes('Recibe mensajes'), 'la fila muestra el marcador de mensajes');
+    assert.deepEqual(nombresDeLista(t), ['Beto']);
+    assert.equal(t.nodos.contadorContactos.textContent, '1 de 1');
+    assert.equal(t.nodos.botonAgregarContacto.disabled, true);
 
-    t.nodos.contactoNombre.value = 'Beto';
-    t.nodos.contactoTelefono.value = '555';
-    t.nodos.contactoMensajes.checked = true;
+    t.nodos.contactoDisponible.value = 'Ana';
     await t.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
-
-    const post = t.fetchLog.find((llamada) => llamada.init && llamada.init.method === 'POST');
-    assert.ok(post, 'se hizo POST al agregar');
-    assert.equal(post.url, 'http://back.test/api/contacts');
-    assert.deepEqual(JSON.parse(post.init.body), {
-      nombre: 'Beto',
-      telefono: '555',
-      mensajesPorTipo: { inicio: true },
-    });
-
-    const filaBeto = t.nodos.listaContactos.hijos.find((nodo) => textosDe(nodo).includes('Beto'));
-    assert.ok(filaBeto, 'la fila nueva aparece tras el refresh');
-    await buscarPorTexto(filaBeto, 'Editar').disparar('click');
-    await buscarPorTexto(filaBeto, 'Guardar').disparar('click');
-
-    const put = t.fetchLog.find((llamada) => llamada.init && llamada.init.method === 'PUT');
-    assert.ok(put, 'se hizo PUT al editar');
-    assert.equal(put.url, 'http://back.test/api/contacts');
-    assert.deepEqual(JSON.parse(put.init.body), {
-      nombre: 'Beto',
-      mensajesPorTipo: { inicio: true },
-    });
-
-    const filaActual = t.nodos.listaContactos.hijos.find((nodo) => textosDe(nodo).includes('Beto'));
-    await buscarPorTexto(filaActual, 'Eliminar').disparar('click');
-
-    const borrado = t.fetchLog.find((llamada) => llamada.init && llamada.init.method === 'DELETE');
-    assert.ok(borrado, 'se hizo DELETE al eliminar');
-    assert.equal(borrado.url, 'http://back.test/api/contacts?nombre=Beto');
-    assert.equal(t.nodos.listaContactos.hijos.length, 0);
-    assert.equal(t.nodos.estadoContactos.textContent, 'Contacto eliminado.');
+    assert.equal(t.fetchLog.filter((l) => l.init && l.init.method === 'PUT').length, 0);
   });
 
-  await testAsync('la lista de contactos muestra solo a quienes reciben mensajes', async () => {
+  await testAsync('agregar desde una pantalla persiste mensajesCompartidos', async () => {
     let contactos = [
-      { nombre: 'Ana', telefono: '111', mensajes: true, visibilidad: true },
-      { nombre: 'Beto', telefono: '222', mensajes: false, visibilidad: true },
-      { nombre: 'Carla', telefono: '333', mensajes: true, visibilidad: true },
+      contactoAsignable('Ana', { mensajesCompartidos: true }),
+      contactoAsignable('Beto'),
     ];
-    const token = crearToken({ email: 'ana@test.com' });
-    const t = crearContexto({
-      store: new Map([['token', token]]),
-      fetch: async () => respuestaOk({ contactos }),
-    });
-
-    await t.ctxTest.inicializarContactos();
-    assert.equal(t.nodos.listaContactos.hijos.length, 2, 'solo se renderizan los receptores');
-    const textos = t.nodos.listaContactos.hijos.map((nodo) => textosDe(nodo)).flat();
-    assert.ok(textos.includes('Ana'), 'la receptora Ana se muestra');
-    assert.ok(textos.includes('Carla'), 'la receptora Carla se muestra');
-    assert.ok(!textos.includes('Beto'), 'Beto no recibe mensajes y no se muestra');
-
-    contactos = contactos.map((contacto) => ({ ...contacto, mensajes: false }));
-    await t.ctxTest.refrescarContactos();
-    assert.equal(t.nodos.listaContactos.hijos.length, 0, 'sin receptores no hay filas');
-    assert.ok(
-      t.nodos.estadoContactos.textContent.includes('que reciban mensajes'),
-      'el estado vacío aclara que no hay contactos que reciban mensajes'
-    );
-  });
-
-  await testAsync('desmarcar "Recibe mis mensajes" oculta la fila y conserva el aviso', async () => {
-    let contactos = [
-      { nombre: 'Ana', telefono: '111', mensajes: true, mensajesPorTipo: { inicio: true } },
-    ];
-    const token = crearToken({ email: 'ana@test.com' });
     const t = crearContexto({
       dataset: { tipo: 'inicio' },
-      store: new Map([['token', token]]),
+      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
       fetch: async (url, init) => {
         const metodo = (init && init.method) || 'GET';
         if (metodo === 'GET') return respuestaOk({ contactos });
         if (metodo === 'PUT') {
           const cuerpo = JSON.parse(init.body);
-          contactos = contactos.map((contacto) =>
-            contacto.nombre === cuerpo.nombre ? { ...contacto, ...cuerpo } : contacto
-          );
+          contactos = contactos.map((c) => (c.nombre === cuerpo.nombre ? { ...c, ...cuerpo } : c));
           return respuestaOk({});
         }
         throw new Error(`método inesperado: ${metodo}`);
       },
     });
-
     await t.ctxTest.inicializarContactos();
-    assert.equal(t.nodos.listaContactos.hijos.length, 1, 'Ana arranca listada');
-    const fila = t.nodos.listaContactos.hijos[0];
-    await buscarPorTexto(fila, 'Editar').disparar('click');
-
-    const ayuda = buscarPorTexto(fila, 'Si lo desactivás, dejará de aparecer en esta lista.');
-    assert.ok(ayuda, 'el editor muestra el aviso de consecuencias');
-    const checks = buscarTodos(fila, (nodo) => nodo.type === 'checkbox');
-    assert.equal(checks.length, 1, 'el editor tiene el check de mensajes');
-    checks[0].checked = false;
-
-    await buscarPorTexto(fila, 'Guardar').disparar('click');
-    assert.equal(t.nodos.listaContactos.hijos.length, 0, 'la fila desaparece al dejar de recibir');
-    assert.equal(t.nodos.estadoContactos.textContent, 'Contacto actualizado.');
-    assert.ok(t.nodos.estadoContactos.classList.contains('mensajes-estado-ok'));
-  });
-
-  await testAsync('agregar un contacto sin el check no lo agrega a la lista visible', async () => {
-    let contactos = [
-      { nombre: 'Ana', telefono: '111', mensajes: true, mensajesPorTipo: { inicio: true } },
-    ];
-    const token = crearToken({ email: 'ana@test.com' });
-    const t = crearContexto({
-      dataset: { tipo: 'inicio' },
-      store: new Map([['token', token]]),
-      fetch: async (url, init) => {
-        const metodo = (init && init.method) || 'GET';
-        if (metodo === 'GET') return respuestaOk({ contactos });
-        if (metodo === 'POST') {
-          contactos = [...contactos, JSON.parse(init.body)];
-          return respuestaOk({});
-        }
-        throw new Error(`método inesperado: ${metodo}`);
-      },
-    });
-
-    await t.ctxTest.inicializarContactos();
-    t.nodos.contactoNombre.value = 'Beto';
-    t.nodos.contactoTelefono.value = '222';
-    t.nodos.contactoMensajes.checked = false;
+    t.nodos.contactoDisponible.value = 'Beto';
     await t.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
 
-    const post = t.fetchLog.find((llamada) => llamada.init && llamada.init.method === 'POST');
-    assert.ok(post, 'se hizo POST al agregar');
-    assert.deepEqual(JSON.parse(post.init.body), {
+    const put = t.fetchLog.find((l) => l.init && l.init.method === 'PUT');
+    assert.ok(put, 'se guardó la asignación');
+    assert.deepEqual(JSON.parse(put.init.body), {
       nombre: 'Beto',
-      telefono: '222',
-      mensajesPorTipo: { inicio: false },
+      mensajesCompartidos: true,
     });
-    assert.equal(t.nodos.listaContactos.hijos.length, 1, 'solo sigue visible Ana');
-    assert.ok(
-      !textosDe(t.nodos.listaContactos).includes('Beto'),
-      'Beto no aparece porque no recibe mensajes'
-    );
-  });
-
-  await testAsync('la lista filtra por mensajesPorTipo del tipo de la página', async () => {
-    const contactos = [
-      {
-        nombre: 'Ana',
-        telefono: '111',
-        mensajes: true,
-        mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
-        visibilidad: true,
-      },
-      {
-        nombre: 'Beto',
-        telefono: '222',
-        mensajes: true,
-        mensajesPorTipo: { inicio: false, fin: true, alarma: false, prueba: false },
-        visibilidad: true,
-      },
-      {
-        nombre: 'Carla',
-        telefono: '333',
-        mensajes: false,
-        mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
-        visibilidad: true,
-      },
-    ];
-    const t = crearContexto({
-      dataset: { tipo: 'inicio' },
-      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
-      fetch: async () => respuestaOk({ contactos }),
-    });
-
-    await t.ctxTest.inicializarContactos();
-    assert.equal(t.nodos.listaContactos.hijos.length, 2, 'solo se listan Ana y Carla');
-    const textos = t.nodos.listaContactos.hijos.map((nodo) => textosDe(nodo)).flat();
-    assert.ok(textos.includes('Ana'), 'Ana recibe inicio y se lista');
-    assert.ok(textos.includes('Carla'), 'Carla recibe inicio y se lista');
-    assert.ok(!textos.includes('Beto'), 'Beto recibe fin y no se lista en inicio');
+    assert.deepEqual(nombresDeLista(t), ['Ana', 'Beto']);
     assert.equal(t.nodos.contadorContactos.textContent, '2 de 3');
+    assert.equal(t.nodos.estadoContactos.textContent, 'Contacto agregado.');
   });
 
-  await testAsync('un contacto asignado solo a otro tipo no se lista', async () => {
+  await testAsync('el límite de 3 bloquea el cuarto contacto compartido', async () => {
     const contactos = [
-      {
-        nombre: 'Beto',
-        telefono: '222',
-        mensajes: true,
-        mensajesPorTipo: { inicio: false, fin: true, alarma: false, prueba: false },
-        visibilidad: true,
-      },
-    ];
-    const t = crearContexto({
-      dataset: { tipo: 'inicio' },
-      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
-      fetch: async () => respuestaOk({ contactos }),
-    });
-
-    await t.ctxTest.inicializarContactos();
-    assert.equal(t.nodos.listaContactos.hijos.length, 0, 'el contacto de fin no aparece en inicio');
-    assert.ok(
-      t.nodos.estadoContactos.textContent.includes('para este mensaje'),
-      'el estado vacío habla del mensaje de la página'
-    );
-    assert.equal(t.nodos.contadorContactos.textContent, '0 de 3');
-  });
-
-  await testAsync('el alta envía mensajesPorTipo solo con el tipo de la página', async () => {
-    let contactos = [];
-    const t = crearContexto({
-      dataset: { tipo: 'alarma' },
-      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
-      fetch: async (url, init) => {
-        const metodo = (init && init.method) || 'GET';
-        if (metodo === 'GET') return respuestaOk({ contactos });
-        if (metodo === 'POST') {
-          contactos = [...contactos, JSON.parse(init.body)];
-          return respuestaOk({});
-        }
-        throw new Error(`método inesperado: ${metodo}`);
-      },
-    });
-
-    await t.ctxTest.inicializarContactos();
-    t.nodos.contactoNombre.value = 'Beto';
-    t.nodos.contactoTelefono.value = '555';
-    t.nodos.contactoMensajes.checked = true;
-    await t.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
-
-    const post = t.fetchLog.find((llamada) => llamada.init && llamada.init.method === 'POST');
-    assert.ok(post, 'se hizo POST al agregar');
-    assert.deepEqual(JSON.parse(post.init.body), {
-      nombre: 'Beto',
-      telefono: '555',
-      mensajesPorTipo: { alarma: true },
-    });
-    const cuerpo = JSON.parse(post.init.body);
-    assert.equal('mensajes' in cuerpo, false, 'el alta no envía el booleano legacy');
-    assert.deepEqual(Object.keys(cuerpo.mensajesPorTipo), ['alarma']);
-    assert.equal(t.nodos.listaContactos.hijos.length, 1, 'el contacto nuevo aparece en la lista');
-  });
-
-  await testAsync('la edición hace PUT con mensajesPorTipo solo del tipo de la página', async () => {
-    const contactos = [
-      {
-        nombre: 'Ana',
-        telefono: '111',
-        mensajes: true,
-        mensajesPorTipo: { inicio: true, fin: true, alarma: false, prueba: false },
-        visibilidad: true,
-      },
+      contactoAsignable('Ana', { mensajesCompartidos: true }),
+      contactoAsignable('Beto', { mensajesCompartidos: true }),
+      contactoAsignable('Carla', { mensajesCompartidos: true }),
+      contactoAsignable('Dani'),
     ];
     const t = crearContexto({
       dataset: { tipo: 'inicio' },
@@ -1318,219 +1105,216 @@ async function testsAsync() {
         throw new Error(`método inesperado: ${metodo}`);
       },
     });
-
     await t.ctxTest.inicializarContactos();
-    const fila = t.nodos.listaContactos.hijos[0];
-    await buscarPorTexto(fila, 'Editar').disparar('click');
-    const checks = buscarTodos(fila, (nodo) => nodo.type === 'checkbox');
-    assert.equal(checks.length, 1, 'el editor tiene el check de mensajes');
-    assert.equal(checks[0].checked, true, 'el check refleja el tipo de la página');
-    checks[0].checked = false;
+    assert.deepEqual(nombresDeLista(t), ['Ana', 'Beto', 'Carla']);
+    assert.equal(t.nodos.contadorContactos.textContent, '3 de 3');
+    assert.ok(t.nodos.mensajeLimiteContactos.textContent.includes('3 contactos'));
+    assert.equal(t.nodos.botonAgregarContacto.disabled, true);
+    assert.equal(t.nodos.contactoDisponible.disabled, true);
 
-    await buscarPorTexto(fila, 'Guardar').disparar('click');
-    const put = t.fetchLog.find((llamada) => llamada.init && llamada.init.method === 'PUT');
-    assert.ok(put, 'se hizo PUT al editar');
-    assert.deepEqual(JSON.parse(put.init.body), {
-      nombre: 'Ana',
-      mensajesPorTipo: { inicio: false },
-    });
-    const cuerpo = JSON.parse(put.init.body);
-    assert.equal('mensajes' in cuerpo, false, 'la edición no envía el booleano legacy');
-    assert.deepEqual(Object.keys(cuerpo.mensajesPorTipo), ['inicio']);
+    t.nodos.contactoDisponible.value = 'Dani';
+    await t.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
+    assert.equal(t.fetchLog.filter((l) => l.init && l.init.method === 'PUT').length, 0);
   });
 
-  await testAsync('con 3 contactos el alta se deshabilita y el contador marca 3 de 3', async () => {
-    const contactos = Array.from({ length: 3 }, (_, indice) => ({
-      nombre: `Contacto ${indice}`,
-      telefono: `555${indice}`,
-      mensajes: true,
-      mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
-      visibilidad: true,
-    }));
+  await testAsync('quitar un contacto actualiza la lista compartida', async () => {
+    let contactos = [
+      contactoAsignable('Ana', { mensajesCompartidos: true }),
+      contactoAsignable('Beto', { mensajesCompartidos: true }),
+    ];
     const t = crearContexto({
-      dataset: { tipo: 'inicio' },
+      dataset: { tipo: 'fin' },
+      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (metodo === 'GET') return respuestaOk({ contactos });
+        if (metodo === 'PUT') {
+          const cuerpo = JSON.parse(init.body);
+          contactos = contactos.map((c) => (c.nombre === cuerpo.nombre ? { ...c, ...cuerpo } : c));
+          return respuestaOk({});
+        }
+        throw new Error(`método inesperado: ${metodo}`);
+      },
+    });
+    await t.ctxTest.inicializarContactos();
+    const fila = t.nodos.listaContactos.hijos.find((nodo) => textosDe(nodo).includes('Ana'));
+    await buscarPorTexto(fila, 'Quitar').disparar('click');
+
+    const put = t.fetchLog.find((l) => l.init && l.init.method === 'PUT');
+    assert.ok(put, 'se guardó la desasignación');
+    assert.deepEqual(JSON.parse(put.init.body), {
+      nombre: 'Ana',
+      mensajesCompartidos: false,
+    });
+    assert.deepEqual(nombresDeLista(t), ['Beto']);
+    assert.equal(t.nodos.contadorContactos.textContent, '1 de 3');
+  });
+
+  await testAsync('el selector solo ofrece contactos no asignados', async () => {
+    const contactos = [
+      contactoAsignable('Ana', { mensajesCompartidos: true }),
+      contactoAsignable('Beto'),
+    ];
+    const t = crearContexto({
+      dataset: { tipo: 'alarma' },
       store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
       fetch: async () => respuestaOk({ contactos }),
     });
-
     await t.ctxTest.inicializarContactos();
-    assert.equal(t.nodos.listaContactos.hijos.length, 3, 'se listan los 3 contactos');
-    assert.equal(t.nodos.contadorContactos.textContent, '3 de 3');
-    assert.equal(t.nodos.mensajeLimiteContactos.textContent, 'Máximo 3 contactos por mensaje.');
-    assert.equal(t.nodos.contactoNombre.disabled, true);
-    assert.equal(t.nodos.contactoTelefono.disabled, true);
-    assert.equal(t.nodos.contactoMensajes.disabled, true);
-    assert.equal(t.nodos.botonAgregarContacto.disabled, true);
-
-    t.nodos.contactoNombre.value = 'Beto';
-    t.nodos.contactoTelefono.value = '999';
-    await t.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
-    assert.equal(
-      t.fetchLog.filter((llamada) => llamada.init && llamada.init.method === 'POST').length,
-      0,
-      'no se puede agregar un cuarto contacto'
-    );
+    const opciones = t.nodos.contactoDisponible.hijos.map((nodo) => nodo.textContent);
+    assert.ok(opciones.some((texto) => texto.includes('Beto')));
+    assert.ok(!opciones.some((texto) => texto.includes('Ana')));
+    assert.equal(t.nodos.botonAgregarContacto.disabled, false);
   });
 
-  await testAsync('un 400 del backend muestra el mensaje del servidor', async () => {
+  await testAsync('un 400 al agregar muestra el mensaje del servidor', async () => {
     const contactos = [
-      {
-        nombre: 'Ana',
-        telefono: '111',
-        mensajes: true,
-        mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
-        visibilidad: true,
-      },
+      contactoAsignable('Ana', { mensajesCompartidos: true }),
+      contactoAsignable('Beto'),
     ];
-    const mensajeServidor = 'Ya hay 3 contactos para este mensaje.';
+    const mensajeServidor = 'Ya hay 3 contactos para estos mensajes.';
     const t = crearContexto({
       dataset: { tipo: 'inicio' },
       store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
       fetch: async (url, init) => {
         const metodo = (init && init.method) || 'GET';
         if (metodo === 'GET') return respuestaOk({ contactos });
-        if (metodo === 'POST') {
+        if (metodo === 'PUT') {
           return { ok: false, status: 400, json: async () => ({ error: mensajeServidor }) };
         }
         throw new Error(`método inesperado: ${metodo}`);
       },
     });
-
     await t.ctxTest.inicializarContactos();
-    t.nodos.contactoNombre.value = 'Beto';
-    t.nodos.contactoTelefono.value = '555';
+    t.nodos.contactoDisponible.value = 'Beto';
     await t.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
 
     assert.equal(t.nodos.estadoContactos.textContent, mensajeServidor);
     assert.ok(t.nodos.estadoContactos.classList.contains('mensajes-estado-error'));
   });
 
-  await testAsync('un GET fallido conserva las filas y el contador ya renderizados', async () => {
+  await testAsync('un GET fallido conserva la lista ya renderizada', async () => {
     const contactos = [
-      {
-        nombre: 'Ana',
-        telefono: '111',
-        mensajes: true,
-        mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
-        visibilidad: true,
-      },
-      {
-        nombre: 'Carla',
-        telefono: '333',
-        mensajes: true,
-        mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
-        visibilidad: true,
-      },
+      contactoAsignable('Ana', { mensajesCompartidos: true }),
+      contactoAsignable('Beto', { mensajesCompartidos: true }),
     ];
-    let intentos = 0;
+    let fallar = false;
     const t = crearContexto({
       dataset: { tipo: 'inicio' },
       store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
       fetch: async () => {
-        intentos += 1;
-        if (intentos === 1) return respuestaOk({ contactos });
-        throw new Error('red caída');
+        if (fallar) throw new Error('red caída');
+        return respuestaOk({ contactos });
       },
     });
-
     await t.ctxTest.inicializarContactos();
-    assert.equal(t.nodos.listaContactos.hijos.length, 2, 'arranca con dos filas');
-    assert.equal(t.nodos.contadorContactos.textContent, '2 de 3');
-
+    fallar = true;
     const ok = await t.ctxTest.refrescarContactos();
-    assert.equal(ok, false, 'el refresh falla');
-    assert.equal(t.nodos.listaContactos.hijos.length, 2, 'las filas siguen en pantalla');
-    assert.equal(t.nodos.contadorContactos.textContent, '2 de 3', 'el contador no se toca');
-    assert.equal(t.nodos.contactoNombre.disabled, false, 'el formulario sigue habilitado con filas');
-    assert.ok(
-      t.nodos.estadoContactos.textContent.includes('No se pudieron cargar los contactos'),
-      'el error se informa en el estado'
-    );
-  });
-
-  await testAsync('un 400 por límite reconcilia contador y formulario con el servidor', async () => {
-    const crearContacto = (indice) => ({
-      nombre: `Contacto ${indice}`,
-      telefono: `555${indice}`,
-      mensajes: true,
-      mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
-      visibilidad: true,
-    });
-    const dos = Array.from({ length: 2 }, (_, indice) => crearContacto(indice));
-    const tres = Array.from({ length: 3 }, (_, indice) => crearContacto(indice));
-    const mensajeServidor = 'Ya hay 3 contactos para este mensaje.';
-    let contactos = dos;
-    const t = crearContexto({
-      dataset: { tipo: 'inicio' },
-      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
-      fetch: async (url, init) => {
-        const metodo = (init && init.method) || 'GET';
-        if (metodo === 'GET') return respuestaOk({ contactos });
-        if (metodo === 'POST') {
-          contactos = tres;
-          return { ok: false, status: 400, json: async () => ({ error: mensajeServidor }) };
-        }
-        throw new Error(`método inesperado: ${metodo}`);
-      },
-    });
-
-    await t.ctxTest.inicializarContactos();
+    assert.equal(ok, false);
+    assert.equal(t.nodos.listaContactos.hijos.length, 2);
     assert.equal(t.nodos.contadorContactos.textContent, '2 de 3');
-    assert.equal(t.nodos.botonAgregarContacto.disabled, false);
-
-    t.nodos.contactoNombre.value = 'Beto';
-    t.nodos.contactoTelefono.value = '999';
-    await t.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
-
-    assert.equal(t.nodos.listaContactos.hijos.length, 3, 'la lista converge a los 3 del servidor');
-    assert.equal(t.nodos.contadorContactos.textContent, '3 de 3');
-    assert.equal(t.nodos.botonAgregarContacto.disabled, true);
-    assert.equal(t.nodos.contactoNombre.disabled, true);
-    assert.equal(t.nodos.contactoTelefono.disabled, true);
-    assert.equal(t.nodos.estadoContactos.textContent, mensajeServidor);
+    assert.ok(t.nodos.estadoContactos.textContent.includes('No se pudieron cargar los contactos'));
   });
 
-  await testAsync('un alta exitosa con refresh fallido reintenta y no contradice filas y contador', async () => {
-    const inicial = [
-      {
-        nombre: 'Ana',
-        telefono: '111',
-        mensajes: true,
-        mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
-        visibilidad: true,
-      },
+  await testAsync('un alta exitosa reintenta el refresh si el primero falla', async () => {
+    let contactos = [
+      contactoAsignable('Ana', { mensajesCompartidos: true }),
+      contactoAsignable('Beto'),
     ];
-    let contactos = inicial;
     let gets = 0;
     const t = crearContexto({
       dataset: { tipo: 'inicio' },
       store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
       fetch: async (url, init) => {
         const metodo = (init && init.method) || 'GET';
-        if (metodo === 'POST') {
-          contactos = [...contactos, JSON.parse(init.body)];
+        if (metodo === 'PUT') {
+          const cuerpo = JSON.parse(init.body);
+          contactos = contactos.map((c) => (c.nombre === cuerpo.nombre ? { ...c, ...cuerpo } : c));
           return respuestaOk({});
         }
         gets += 1;
-        if (gets === 1) return respuestaOk({ contactos });
         if (gets === 2) throw new Error('red caída');
         return respuestaOk({ contactos });
       },
     });
-
     await t.ctxTest.inicializarContactos();
-    assert.equal(t.nodos.listaContactos.hijos.length, 1);
-    assert.equal(t.nodos.contadorContactos.textContent, '1 de 3');
-
-    t.nodos.contactoNombre.value = 'Beto';
-    t.nodos.contactoTelefono.value = '555';
+    t.nodos.contactoDisponible.value = 'Beto';
     await t.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
 
-    assert.equal(gets, 3, 'el refresh falla una vez y hay un único reintento');
-    assert.equal(t.nodos.listaContactos.hijos.length, 2, 'las filas reflejan el alta exitosa');
-    assert.equal(t.nodos.contadorContactos.textContent, '2 de 3');
+    assert.equal(gets, 3);
+    assert.deepEqual(nombresDeLista(t), ['Ana', 'Beto']);
     assert.equal(t.nodos.estadoContactos.textContent, 'Contacto agregado.');
-    assert.ok(t.nodos.estadoContactos.classList.contains('mensajes-estado-ok'));
+  });
+
+  await testAsync('sin token la asignación no hace fetch', async () => {
+    const t = crearContexto({ store: new Map() });
+    const resultado = await t.ctxTest.actualizarAsignacionContacto('Ana', 'inicio', true);
+    assert.deepEqual(plano(resultado), { ok: false, sesionExpirada: true });
+    assert.equal(t.fetchLog.length, 0);
+  });
+
+  await testAsync('la asignación usa mensajesCompartidos o mensajePrueba según la pantalla', async () => {
+    const t = crearContexto({
+      store: new Map([['token', crearToken({ email: 'ana@test.com' })]]),
+      fetch: async () => respuestaOk({}),
+    });
+    await t.ctxTest.actualizarAsignacionContacto('Ana', 'inicio', true);
+    await t.ctxTest.actualizarAsignacionContacto('Ana', 'cancelacion', false);
+    await t.ctxTest.actualizarAsignacionContacto('Ana', 'prueba', true);
+
+    const cuerpos = t.fetchLog.map((l) => JSON.parse(l.init.body));
+    assert.deepEqual(cuerpos, [
+      { nombre: 'Ana', mensajesCompartidos: true },
+      { nombre: 'Ana', mensajesCompartidos: false },
+      { nombre: 'Ana', mensajePrueba: true },
+    ]);
+  });
+
+  test('las pantallas de mensajes no usan mensajesPorTipo', () => {
+    assert.ok(!FUENTE.includes('mensajesPorTipo'), 'JS/mensajes.js no debe usar mensajesPorTipo');
+    for (const archivo of [
+      'mensajeDeInicio.html',
+      'mensajeDeFin.html',
+      'mensajeDeAlarma.html',
+      'mensajeDeCancelacion.html',
+      'mensajeDePrueba.html',
+    ]) {
+      const html = fs.readFileSync(path.join(__dirname, '..', 'pages', archivo), 'utf8');
+      assert.ok(!html.includes('mensajesPorTipo'), `${archivo} no debe usar mensajesPorTipo`);
+    }
+  });
+
+  await testAsync('una pantalla ve la selección compartida al recargar', async () => {
+    let contactos = [
+      contactoAsignable('Ana', { mensajesCompartidos: true }),
+      contactoAsignable('Beto'),
+    ];
+    const store = new Map([['token', crearToken({ email: 'ana@test.com' })]]);
+    const t1 = crearContexto({
+      dataset: { tipo: 'inicio' },
+      store,
+      fetch: async (url, init) => {
+        const metodo = (init && init.method) || 'GET';
+        if (metodo === 'GET') return respuestaOk({ contactos });
+        if (metodo === 'PUT') {
+          const cuerpo = JSON.parse(init.body);
+          contactos = contactos.map((c) => (c.nombre === cuerpo.nombre ? { ...c, ...cuerpo } : c));
+          return respuestaOk({});
+        }
+        throw new Error(`método inesperado: ${metodo}`);
+      },
+    });
+    await t1.ctxTest.inicializarContactos();
+    t1.nodos.contactoDisponible.value = 'Beto';
+    await t1.nodos.formAgregarContacto.disparar('submit', { preventDefault() {} });
+
+    const t2 = crearContexto({
+      dataset: { tipo: 'cancelacion' },
+      store,
+      fetch: async () => respuestaOk({ contactos }),
+    });
+    await t2.ctxTest.inicializarContactos();
+    assert.deepEqual(nombresDeLista(t2), ['Ana', 'Beto']);
   });
 
   await testAsync('RES-001/REL-002: un guardado degradado sobrevive a un GET exitoso', async () => {
@@ -1958,16 +1742,12 @@ async function testsAsync() {
       {
         nombre: 'Beto',
         telefono: '1',
-        mensajes: true,
-        mensajesPorTipo: { inicio: false, fin: false, alarma: false, prueba: false },
-        visibilidad: true,
+        mensajesCompartidos: false,
       },
       {
         nombre: 'Carla',
         telefono: '2',
-        mensajes: true,
-        mensajesPorTipo: { inicio: true, fin: false, alarma: false, prueba: false },
-        visibilidad: true,
+        mensajesCompartidos: true,
       },
     ];
     const t = crearContexto({

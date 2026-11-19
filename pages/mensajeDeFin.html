@@ -67,19 +67,14 @@
                 <ul class="msj-contactos mensajes-contactos" id="listaContactos"></ul>
                 <p class="msj-limite" id="mensajeLimiteContactos" role="status" aria-live="polite"></p>
 
-                <form class="msj-form" id="formAgregarContacto">
+                                <form class="msj-form" id="formAgregarContacto">
                     <h3 class="msj-form-titulo">Agregar contacto</h3>
-                    <div class="msj-form-campos">
+                    <div class="msj-form-campos msj-form-campos-unico">
                         <label class="msj-campo">
-                            <span>Nombre</span>
-                            <input type="text" id="contactoNombre" name="nombre" required autocomplete="name">
-                        </label>
-                        <label class="msj-campo">
-                            <span>Teléfono</span>
-                            <input type="tel" id="contactoTelefono" name="telefono" required autocomplete="tel" placeholder="+54911 1234 5678">
+                            <span>Contacto</span>
+                            <select id="contactoDisponible" name="contacto" required></select>
                         </label>
                     </div>
-                    <input type="checkbox" id="contactoMensajes" name="mensajes" checked hidden>
                     <button class="msj-boton msj-boton-agregar" id="botonAgregarContacto" type="submit">Agregar</button>
                 </form>
             </section>

@@ -51,9 +51,12 @@ const VALORES_PREVIEW_RESPALDO = {
   hora: '19:00',
 };
 
-const MAX_CONTACTOS_POR_TIPO = 3;
+const MAX_CONTACTOS_COMPARTIDOS = 3;
+const MAX_CONTACTOS_PRUEBA = 1;
 
-const TEXTO_LIMITE_CONTACTOS = 'Máximo 3 contactos por mensaje.';
+const TEXTO_LIMITE_COMPARTIDOS = 'Máximo 3 contactos para los mensajes.';
+const TEXTO_LIMITE_PRUEBA = 'Máximo 1 contacto para el mensaje de prueba.';
+const TEXTO_SIN_CONTACTOS_DISPONIBLES = 'No hay contactos disponibles para agregar.';
 
 const TEXTO_ERROR_ENVIO_GENERICO = 'error desconocido';
 
@@ -570,8 +573,8 @@ function normalizarContactoCargado(contacto) {
   return {
     nombre: typeof origen.nombre === 'string' ? origen.nombre : String(origen.nombre ?? ''),
     telefono: typeof origen.telefono === 'string' ? origen.telefono : String(origen.telefono ?? ''),
-    mensajes: origen.mensajes === true,
-    mensajesPorTipo: normalizarMensajesPorTipo(origen),
+    mensajesCompartidos: origen.mensajesCompartidos === true,
+    mensajePrueba: origen.mensajePrueba === true,
   };
 }
 
@@ -614,12 +617,10 @@ async function cargarContactos() {
 
 async function agregarContacto(contacto) {
   const origen = contacto && typeof contacto === 'object' ? contacto : {};
-  const tipo = tipoValido(origen.tipo) || tipoValido(tipoDesdePagina());
   const cuerpo = {
     nombre: String(origen.nombre ?? ''),
     telefono: String(origen.telefono ?? ''),
   };
-  if (tipo) cuerpo.mensajesPorTipo = { [tipo]: origen.mensajes !== false };
   const url = `${ROOT_URL}/api/contacts`;
   if (!hayToken()) {
     console.error(`[mensajes] POST contacts sin token: ${url}`);
@@ -649,11 +650,9 @@ async function agregarContacto(contacto) {
 
 async function actualizarContacto(contacto) {
   const origen = contacto && typeof contacto === 'object' ? contacto : {};
-  const tipo = tipoValido(origen.tipo) || tipoValido(tipoDesdePagina());
   const cuerpo = {
     nombre: String(origen.nombre ?? ''),
   };
-  if (tipo) cuerpo.mensajesPorTipo = { [tipo]: origen.mensajes === true };
   const url = `${ROOT_URL}/api/contacts`;
   if (!hayToken()) {
     console.error(`[mensajes] PUT contacts sin token: ${url}`);
@@ -756,28 +755,27 @@ function tipoValido(valor) {
   return TIPOS_MENSAJE.includes(valor) ? valor : '';
 }
 
-function normalizarMensajesPorTipo(origen) {
-  const datos = origen && typeof origen === 'object' ? origen : {};
-  const fuente =
-    datos.mensajesPorTipo && typeof datos.mensajesPorTipo === 'object' ? datos.mensajesPorTipo : null;
-  const porTipo = {};
-  for (const tipo of TIPOS_MENSAJE) {
-    porTipo[tipo] = fuente ? fuente[tipo] === true : datos.mensajes === true;
-  }
-  return porTipo;
+function campoAsignacion(tipo) {
+  return tipo === 'prueba' ? 'mensajePrueba' : 'mensajesCompartidos';
 }
 
-function contactoAsignadoAlTipo(contacto, tipo) {
-  const porTipo = contacto && contacto.mensajesPorTipo;
-  if (tipoValido(tipo)) {
-    return !!(porTipo && porTipo[tipo] === true);
-  }
-  return !!(contacto && contacto.mensajes === true);
+function limiteContactos(tipo) {
+  return tipo === 'prueba' ? MAX_CONTACTOS_PRUEBA : MAX_CONTACTOS_COMPARTIDOS;
+}
+
+function textoLimiteContactos(tipo) {
+  return tipo === 'prueba' ? TEXTO_LIMITE_PRUEBA : TEXTO_LIMITE_COMPARTIDOS;
+}
+
+function contactoAsignado(contacto, tipo) {
+  if (!contacto || typeof contacto !== 'object') return false;
+  if (tipo === 'prueba') return contacto.mensajePrueba === true;
+  return contacto.mensajesCompartidos === true;
 }
 
 function contactosAsignados(contactos, tipo) {
   const lista = Array.isArray(contactos) ? contactos : [];
-  return lista.filter((contacto) => contactoAsignadoAlTipo(contacto, tipo));
+  return lista.filter((contacto) => contactoAsignado(contacto, tipo));
 }
 
 async function leerErrorRespuesta(respuesta, respaldo) {
@@ -815,84 +813,6 @@ async function guardarDesdeEditor(tipo, textarea, boton, estado) {
   }
 }
 
-function crearCheck(texto, marcado) {
-  const label = document.createElement('label');
-  label.className = 'mensajes-check';
-  const input = document.createElement('input');
-  input.type = 'checkbox';
-  input.checked = marcado === true;
-  label.appendChild(input);
-  const span = document.createElement('span');
-  span.textContent = texto;
-  label.appendChild(span);
-  return { label, input };
-}
-
-function abrirEdicionContacto(fila, contacto) {
-  fila.innerHTML = '';
-  const tipo = tipoDesdePagina();
-  const editor = document.createElement('div');
-  editor.className = 'mensajes-edicion';
-
-  const titulo = document.createElement('div');
-  titulo.className = 'mensajes-contacto-nombre';
-  titulo.textContent = contacto.nombre;
-  editor.appendChild(titulo);
-
-  const telefono = document.createElement('div');
-  telefono.className = 'mensajes-contacto-telefono';
-  telefono.textContent = contacto.telefono || 'Sin teléfono';
-  editor.appendChild(telefono);
-
-  const checkMensajes = crearCheck('Recibe mis mensajes', contactoAsignadoAlTipo(contacto, tipo));
-  editor.appendChild(checkMensajes.label);
-
-  const ayudaMensajes = document.createElement('p');
-  ayudaMensajes.className = 'msj-ayuda msj-edicion-ayuda';
-  ayudaMensajes.textContent = 'Si lo desactivás, dejará de aparecer en esta lista.';
-  editor.appendChild(ayudaMensajes);
-
-  const acciones = document.createElement('div');
-  acciones.className = 'mensajes-edicion-acciones';
-
-  const guardar = document.createElement('button');
-  guardar.type = 'button';
-  guardar.className = 'mensajes-boton-mini';
-  guardar.textContent = 'Guardar';
-  guardar.addEventListener('click', async () => {
-    guardar.disabled = true;
-    const resultado = await actualizarContacto({
-      nombre: contacto.nombre,
-      mensajes: checkMensajes.input.checked,
-      tipo,
-    });
-    guardar.disabled = false;
-    const estado = document.getElementById('estadoContactos');
-    if (!resultado.ok) {
-      if (resultado.sesionExpirada) {
-        marcarSesionExpirada(estado);
-        return;
-      }
-      marcarEstado(estado, resultado.error || 'No se pudo actualizar el contacto.', 'error');
-      return;
-    }
-    await refrescarContactos('Contacto actualizado.');
-  });
-  acciones.appendChild(guardar);
-
-  const cancelar = document.createElement('button');
-  cancelar.type = 'button';
-  cancelar.className = 'mensajes-boton-mini';
-  cancelar.textContent = 'Cancelar';
-  cancelar.addEventListener('click', () => {
-    refrescarContactos();
-  });
-  acciones.appendChild(cancelar);
-
-  editor.appendChild(acciones);
-  fila.appendChild(editor);
-}
-
 function crearFilaContacto(contacto) {
   const fila = document.createElement('li');
   fila.className = 'mensajes-contacto';
@@ -910,47 +830,22 @@ function crearFilaContacto(contacto) {
   telefono.textContent = contacto.telefono || 'Sin teléfono';
   datos.appendChild(telefono);
 
-  if (contactoAsignadoAlTipo(contacto, tipoDesdePagina())) {
-    const marca = document.createElement('span');
-    marca.className = 'mensajes-contacto-marca';
-    marca.textContent = 'Recibe mensajes';
-    datos.appendChild(marca);
-  }
+  const marca = document.createElement('span');
+  marca.className = 'mensajes-contacto-marca';
+  marca.textContent = 'Asignado';
+  datos.appendChild(marca);
   fila.appendChild(datos);
 
   const acciones = document.createElement('div');
   acciones.className = 'mensajes-contacto-acciones';
 
-  const editar = document.createElement('button');
-  editar.type = 'button';
-  editar.className = 'mensajes-boton-mini';
-  editar.textContent = 'Editar';
-  editar.addEventListener('click', () => {
-    abrirEdicionContacto(fila, contacto);
-  });
-  acciones.appendChild(editar);
+  const quitar = document.createElement('button');
+  quitar.type = 'button';
+  quitar.className = 'mensajes-boton-mini';
+  quitar.textContent = 'Quitar';
+  quitar.addEventListener('click', () => quitarContactoDeLista(contacto));
+  acciones.appendChild(quitar);
 
-  const eliminar = document.createElement('button');
-  eliminar.type = 'button';
-  eliminar.className = 'mensajes-boton-mini mensajes-boton-peligro';
-  eliminar.textContent = 'Eliminar';
-  eliminar.addEventListener('click', async () => {
-    const confirmado =
-      typeof window.confirm === 'function' ? window.confirm(`¿Eliminar a ${contacto.nombre}?`) : true;
-    if (!confirmado) return;
-    const estado = document.getElementById('estadoContactos');
-    const resultado = await eliminarContacto(contacto.nombre);
-    if (!resultado.ok) {
-      if (resultado.sesionExpirada) {
-        marcarSesionExpirada(estado);
-        return;
-      }
-      marcarEstado(estado, 'No se pudo eliminar el contacto.', 'error');
-      return;
-    }
-    await refrescarContactos('Contacto eliminado.');
-  });
-  acciones.appendChild(eliminar);
 
   fila.appendChild(acciones);
   return fila;
@@ -961,25 +856,50 @@ let contactosDelTipoActuales = 0;
 let contactosConocidos = [];
 
 function limiteDeContactosAlcanzado() {
-  return contactosDelTipoActuales >= MAX_CONTACTOS_POR_TIPO;
+  return contactosDelTipoActuales >= limiteContactos(tipoDesdePagina());
+}
+
+function actualizarSelectDisponibles(tipo, disponibles, bloquear) {
+  const select = document.getElementById('contactoDisponible');
+  if (!select) return;
+  select.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent =
+    disponibles.length === 0 ? 'Sin contactos disponibles' : 'Eleg? un contacto';
+  placeholder.disabled = true;
+  placeholder.selected = true;
+  select.appendChild(placeholder);
+  for (const contacto of disponibles) {
+    const opcion = document.createElement('option');
+    opcion.value = contacto.nombre;
+    opcion.textContent = `${contacto.nombre} - ${contacto.telefono || "sin tel?fono"}`;
+    select.appendChild(opcion);
+  }
+  select.disabled = bloquear;
 }
 
 function actualizarLimiteContactos(cantidad) {
   contactosDelTipoActuales = Number.isFinite(cantidad) ? cantidad : 0;
-  const alcanzado = limiteDeContactosAlcanzado();
+  const tipo = tipoDesdePagina();
+  const limite = limiteContactos(tipo);
+  const alcanzado = contactosDelTipoActuales >= limite;
+  const disponibles = contactosConocidos.filter((contacto) => !contactoAsignado(contacto, tipo));
+  const sinDisponibles = disponibles.length === 0;
+  const bloquear = alcanzado || sinDisponibles;
   const contador = document.getElementById('contadorContactos');
-  if (contador) contador.textContent = `${contactosDelTipoActuales} de ${MAX_CONTACTOS_POR_TIPO}`;
-  const limite = document.getElementById('mensajeLimiteContactos');
-  if (limite) limite.textContent = alcanzado ? TEXTO_LIMITE_CONTACTOS : '';
-  for (const id of [
-    'contactoNombre',
-    'contactoTelefono',
-    'contactoMensajes',
-    'botonAgregarContacto',
-  ]) {
-    const control = document.getElementById(id);
-    if (control) control.disabled = alcanzado;
+  if (contador) contador.textContent = `${contactosDelTipoActuales} de ${limite}`;
+  const aviso = document.getElementById('mensajeLimiteContactos');
+  if (aviso) {
+    aviso.textContent = alcanzado
+      ? textoLimiteContactos(tipo)
+      : sinDisponibles
+        ? TEXTO_SIN_CONTACTOS_DISPONIBLES
+        : '';
   }
+  actualizarSelectDisponibles(tipo, disponibles, bloquear);
+  const boton = document.getElementById('botonAgregarContacto');
+  if (boton) boton.disabled = bloquear;
   return alcanzado;
 }
 
@@ -1018,7 +938,7 @@ async function refrescarContactos(mensajeExito) {
     return false;
   }
   if (!resultado.ok) {
-    marcarEstado(estado, 'No se pudieron cargar los contactos. Podés seguir escribiendo tu mensaje.', 'error');
+    marcarEstado(estado, 'No se pudieron cargar los contactos. Pod?s seguir escribiendo tu mensaje.', 'error');
     return false;
   }
   const receptores = aplicarContactos(resultado.contactos);
@@ -1026,11 +946,11 @@ async function refrescarContactos(mensajeExito) {
     if (mensajeExito) {
       marcarEstado(estado, mensajeExito, 'ok');
     } else if (resultado.contactos.length === 0) {
-      marcarEstado(estado, 'Todavía no tenés contactos.', '');
+      marcarEstado(estado, 'Todav?a no ten?s contactos.', '');
     } else if (tipoValido(tipoDesdePagina())) {
-      marcarEstado(estado, 'Todavía no tenés contactos para este mensaje.', '');
+      marcarEstado(estado, 'Todav?a no ten?s contactos para este mensaje.', '');
     } else {
-      marcarEstado(estado, 'Todavía no tenés contactos que reciban mensajes.', '');
+      marcarEstado(estado, 'Todav?a no ten?s contactos que reciban mensajes.', '');
     }
     return true;
   }
@@ -1041,54 +961,43 @@ async function refrescarContactos(mensajeExito) {
 async function manejarAltaContacto(evento) {
   if (evento && typeof evento.preventDefault === 'function') evento.preventDefault();
   const estado = document.getElementById('estadoContactos');
-  const nombreInput = document.getElementById('contactoNombre');
-  const telefonoInput = document.getElementById('contactoTelefono');
-  const mensajesInput = document.getElementById('contactoMensajes');
+  const select = document.getElementById('contactoDisponible');
   const boton = document.getElementById('botonAgregarContacto');
-  if (limiteDeContactosAlcanzado()) {
+  const tipo = tipoDesdePagina();
+  const limite = limiteContactos(tipo);
+  if (contactosDelTipoActuales >= limite) {
     actualizarLimiteContactos(contactosDelTipoActuales);
-    marcarEstado(estado, TEXTO_LIMITE_CONTACTOS, 'aviso');
+    marcarEstado(estado, textoLimiteContactos(tipo), 'aviso');
     return;
   }
-  const nombre = nombreInput ? String(nombreInput.value || '').trim() : '';
-  const telefono = telefonoInput ? String(telefonoInput.value || '').trim() : '';
-  if (!nombre || !telefono) {
-    marcarEstado(estado, 'Completá nombre y teléfono.', 'error');
+  const nombre = select ? String(select.value || '').trim() : '';
+  if (!nombre) {
+    marcarEstado(estado, 'Eleg? un contacto de Mis contactos.', 'error');
+    return;
+  }
+  const contacto = contactosConocidos.find((item) => item.nombre === nombre);
+  if (!contacto) {
+    marcarEstado(estado, 'El contacto elegido ya no est? disponible.', 'error');
+    return;
+  }
+  if (contactoAsignado(contacto, tipo)) {
+    marcarEstado(estado, 'Ese contacto ya est? en la lista.', 'aviso');
     return;
   }
   if (boton) boton.disabled = true;
-  const resultado = await agregarContacto({
-    nombre,
-    telefono,
-    mensajes: mensajesInput ? mensajesInput.checked !== false : true,
-    tipo: tipoDesdePagina(),
-  });
+  const resultado = await actualizarAsignacionContacto(nombre, tipo, true);
   if (boton) boton.disabled = false;
   if (!resultado.ok) {
     if (resultado.sesionExpirada) {
       marcarSesionExpirada(estado);
       return;
     }
-    const mensaje = resultado.error || 'No se pudo agregar el contacto. Intentá de nuevo.';
+    const mensaje = resultado.error || 'No se pudo agregar el contacto. Intent� de nuevo.';
     marcarEstado(estado, mensaje, 'error');
-    const reconciliado = await reconciliarContactos();
-    if (reconciliado.sesionExpirada) {
-      marcarSesionExpirada(estado);
-      return;
-    }
-    if (!reconciliado.ok) {
-      aplicarContactos(contactosConocidos);
-      marcarEstado(
-        estado,
-        `${mensaje} No pudimos actualizar la lista; mostrando la última información disponible.`,
-        'error'
-      );
-    }
+    await reconciliarContactos();
     return;
   }
-  if (nombreInput) nombreInput.value = '';
-  if (telefonoInput) telefonoInput.value = '';
-  if (mensajesInput) mensajesInput.checked = true;
+  if (select) select.value = '';
   const refrescado = await refrescarContactos('Contacto agregado.');
   if (refrescado) return;
   const reconciliado = await reconciliarContactos();
@@ -1103,9 +1012,54 @@ async function manejarAltaContacto(evento) {
   aplicarContactos(contactosConocidos);
   marcarEstado(
     estado,
-    'Contacto agregado, pero no pudimos actualizar la lista; mostrando la última información disponible.',
+    'Contacto agregado, pero no pudimos actualizar la lista; mostrando la ?ltima informaci?n disponible.',
     'aviso'
   );
+}
+
+async function actualizarAsignacionContacto(nombre, tipo, valor) {
+  const url = `${ROOT_URL}/api/contacts`;
+  if (!hayToken()) {
+    console.error(`[mensajes] PUT contacts sin token: ${url}`);
+    return { ok: false, sesionExpirada: true };
+  }
+  const campo = campoAsignacion(tipo);
+  const cuerpo = { nombre: String(nombre ?? ''), [campo]: valor === true };
+  try {
+    const respuesta = await fetchConTimeout(url, {
+      method: 'PUT',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(cuerpo),
+    });
+    if (esSesionExpirada(respuesta)) {
+      console.error(`[mensajes] PUT contacts sesi�n expirada: ${url} status=${respuesta.status}`);
+      return { ok: false, sesionExpirada: true };
+    }
+    if (!respuesta.ok) {
+      const error = await leerErrorRespuesta(respuesta, '');
+      console.error(`[mensajes] PUT contacts fall�: ${url} status=${respuesta.status} - ${error}`);
+      return { ok: false, error };
+    }
+    return { ok: true };
+  } catch (err) {
+    console.error(`[mensajes] PUT contacts fall�: ${url} - ${mensajeDeError(err)}`);
+    return { ok: false, error: mensajeDeError(err) };
+  }
+}
+
+async function quitarContactoDeLista(contacto) {
+  const tipo = tipoDesdePagina();
+  const estado = document.getElementById('estadoContactos');
+  const resultado = await actualizarAsignacionContacto(contacto.nombre, tipo, false);
+  if (!resultado.ok) {
+    if (resultado.sesionExpirada) {
+      marcarSesionExpirada(estado);
+      return;
+    }
+    marcarEstado(estado, resultado.error || 'No se pudo quitar el contacto.', 'error');
+    return;
+  }
+  await refrescarContactos('Contacto quitado.');
 }
 
 async function inicializarContactos() {

@@ -4478,6 +4478,10 @@ color: white;
   gap: 10px;
 }
 
+.msj-form-campos-unico {
+  grid-template-columns: 1fr;
+}
+
 .msj-campo {
   display: flex;
   flex-direction: column;
@@ -4487,7 +4491,8 @@ color: white;
   font-size: 13px;
 }
 
-.msj-campo input {
+.msj-campo input,
+.msj-campo select {
   box-sizing: border-box;
   width: 100%;
   min-height: 44px;
@@ -4503,7 +4508,12 @@ color: white;
   text-align: left;
 }
 
-.msj-campo input:focus {
+.msj-campo select {
+  color-scheme: dark;
+}
+
+.msj-campo input:focus,
+.msj-campo select:focus {
   box-shadow: 0 0 0 2px var(--msj-acento);
 }
 
