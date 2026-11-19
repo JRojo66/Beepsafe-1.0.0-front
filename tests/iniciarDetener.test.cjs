@@ -3639,6 +3639,7 @@ await testAsync('Grabar detiene la sesión y POSTea el historial esperado', asyn
     inicio: new Date(ahora).toISOString(),
     fin: new Date(ahora + 90000).toISOString(),
     comentarios: 'Buen día',
+    sessionId: 'sess-log',
   });
 
   assert.equal(t.nodos.etiquetaBoton.textContent, 'INICIAR', 'la sesión se detuvo');
@@ -3646,6 +3647,54 @@ await testAsync('Grabar detiene la sesión y POSTea el historial esperado', asyn
   assert.equal(t.nodos.modalComentariosFin.classList.contains('hidden'), true);
   await esperar(() => t.fetchLog.some((l) => l.url.endsWith('/session/sess-log/stop')));
   assert.equal(t.toasts.length, 0, 'sin toast de error');
+});
+
+await testAsync('Grabar omite sessionId cuando la creación de la sesión falló', async () => {
+  const ahora = Date.UTC(2026, 4, 18, 12, 0);
+  const t = crearContexto({
+    ahora,
+    store: new Map([['token', 'tok-log-sin-id']]),
+    fetch: async (url, init) => {
+      const metodo = (init && init.method) || 'GET';
+      if (url.includes('/api/sessions/current')) return respuestaOk(USUARIO);
+      if (url.includes('/api/activities/')) return respuestaOk(ACTIVIDADES);
+      if (url.includes('/api/contacts')) return respuestaOk({ contactos: [] });
+      if (url.endsWith('/api/message-events/session') && metodo === 'POST') {
+        return { ok: false, status: 500, json: async () => ({}) };
+      }
+      if (url.endsWith('/api/activity-logs') && metodo === 'POST') return respuestaOk({});
+      throw new Error(`URL inesperada: ${url} ${metodo}`);
+    },
+  });
+  await t.domListo();
+
+  t.nodos.botonIniciar.disparar('click');
+  await esperar(
+    () =>
+      t.fetchLog.filter(
+        (l) => l.url.endsWith('/api/message-events/session') && l.init.method === 'POST'
+      ).length >= 2
+  );
+  assert.equal(t.ctxTest.sessionIdEnCurso, '', 'la creación falló y no hay id');
+  t.reloj.ahora += 90 * 1000;
+  t.tick();
+
+  t.nodos.botonIniciar.disparar('click');
+  t.nodos.botonConfirmarFin.disparar('click');
+  t.nodos.comentariosFin.value = 'Sin id de sesión';
+  t.nodos.botonGrabarComentarios.disparar('click');
+
+  await esperar(() => t.fetchLog.some((l) => l.url.endsWith('/api/activity-logs')));
+  const post = t.fetchLog.find((l) => l.url.endsWith('/api/activity-logs'));
+  const cuerpo = JSON.parse(post.init.body);
+  assert.equal('sessionId' in cuerpo, false);
+  assert.deepEqual(cuerpo, {
+    actividad: 'Windsurf',
+    equipos: ['Goya verde 5.0'],
+    inicio: new Date(ahora).toISOString(),
+    fin: new Date(ahora + 90000).toISOString(),
+    comentarios: 'Sin id de sesión',
+  });
 });
 
 await testAsync('sin actividad no envía el historial aunque la sesión se detenga', async () => {

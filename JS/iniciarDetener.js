@@ -2061,6 +2061,7 @@ async function grabarFinActividad() {
   const equipos = Array.isArray(estadoSesion.equipo) ? estadoSesion.equipo.slice() : [];
   const inicioMs = inicioContadorMs;
   const finMs = Date.now();
+  const sessionId = sessionIdEnCurso || leerSessionIdEnCurso();
 
   // Cierra los diálogos y ejecuta el stop existente (incluye panel de fin).
   // El stop arranca ya y se espera junto con el POST del historial.
@@ -2087,6 +2088,7 @@ async function grabarFinActividad() {
     fin: new Date(finMs).toISOString(),
     comentarios,
   };
+  if (sessionId) cuerpo.sessionId = sessionId;
   const [guardado, cierre] = await Promise.all([registrarActividadLog(cuerpo), parada]);
   if (!guardado) {
     mostrarToastAviso('No se pudo guardar el historial de la actividad.', 'error');
