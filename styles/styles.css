@@ -5121,11 +5121,22 @@ color: white;
 }
 
 .actividades-wrapper .toggle-add-equipment {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding-left: 56px;
+  padding-right: 56px;
   text-align: center;
   color: #ffffff;
+}
+
+.actividades-wrapper .toggle-add-equipment > .toggle-icon {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
 }
 
 .actividades-wrapper .toggle-add-equipment .toggle-icon {
