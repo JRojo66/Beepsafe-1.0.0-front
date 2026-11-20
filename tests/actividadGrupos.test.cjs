@@ -189,6 +189,7 @@ function crearContextoActividadGrupos(opciones = {}) {
 
   const intervalos = new Map();
   let siguienteIntervalo = 1;
+  const debugLog = [];
 
   const fetchLog = [];
   const fetchImpl = opciones.fetch || (async () => respuestaOk({ groups: [] }));
@@ -213,7 +214,10 @@ function crearContextoActividadGrupos(opciones = {}) {
     },
     Date: FechaFalsa,
     Intl,
-    console: { error: () => {} },
+    console: {
+      error: () => {},
+      debug: (mensaje) => debugLog.push(String(mensaje)),
+    },
   };
   vm.createContext(ctx);
   vm.runInContext(FUENTE + EXPORTS, ctx, { filename: 'actividadGrupos.js' });
@@ -223,6 +227,7 @@ function crearContextoActividadGrupos(opciones = {}) {
     nodos,
     fetchLog,
     intervalos,
+    debugLog,
     avanzarReloj(ms) {
       reloj += ms;
     },
@@ -270,6 +275,10 @@ async function esperar(condicion, intentos = 200) {
     await new Promise((resolver) => setTimeout(resolver, 1));
   }
   assert.ok(condicion(), 'la condición esperada no se cumplió');
+}
+
+function intervalosDe(contexto, ms) {
+  return [...contexto.intervalos.values()].filter((intervalo) => intervalo.ms === ms);
 }
 
 const GRUPO = { _id: 'g1', name: 'Surf', members: [1, 2, 3] };
@@ -530,9 +539,9 @@ await testAsync('el intervalo de progreso solo se crea con tarjetas en curso', a
   });
   await conEnCurso.ctxTest.abrirDetalleGrupo(GRUPO);
 
-  assert.equal(conEnCurso.intervalos.size, 1, 'hay un único intervalo');
-  const [intervalo] = [...conEnCurso.intervalos.values()];
-  assert.equal(intervalo.ms, 10000);
+  const intervalosProgreso = intervalosDe(conEnCurso, 10000);
+  assert.equal(intervalosProgreso.length, 1, 'hay un único intervalo de progreso');
+  assert.equal(intervalosProgreso[0].ms, 10000);
   const barra = buscarPorClase(
     conEnCurso.nodos.listaEnCurso.hijos[0],
     'grupo-progreso-en-curso'
@@ -552,7 +561,11 @@ await testAsync('el intervalo de progreso solo se crea con tarjetas en curso', a
       }),
   });
   await sinEnCurso.ctxTest.abrirDetalleGrupo(GRUPO);
-  assert.equal(sinEnCurso.intervalos.size, 0, 'sin en curso no hay intervalo');
+  assert.equal(
+    intervalosDe(sinEnCurso, 10000).length,
+    0,
+    'sin en curso no hay intervalo de progreso'
+  );
 });
 
 await testAsync('el progreso en curso avanza con el reloj sin volver a renderizar', async () => {
@@ -564,7 +577,7 @@ await testAsync('el progreso en curso avanza con el reloj sin volver a renderiza
   const tarjeta = t.nodos.listaEnCurso.hijos[0];
   const barra = buscarPorClase(tarjeta, 'grupo-progreso-barra');
   assert.equal(barra.style.width, '50%');
-  const [intervalo] = [...t.intervalos.values()];
+  const [intervalo] = intervalosDe(t, 10000);
 
   t.avanzarReloj(15 * 60 * 1000);
   intervalo.fn();
@@ -587,16 +600,16 @@ await testAsync('volver y pagehide detienen el intervalo de progreso', async () 
     fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
   });
   await t.ctxTest.abrirDetalleGrupo(GRUPO);
-  assert.equal(t.intervalos.size, 1);
+  assert.equal(intervalosDe(t, 10000).length, 1);
 
   t.nodos.volverListaGrupos.disparar('click');
-  assert.equal(t.intervalos.size, 0, 'volver a la lista detiene el intervalo');
+  assert.equal(intervalosDe(t, 10000).length, 0, 'volver a la lista detiene el intervalo');
 
   await t.ctxTest.abrirDetalleGrupo(GRUPO);
-  assert.equal(t.intervalos.size, 1);
+  assert.equal(intervalosDe(t, 10000).length, 1);
 
   t.dispararWindow('pagehide', {});
-  assert.equal(t.intervalos.size, 0, 'pagehide detiene el intervalo');
+  assert.equal(intervalosDe(t, 10000).length, 0, 'pagehide detiene el intervalo');
 });
 
 await testAsync('el progreso se pausa con la pestaña oculta y se actualiza al volver', async () => {
@@ -606,18 +619,169 @@ await testAsync('el progreso se pausa con la pestaña oculta y se actualiza al v
   await t.ctxTest.abrirDetalleGrupo(GRUPO);
 
   const barra = buscarPorClase(t.nodos.listaEnCurso.hijos[0], 'grupo-progreso-barra');
-  const [intervalo] = [...t.intervalos.values()];
+  const [intervalo] = intervalosDe(t, 10000);
   const consultasIniciales = t.fetchLog.length;
 
   t.ctx.document.visibilityState = 'hidden';
   t.avanzarReloj(15 * 60 * 1000);
   intervalo.fn();
   assert.equal(barra.style.width, '50%', 'oculta no recalcula');
+  assert.equal(t.fetchLog.length, consultasIniciales, 'oculta no consulta al servidor');
 
   t.ctx.document.visibilityState = 'visible';
   t.dispararDocumento('visibilitychange', {});
   assert.equal(barra.style.width, '75%', 'al volver visible actualiza');
-  assert.equal(t.fetchLog.length, consultasIniciales, 'no hace polling al servidor');
+});
+
+await testAsync('el detalle programa un refresco completo cada 60 segundos', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  const refrescos = intervalosDe(t, 60000);
+  assert.equal(refrescos.length, 1, 'hay un único refresco de detalle');
+  assert.equal(refrescos[0].ms, 60000);
+  assert.equal(intervalosDe(t, 10000).length, 1, 'el progreso sigue independiente');
+
+  const sinEnCurso = crearContextoActividadGrupos({
+    fetch: async () =>
+      respuestaOk({
+        activityState: {
+          vencidos: [MIEMBRO_VENCIDO],
+          enCurso: [],
+          terminados: [MIEMBRO_TERMINADO],
+        },
+      }),
+  });
+  await sinEnCurso.ctxTest.abrirDetalleGrupo(GRUPO);
+  assert.equal(intervalosDe(sinEnCurso, 60000).length, 1, 'el refresco no depende de en curso');
+});
+
+await testAsync('el refresco conserva incluirEliminados y vuelve a renderizar', async () => {
+  let activityState = estadoCompleto();
+  const t = crearContextoActividadGrupos({
+    fetch: async () => respuestaOk({ activityState }),
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  t.nodos.toggleEliminadosGrupo.checked = true;
+  activityState = {
+    vencidos: [{ ...MIEMBRO_VENCIDO, usuario: 'Nuevo' }],
+    enCurso: [],
+    terminados: [],
+  };
+  const consultasIniciales = t.fetchLog.length;
+  const [refresco] = intervalosDe(t, 60000);
+  refresco.fn();
+
+  await esperar(() => textosDe(t.nodos.listaVencidos).includes('Nuevo'));
+  const solicitud = t.fetchLog[consultasIniciales];
+  assert.equal(
+    solicitud.url,
+    'http://back.test/api/groups/g1/activity-state?incluirEliminados=1'
+  );
+  assert.equal(solicitud.init.headers.Authorization, 'Bearer tok-grupos');
+  assert.ok(buscarPorClase(t.nodos.listaVencidos, 'grupo-miembro-card'));
+});
+
+await testAsync('un refresco fallido conserva el contenido y no muestra error', async () => {
+  let fallar = false;
+  const t = crearContextoActividadGrupos({
+    fetch: async () => {
+      if (fallar) return { ok: false, status: 500, json: async () => ({}) };
+      return respuestaOk({ activityState: estadoCompleto() });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  const tarjeta = t.nodos.listaVencidos.hijos[0];
+  const mensaje = t.nodos.estadoDetalleActividad.textContent;
+  const reintentarOculto = t.nodos.botonReintentarDetalle.hidden;
+  fallar = true;
+  const consultasIniciales = t.fetchLog.length;
+  const [refresco] = intervalosDe(t, 60000);
+  refresco.fn();
+
+  await esperar(() => t.debugLog.length > 0);
+  assert.equal(t.nodos.listaVencidos.hijos[0], tarjeta, 'mantiene la última tarjeta');
+  assert.equal(t.nodos.estadoDetalleActividad.textContent, mensaje, 'no muestra error');
+  assert.equal(t.nodos.botonReintentarDetalle.hidden, reintentarOculto);
+  assert.equal(t.fetchLog.length, consultasIniciales + 1);
+  assert.equal(intervalosDe(t, 60000).length, 1, 'el refresco sigue programado');
+});
+
+await testAsync('el refresco se omite oculto y corre al volver visible', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  const consultasIniciales = t.fetchLog.length;
+  const [refresco] = intervalosDe(t, 60000);
+  t.ctx.document.visibilityState = 'hidden';
+  refresco.fn();
+  await new Promise((resolver) => setTimeout(resolver, 5));
+  assert.equal(t.fetchLog.length, consultasIniciales, 'oculto no consulta');
+
+  t.ctx.document.visibilityState = 'visible';
+  t.dispararDocumento('visibilitychange', {});
+  await esperar(() => t.fetchLog.length > consultasIniciales);
+  assert.equal(
+    t.fetchLog[consultasIniciales].url,
+    'http://back.test/api/groups/g1/activity-state'
+  );
+});
+
+await testAsync('el refresco se detiene al volver, cambiar de grupo y pagehide', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+  assert.equal(intervalosDe(t, 60000).length, 1);
+
+  t.nodos.volverListaGrupos.disparar('click');
+  assert.equal(intervalosDe(t, 60000).length, 0, 'volver detiene el refresco');
+
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+  assert.equal(intervalosDe(t, 60000).length, 1);
+
+  const pendiente = t.ctxTest.abrirDetalleGrupo({ _id: 'g2', name: 'Montaña' });
+  assert.equal(intervalosDe(t, 60000).length, 0, 'abrir otro grupo lo detiene');
+  await pendiente;
+  assert.equal(intervalosDe(t, 60000).length, 1, 'el render del otro grupo lo reprograma');
+
+  t.dispararWindow('pagehide', {});
+  assert.equal(intervalosDe(t, 60000).length, 0, 'pagehide detiene el refresco');
+  assert.equal(intervalosDe(t, 10000).length, 0);
+});
+
+await testAsync('el refresco no solapa requests en vuelo', async () => {
+  let refrescando = false;
+  let resolverRefresco = null;
+  const t = crearContextoActividadGrupos({
+    fetch: async () => {
+      if (!refrescando) return respuestaOk({ activityState: estadoCompleto() });
+      return new Promise((resolver) => {
+        resolverRefresco = resolver;
+      });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  refrescando = true;
+  const consultasIniciales = t.fetchLog.length;
+  const [refresco] = intervalosDe(t, 60000);
+  refresco.fn();
+  refresco.fn();
+  refresco.fn();
+  assert.equal(t.fetchLog.length, consultasIniciales + 1, 'solo hay un request en vuelo');
+  assert.equal(typeof resolverRefresco, 'function');
+
+  resolverRefresco(respuestaOk({ activityState: estadoCompleto() }));
+  await new Promise((resolver) => setTimeout(resolver, 10));
+  assert.equal(t.fetchLog.length, consultasIniciales + 1, 'no dispara otro request');
+  assert.equal(intervalosDe(t, 60000).length, 1);
 });
 
 await testAsync('el teléfono arranca oculto y el icono lo muestra', async () => {

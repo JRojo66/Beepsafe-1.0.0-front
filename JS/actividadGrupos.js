@@ -1,8 +1,12 @@
 const ZONA_ACTIVIDAD_GRUPOS = 'America/Argentina/Buenos_Aires';
 const INTERVALO_PROGRESO_ACTIVIDAD_MS = 10000;
+const INTERVALO_REFRESCO_DETALLE_ACTIVIDAD_MS = 60000;
 
 let grupoDetalleActual = null;
 let intervaloProgresoActividad = null;
+let intervaloRefrescoDetalleActividad = null;
+let refrescoDetalleActividadEnCurso = false;
+let generacionDetalleActividad = 0;
 
 let modalEliminarSesion = null;
 let modalConfirmarEliminar = null;
@@ -204,9 +208,89 @@ function iniciarProgresoActividad() {
   );
 }
 
+function idGrupoDetalleActividad(grupo) {
+  return grupo && (grupo._id || grupo.id || grupo.groupId);
+}
+
+function incluirEliminadosDetalleActividad() {
+  const toggle = document.getElementById('toggleEliminadosGrupo');
+  return Boolean(toggle && toggle.checked);
+}
+
+function urlEstadoActividadGrupo(groupId, incluirEliminados) {
+  return `${ROOT_URL}/api/groups/${encodeURIComponent(
+    groupId
+  )}/activity-state${incluirEliminados ? '?incluirEliminados=1' : ''}`;
+}
+
+function registrarDebugActividad(mensaje) {
+  if (typeof console !== 'undefined' && console && typeof console.debug === 'function') {
+    console.debug(mensaje);
+  }
+}
+
+function detenerRefrescoDetalleActividad() {
+  if (intervaloRefrescoDetalleActividad == null) return;
+  clearInterval(intervaloRefrescoDetalleActividad);
+  intervaloRefrescoDetalleActividad = null;
+}
+
+function iniciarRefrescoDetalleActividad() {
+  detenerRefrescoDetalleActividad();
+  if (!idGrupoDetalleActividad(grupoDetalleActual)) return;
+  const vistaDetalle = document.getElementById('vistaDetalleActividadGrupos');
+  if (!vistaDetalle || vistaDetalle.hidden) return;
+  if (typeof setInterval !== 'function') return;
+  intervaloRefrescoDetalleActividad = setInterval(
+    refrescarDetalleActividadEnSegundoPlano,
+    INTERVALO_REFRESCO_DETALLE_ACTIVIDAD_MS
+  );
+}
+
+async function refrescarDetalleActividadEnSegundoPlano() {
+  if (document.visibilityState && document.visibilityState !== 'visible') return;
+  if (refrescoDetalleActividadEnCurso) return;
+  const grupo = grupoDetalleActual;
+  const groupId = idGrupoDetalleActividad(grupo);
+  if (!groupId) return;
+  const token = tokenActividadGrupos();
+  if (!token) return;
+
+  const generacion = generacionDetalleActividad;
+  const incluirEliminados = incluirEliminadosDetalleActividad();
+  refrescoDetalleActividadEnCurso = true;
+  try {
+    const respuesta = await fetch(urlEstadoActividadGrupo(groupId, incluirEliminados), {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!respuesta.ok) {
+      registrarDebugActividad(
+        `[actividadGrupos] refresco en segundo plano falló: HTTP ${respuesta.status}`
+      );
+      return;
+    }
+    let datos = null;
+    try {
+      datos = await respuesta.json();
+    } catch (err) {
+      registrarDebugActividad('[actividadGrupos] refresco en segundo plano devolvió JSON inválido');
+      return;
+    }
+    if (grupoDetalleActual !== grupo || generacion !== generacionDetalleActividad) return;
+    renderizarDetalleActividad(datos);
+  } catch (err) {
+    const detalle = err && err.message ? err.message : String(err);
+    registrarDebugActividad(`[actividadGrupos] refresco en segundo plano falló: ${detalle}`);
+  } finally {
+    refrescoDetalleActividadEnCurso = false;
+  }
+}
+
 function manejarVisibilidadProgresoActividad() {
   if (document.visibilityState && document.visibilityState !== 'visible') return;
   actualizarProgresosEnCurso();
+  refrescarDetalleActividadEnSegundoPlano();
 }
 
 function nombreEquipoActividad(equipo) {
@@ -640,6 +724,7 @@ function renderizarDetalleActividad(datos) {
     mensaje.textContent = vacio ? 'No hay actividad registrada para este grupo.' : '';
   }
   iniciarProgresoActividad();
+  iniciarRefrescoDetalleActividad();
   return estado;
 }
 
@@ -656,11 +741,13 @@ function mostrarErrorDetalleActividad() {
 
 async function cargarDetalleGrupo(grupo) {
   detenerProgresoActividad();
+  detenerRefrescoDetalleActividad();
+  const generacion = ++generacionDetalleActividad;
   const mensaje = document.getElementById('estadoDetalleActividad');
   const reintentar = document.getElementById('botonReintentarDetalle');
   if (reintentar) reintentar.hidden = true;
   if (mensaje) mensaje.textContent = 'Cargando actividad...';
-  const groupId = grupo && (grupo._id || grupo.id || grupo.groupId);
+  const groupId = idGrupoDetalleActividad(grupo);
   if (!groupId) {
     mostrarErrorDetalleActividad();
     return null;
@@ -671,15 +758,12 @@ async function cargarDetalleGrupo(grupo) {
     return null;
   }
   try {
-    const toggle = document.getElementById('toggleEliminadosGrupo');
-    const incluirEliminados = Boolean(toggle && toggle.checked);
-    const url = `${ROOT_URL}/api/groups/${encodeURIComponent(
-      groupId
-    )}/activity-state${incluirEliminados ? '?incluirEliminados=1' : ''}`;
-    const respuesta = await fetch(url, {
+    const incluirEliminados = incluirEliminadosDetalleActividad();
+    const respuesta = await fetch(urlEstadoActividadGrupo(groupId, incluirEliminados), {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     });
+    if (generacion !== generacionDetalleActividad) return null;
     if (!respuesta.ok) {
       mostrarErrorDetalleActividad();
       return null;
@@ -688,11 +772,14 @@ async function cargarDetalleGrupo(grupo) {
     try {
       datos = await respuesta.json();
     } catch (err) {
+      if (generacion !== generacionDetalleActividad) return null;
       mostrarErrorDetalleActividad();
       return null;
     }
+    if (generacion !== generacionDetalleActividad) return null;
     return renderizarDetalleActividad(datos);
   } catch (err) {
+    if (generacion !== generacionDetalleActividad) return null;
     const detalle = err && err.message ? err.message : String(err);
     console.error(`[actividadGrupos] GET activity-state falló: ${detalle}`);
     mostrarErrorDetalleActividad();
@@ -712,7 +799,9 @@ function abrirDetalleGrupo(grupo) {
 }
 
 function volverListaActividadGrupos() {
+  generacionDetalleActividad += 1;
   detenerProgresoActividad();
+  detenerRefrescoDetalleActividad();
   grupoDetalleActual = null;
   const toggle = document.getElementById('toggleEliminadosGrupo');
   if (toggle) toggle.checked = false;
@@ -850,7 +939,11 @@ inicializarControlesActividad();
 inicializarVisorFotoEquipo();
 
 if (typeof window !== 'undefined' && window.addEventListener) {
-  window.addEventListener('pagehide', detenerProgresoActividad);
+  window.addEventListener('pagehide', () => {
+    generacionDetalleActividad += 1;
+    detenerProgresoActividad();
+    detenerRefrescoDetalleActividad();
+  });
   window.addEventListener('DOMContentLoaded', () => {
     const reintentarGrupos = document.getElementById('botonReintentarGrupos');
     if (reintentarGrupos) reintentarGrupos.addEventListener('click', cargarGrupos);
