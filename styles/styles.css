@@ -1827,6 +1827,20 @@ a {
   text-align: left;
 }
 
+.modal-confirmacion .modal-texto {
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  max-width: none;
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+  color: #e5e5e5;
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: left;
+}
+
 .modal-confirmacion .modal-cerrar {
   color: #ffffff;
 }
@@ -2290,6 +2304,23 @@ a {
   object-fit: cover;
 }
 
+.equipment-photo-boton {
+  display: block;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+  line-height: 0;
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.equipment-photo-boton:focus-visible {
+  outline: 2px solid var(--color-principal);
+  outline-offset: 2px;
+}
+
 .equipment-text {
   color: white;
   display: flex;
@@ -2580,11 +2611,11 @@ a {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  min-height: 44px;
-  height: auto;
+  min-height: 88px;
+  height: 88px;
   margin: 12px 0;
   padding: 10px 16px;
-  border: 1px dashed var(--color-principal);
+  border: 1px solid var(--color-principal);
   border-radius: 16px;
   background-color: var(--color-fondo);
   color: var(--color-principal);

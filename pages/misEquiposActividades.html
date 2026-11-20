@@ -78,14 +78,51 @@
     </div>
     <div id="toast-container"></div>
 
-    <div id="confirm-modal" class="modal hidden">
-      <div class="modal-content">
-        <p id="confirm-message">¿Estás seguro?</p>
+    <div
+      id="confirm-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-title"
+    >
+      <div class="modal-content modal-confirmacion">
+        <button
+          id="confirm-close"
+          type="button"
+          class="modal-cerrar"
+          aria-label="Cerrar"
+        >
+          ×
+        </button>
+        <h2 id="confirm-title" class="modal-titulo">Confirmar eliminación</h2>
+        <p id="confirm-message" class="modal-texto">¿Estás seguro?</p>
         <div class="modal-buttons">
-          <button id="confirm-yes">Sí</button>
-          <button id="confirm-no">No</button>
+          <button id="confirm-cancel" type="button" class="modal-btn cancelar">
+            Cancelar
+          </button>
+          <button id="confirm-delete" type="button" class="modal-btn confirmar">
+            Eliminar
+          </button>
         </div>
       </div>
+    </div>
+
+    <div
+      id="visorFotoEquipo"
+      class="visor-foto hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Foto del equipo"
+    >
+      <button
+        id="cerrarVisorFotoEquipo"
+        class="visor-foto-cerrar"
+        type="button"
+        aria-label="Cerrar foto"
+      >
+        ×
+      </button>
+      <img id="imagenVisorFotoEquipo" class="visor-foto-imagen" src="" alt="" />
     </div>
 
 <script src="../JS/config.js"></script>

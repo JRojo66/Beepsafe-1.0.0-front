@@ -10,10 +10,195 @@
 //   .catch((error) => {
 //     console.error("Error al obtener actividades del usuario:", error);
 //   });
-import {
-  showToast,
-  showConfirm
-} from "./utils.js";
+import { showToast } from "./utils.js";
+
+let visorFotoEquipo = null;
+let imagenVisorFotoEquipo = null;
+let botonCerrarVisorFoto = null;
+let disparadorVisorFoto = null;
+let scrollPrevioVisorFoto = "";
+
+function abrirVisorFotoEquipo(foto, nombre, disparador) {
+  if (!foto || !visorFotoEquipo || !imagenVisorFotoEquipo) return;
+  const etiqueta = `Foto de ${nombre}`;
+  imagenVisorFotoEquipo.src = foto;
+  imagenVisorFotoEquipo.alt = etiqueta;
+  visorFotoEquipo.setAttribute("aria-label", etiqueta);
+  disparadorVisorFoto = disparador || null;
+  if (document.body && document.body.style) {
+    scrollPrevioVisorFoto = document.body.style.overflow || "";
+    document.body.style.overflow = "hidden";
+  }
+  visorFotoEquipo.classList.remove("hidden");
+  if (botonCerrarVisorFoto && typeof botonCerrarVisorFoto.focus === "function") {
+    botonCerrarVisorFoto.focus();
+  }
+}
+
+function cerrarVisorFotoEquipo() {
+  if (!visorFotoEquipo) return;
+  visorFotoEquipo.classList.add("hidden");
+  if (imagenVisorFotoEquipo) {
+    imagenVisorFotoEquipo.src = "";
+    imagenVisorFotoEquipo.alt = "";
+  }
+  if (document.body && document.body.style) {
+    document.body.style.overflow = scrollPrevioVisorFoto || "";
+  }
+  if (disparadorVisorFoto && typeof disparadorVisorFoto.focus === "function") {
+    disparadorVisorFoto.focus();
+  }
+  disparadorVisorFoto = null;
+}
+
+function conectarBotonFotoEquipo(boton) {
+  if (!boton || typeof boton.addEventListener !== "function") return;
+  boton.addEventListener("click", (evento) => {
+    if (evento && typeof evento.stopPropagation === "function") {
+      evento.stopPropagation();
+    }
+    const imagen =
+      typeof boton.querySelector === "function"
+        ? boton.querySelector(".equipment-photo")
+        : null;
+    if (!imagen) return;
+    const foto = imagen.src || imagen.getAttribute("src");
+    abrirVisorFotoEquipo(foto, imagen.alt || "", boton);
+  });
+}
+
+function inicializarVisorFotoEquipo() {
+  visorFotoEquipo = document.getElementById("visorFotoEquipo");
+  imagenVisorFotoEquipo = document.getElementById("imagenVisorFotoEquipo");
+  botonCerrarVisorFoto = document.getElementById("cerrarVisorFotoEquipo");
+  if (!visorFotoEquipo || !imagenVisorFotoEquipo) return;
+  if (botonCerrarVisorFoto) {
+    botonCerrarVisorFoto.addEventListener("click", cerrarVisorFotoEquipo);
+  }
+  visorFotoEquipo.addEventListener("click", (evento) => {
+    if (evento && evento.target === visorFotoEquipo) cerrarVisorFotoEquipo();
+  });
+  document.addEventListener("keydown", (evento) => {
+    if (!evento || evento.key !== "Escape") return;
+    if (!visorFotoEquipo.classList.contains("hidden")) cerrarVisorFotoEquipo();
+  });
+}
+
+function crearHTMLFotoEquipo(equipo) {
+  if (!equipo || !equipo.photo?.trim()) return "";
+  const foto = encodeURI(equipo.photo.trim());
+  return `<button type="button" class="equipment-photo-boton" aria-label="Ver foto de ${
+    equipo.name
+  }"><img class="equipment-photo" src="${foto}" alt="${equipo.name}" /></button>`;
+}
+
+function showConfirm(mensaje, titulo = "Confirmar eliminación") {
+  return new Promise((resolve) => {
+    const modal = document.getElementById("confirm-modal");
+    const tituloElemento = document.getElementById("confirm-title");
+    const messageElement = document.getElementById("confirm-message");
+    const btnYes = document.getElementById("confirm-delete");
+    const btnNo = document.getElementById("confirm-cancel");
+    const btnClose = document.getElementById("confirm-close");
+
+    if (!modal || !messageElement || !btnYes || !btnNo) {
+      resolve(false);
+      return;
+    }
+
+    if (tituloElemento) tituloElemento.textContent = titulo;
+    messageElement.textContent = mensaje;
+    modal.classList.remove("hidden");
+
+    let resuelto = false;
+    const cleanup = () => {
+      modal.classList.add("hidden");
+      btnYes.removeEventListener("click", onYes);
+      btnNo.removeEventListener("click", onNo);
+      if (btnClose) btnClose.removeEventListener("click", onClose);
+      document.removeEventListener("keydown", onKeydown);
+    };
+    const terminar = (valor) => {
+      if (resuelto) return;
+      resuelto = true;
+      cleanup();
+      resolve(valor);
+    };
+    const onYes = () => terminar(true);
+    const onNo = () => terminar(false);
+    const onClose = () => terminar(false);
+    const onKeydown = (evento) => {
+      if (evento && evento.key === "Escape") terminar(false);
+    };
+
+    btnYes.addEventListener("click", onYes);
+    btnNo.addEventListener("click", onNo);
+    if (btnClose) btnClose.addEventListener("click", onClose);
+    document.addEventListener("keydown", onKeydown);
+    if (typeof btnYes.focus === "function") btnYes.focus();
+  });
+}
+
+async function eliminarEquipoConConfirmacion(email, actName, eqName) {
+  const confirmed = await showConfirm("¿Eliminar este equipo?", "Eliminar equipo");
+  if (!confirmed) return false;
+
+  try {
+    const res = await fetch(`${ROOT_URL}/api/activities/equipment`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({
+        email,
+        activity: actName,
+        equipmentName: eqName,
+      }),
+    });
+
+    if (!res.ok) throw new Error("Error al eliminar equipo.");
+
+    showToast("Equipo eliminado", "success");
+    const prevState = getAccordionState();
+    const prevScrollY = window.scrollY;
+    fetchUserActivities(prevState, prevScrollY);
+    return true;
+  } catch (err) {
+    showToast(`error al eliminar el equipo ${err.message}`, "error");
+    return false;
+  }
+}
+
+async function eliminarActividadConConfirmacion(email, actName) {
+  const confirmed = await showConfirm(
+    "¿Estás seguro de que querés eliminar esta actividad? Se borrarán los equipos de esta actividad también.",
+    "Eliminar actividad"
+  );
+  if (!confirmed) return false;
+
+  try {
+    const res = await fetch(`${ROOT_URL}/api/activities`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({ email, activity: actName }),
+    });
+
+    if (!res.ok) throw new Error("Error al eliminar actividad.");
+
+    showToast("Actividad eliminada", "success");
+    const prevState = getAccordionState();
+    const prevScrollY = window.scrollY;
+    fetchUserActivities(prevState, prevScrollY);
+    return true;
+  } catch (err) {
+    showToast(`error al eliminar la actividad ${err.message}`, "error");
+    return false;
+  }
+}
 
 // Verifica que esté logueado
 window.addEventListener("DOMContentLoaded", async () => {
@@ -114,13 +299,7 @@ async function fetchUserActivities(
                       <strong>${eq.name}</strong>
                       <span>${eq.description}</span>
                     </div>
-                      ${
-                        eq.photo?.trim()
-                          ? `<img class="equipment-photo" src="${encodeURI(
-                              eq.photo.trim()
-                            )}" alt="${eq.name}" />`
-                          : ""
-                      }
+                      ${crearHTMLFotoEquipo(eq)}
                       <button class="delete-equipment-btn" data-activity="${
                         activity.name
                       }" data-eq-name="${
@@ -146,41 +325,17 @@ async function fetchUserActivities(
             </div>
           `;
 
+      accordion
+        .querySelectorAll(".equipment-photo-boton")
+        .forEach((btn) => conectarBotonFotoEquipo(btn));
+
       // Delete equipment
       accordion.querySelectorAll(".delete-equipment-btn").forEach((btn) => {
         btn.addEventListener("click", async (e) => {
           e.stopPropagation();
           const eqName = btn.dataset.eqName;
           const actName = btn.dataset.activity;
-
-          const confirmed = await showConfirm("¿Eliminar este equipo?");
-          if (!confirmed) return;
-
-          try {
-            const res = await fetch(`${ROOT_URL}/api/activities/equipment`, {
-              method: "DELETE",
-              //credentials: "include",                                   windows - android
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${localStorage.getItem("token")}`, // iOS
-              },
-
-              body: JSON.stringify({
-                email,
-                activity: actName,
-                equipmentName: eqName,
-              }),
-            });
-
-            if (!res.ok) throw new Error("Error al eliminar equipo.");
-
-            showToast("Equipo eliminado", "success");
-            const prevState = getAccordionState();
-            const prevScrollY = window.scrollY;
-            fetchUserActivities(prevState, prevScrollY);
-          } catch (err) {
-            showToast(`error al eliminar el equipo ${err.message}`, "error");
-          }
+          await eliminarEquipoConConfirmacion(email, actName, eqName);
         });
       });
 
@@ -189,34 +344,7 @@ async function fetchUserActivities(
         .querySelector(".delete-btn")
         .addEventListener("click", async (e) => {
           e.stopPropagation(); // para que no se abra/cierre el acordeón al hacer click
-
-          //const id = e.target.dataset.id;
-          const confirmDelete = await showConfirm(
-            "¿Estás seguro de que querés eliminar esta actividad? Se borrarán los equipos de esta actividad también."
-          );
-          if (!confirmDelete) return;
-
-          try {
-            const res = await fetch(`${ROOT_URL}/api/activities`, {
-              method: "DELETE",
-              //credentials: "include",                                         windows - android
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${localStorage.getItem("token")}`, // iOS
-              },
-
-              body: JSON.stringify({ email, activity: activity.name }),
-            });
-
-            if (!res.ok) throw new Error("Error al eliminar actividad.");
-
-            showToast("Actividad eliminada", "success");
-            const prevState = getAccordionState();
-            const prevScrollY = window.scrollY;
-            fetchUserActivities(prevState, prevScrollY);
-          } catch (err) {
-            showToast(`error al eliminar la actividad ${err.message}`, "error");
-          }
+          await eliminarActividadConConfirmacion(email, activity.name);
         });
 
       // Add equipment
@@ -404,3 +532,5 @@ actividadForm.addEventListener("submit", async (e) => {
     showToast(`error al agregar la actividad ${err.message}`, "error");
   }
 });
+
+inicializarVisorFotoEquipo();
