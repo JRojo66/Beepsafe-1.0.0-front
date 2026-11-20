@@ -532,7 +532,7 @@ await testAsync('el intervalo de progreso solo se crea con tarjetas en curso', a
 
   assert.equal(conEnCurso.intervalos.size, 1, 'hay un único intervalo');
   const [intervalo] = [...conEnCurso.intervalos.values()];
-  assert.equal(intervalo.ms, 30000);
+  assert.equal(intervalo.ms, 10000);
   const barra = buscarPorClase(
     conEnCurso.nodos.listaEnCurso.hijos[0],
     'grupo-progreso-en-curso'
