@@ -5119,3 +5119,15 @@ color: white;
   font-weight: 400;
   text-align: left;
 }
+
+.actividades-wrapper .toggle-add-equipment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #ffffff;
+}
+
+.actividades-wrapper .toggle-add-equipment .toggle-icon {
+  color: #ffffff;
+}
