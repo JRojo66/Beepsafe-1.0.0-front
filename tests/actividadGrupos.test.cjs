@@ -165,25 +165,45 @@ function crearContextoActividadGrupos(opciones = {}) {
     addEventListener(tipo, fn) {
       (documentHandlers[tipo] ||= []).push(fn);
     },
+    visibilityState: opciones.visibilityState || 'visible',
     body: nodos.body,
   };
 
+  let reloj = Number.isFinite(opciones.ahora) ? opciones.ahora : AHORA;
   const DateReal = Date;
   class FechaFalsa extends DateReal {
     constructor(...args) {
-      super(...(args.length ? args : [AHORA]));
+      super(...(args.length ? args : [reloj]));
     }
     static now() {
-      return AHORA;
+      return reloj;
     }
   }
+
+  const windowHandlers = {};
+  const ventana = {
+    addEventListener(tipo, fn) {
+      (windowHandlers[tipo] ||= []).push(fn);
+    },
+  };
+
+  const intervalos = new Map();
+  let siguienteIntervalo = 1;
 
   const fetchLog = [];
   const fetchImpl = opciones.fetch || (async () => respuestaOk({ groups: [] }));
   const ctx = {
     ROOT_URL: 'http://back.test',
-    window: { addEventListener() {} },
+    window: ventana,
     document,
+    setInterval(fn, ms) {
+      const id = siguienteIntervalo++;
+      intervalos.set(id, { fn, ms });
+      return id;
+    },
+    clearInterval(id) {
+      intervalos.delete(id);
+    },
     localStorage: {
       getItem: (clave) => (clave === 'token' ? 'tok-grupos' : null),
     },
@@ -202,8 +222,15 @@ function crearContextoActividadGrupos(opciones = {}) {
     ctxTest: ctx.__test,
     nodos,
     fetchLog,
+    intervalos,
+    avanzarReloj(ms) {
+      reloj += ms;
+    },
     dispararDocumento(tipo, evento) {
       for (const fn of documentHandlers[tipo] || []) fn(evento);
+    },
+    dispararWindow(tipo, evento) {
+      for (const fn of windowHandlers[tipo] || []) fn(evento);
     },
   };
 }
@@ -495,6 +522,102 @@ await testAsync('la barra de progreso usa la proporción y los vencidos quedan a
     null,
     'finalizadas no muestran barra'
   );
+});
+
+await testAsync('el intervalo de progreso solo se crea con tarjetas en curso', async () => {
+  const conEnCurso = crearContextoActividadGrupos({
+    fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
+  });
+  await conEnCurso.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  assert.equal(conEnCurso.intervalos.size, 1, 'hay un único intervalo');
+  const [intervalo] = [...conEnCurso.intervalos.values()];
+  assert.equal(intervalo.ms, 30000);
+  const barra = buscarPorClase(
+    conEnCurso.nodos.listaEnCurso.hijos[0],
+    'grupo-progreso-en-curso'
+  );
+  assert.ok(barra, 'la barra en curso queda marcada para actualizarse');
+  assert.equal(barra.getAttribute('data-inicio'), MIEMBRO_EN_CURSO.inicio);
+  assert.equal(barra.getAttribute('data-fin-previsto'), MIEMBRO_EN_CURSO.finPrevisto);
+
+  const sinEnCurso = crearContextoActividadGrupos({
+    fetch: async () =>
+      respuestaOk({
+        activityState: {
+          vencidos: [MIEMBRO_VENCIDO],
+          enCurso: [],
+          terminados: [MIEMBRO_TERMINADO],
+        },
+      }),
+  });
+  await sinEnCurso.ctxTest.abrirDetalleGrupo(GRUPO);
+  assert.equal(sinEnCurso.intervalos.size, 0, 'sin en curso no hay intervalo');
+});
+
+await testAsync('el progreso en curso avanza con el reloj sin volver a renderizar', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  const tarjeta = t.nodos.listaEnCurso.hijos[0];
+  const barra = buscarPorClase(tarjeta, 'grupo-progreso-barra');
+  assert.equal(barra.style.width, '50%');
+  const [intervalo] = [...t.intervalos.values()];
+
+  t.avanzarReloj(15 * 60 * 1000);
+  intervalo.fn();
+
+  assert.equal(barra.style.width, '75%');
+  assert.equal(t.nodos.listaEnCurso.hijos[0], tarjeta, 'no se re-renderiza la tarjeta');
+  assert.equal(
+    buscarPorClase(t.nodos.listaVencidos.hijos[0], 'grupo-progreso-barra').style.width,
+    '100%'
+  );
+  assert.equal(
+    buscarPorClase(t.nodos.listaTerminados.hijos[0], 'grupo-progreso'),
+    null,
+    'las finalizadas siguen sin barra'
+  );
+});
+
+await testAsync('volver y pagehide detienen el intervalo de progreso', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+  assert.equal(t.intervalos.size, 1);
+
+  t.nodos.volverListaGrupos.disparar('click');
+  assert.equal(t.intervalos.size, 0, 'volver a la lista detiene el intervalo');
+
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+  assert.equal(t.intervalos.size, 1);
+
+  t.dispararWindow('pagehide', {});
+  assert.equal(t.intervalos.size, 0, 'pagehide detiene el intervalo');
+});
+
+await testAsync('el progreso se pausa con la pestaña oculta y se actualiza al volver', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async () => respuestaOk({ activityState: estadoCompleto() }),
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  const barra = buscarPorClase(t.nodos.listaEnCurso.hijos[0], 'grupo-progreso-barra');
+  const [intervalo] = [...t.intervalos.values()];
+  const consultasIniciales = t.fetchLog.length;
+
+  t.ctx.document.visibilityState = 'hidden';
+  t.avanzarReloj(15 * 60 * 1000);
+  intervalo.fn();
+  assert.equal(barra.style.width, '50%', 'oculta no recalcula');
+
+  t.ctx.document.visibilityState = 'visible';
+  t.dispararDocumento('visibilitychange', {});
+  assert.equal(barra.style.width, '75%', 'al volver visible actualiza');
+  assert.equal(t.fetchLog.length, consultasIniciales, 'no hace polling al servidor');
 });
 
 await testAsync('el teléfono arranca oculto y el icono lo muestra', async () => {

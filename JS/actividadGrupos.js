@@ -1,6 +1,8 @@
 const ZONA_ACTIVIDAD_GRUPOS = 'America/Argentina/Buenos_Aires';
+const INTERVALO_PROGRESO_ACTIVIDAD_MS = 10000;
 
 let grupoDetalleActual = null;
+let intervaloProgresoActividad = null;
 
 let modalEliminarSesion = null;
 let modalConfirmarEliminar = null;
@@ -149,6 +151,62 @@ function calcularProgreso(inicio, finPrevisto, fin, esVencido) {
   const progreso = ((base - inicioMs) / (finPrevistoMs - inicioMs)) * 100;
   if (!Number.isFinite(progreso)) return 0;
   return Math.max(0, Math.min(100, progreso));
+}
+
+function buscarDescendientePorClase(nodo, clase) {
+  if (!nodo) return null;
+  if (nodo.classList && nodo.classList.contains(clase)) return nodo;
+  for (const hijo of nodo.children || nodo.hijos || []) {
+    const encontrado = buscarDescendientePorClase(hijo, clase);
+    if (encontrado) return encontrado;
+  }
+  return null;
+}
+
+function actualizarProgresosEnCurso() {
+  if (document.visibilityState && document.visibilityState !== 'visible') return;
+  const lista = document.getElementById('listaEnCurso');
+  if (!lista) return;
+  const pendientes = [lista];
+  while (pendientes.length > 0) {
+    const actual = pendientes.pop();
+    if (actual.classList && actual.classList.contains('grupo-progreso-en-curso')) {
+      const relleno = buscarDescendientePorClase(actual, 'grupo-progreso-barra');
+      if (relleno) {
+        const progreso = calcularProgreso(
+          actual.getAttribute('data-inicio'),
+          actual.getAttribute('data-fin-previsto'),
+          null,
+          false
+        );
+        relleno.style.width = `${progreso}%`;
+      }
+    }
+    pendientes.push(...(actual.children || actual.hijos || []));
+  }
+}
+
+function detenerProgresoActividad() {
+  if (intervaloProgresoActividad == null) return;
+  clearInterval(intervaloProgresoActividad);
+  intervaloProgresoActividad = null;
+}
+
+function iniciarProgresoActividad() {
+  detenerProgresoActividad();
+  const lista = document.getElementById('listaEnCurso');
+  if (!lista || !buscarDescendientePorClase(lista, 'grupo-progreso-en-curso')) return;
+  actualizarProgresosEnCurso();
+  if (typeof setInterval !== 'function') return;
+  intervaloProgresoActividad = setInterval(
+    actualizarProgresosEnCurso,
+    INTERVALO_PROGRESO_ACTIVIDAD_MS
+  );
+}
+
+function manejarVisibilidadProgresoActividad() {
+  if (document.visibilityState && document.visibilityState !== 'visible') return;
+  actualizarProgresosEnCurso();
 }
 
 function nombreEquipoActividad(equipo) {
@@ -407,7 +465,7 @@ function inicializarModalesEliminar() {
   document.addEventListener('keydown', manejarTeclaEliminar);
 }
 
-function crearTarjetaMiembro(miembro, esVencido, lista) {
+function crearTarjetaMiembro(miembro, esVencido, lista, enCurso = false) {
   const datos = miembro && typeof miembro === 'object' ? miembro : {};
   const eliminado = miembroEliminado(datos);
   const tarjeta = document.createElement('div');
@@ -472,7 +530,7 @@ function crearTarjetaMiembro(miembro, esVencido, lista) {
       : `Inicio: ${inicioTexto} · Fin previsto: ${formatearHoraActividad(datos.finPrevisto)}`;
   tarjeta.appendChild(crearTextoActividad('grupo-miembro-horas', horasTexto));
 
-  if (datos.tipo !== 'registro') {
+  if (datos.tipo !== 'registro' && (esVencido || enCurso)) {
     const progreso = calcularProgreso(datos.inicio, datos.finPrevisto, datos.fin, esVencido);
     const barra = document.createElement('div');
     barra.className = 'grupo-progreso';
@@ -480,6 +538,17 @@ function crearTarjetaMiembro(miembro, esVencido, lista) {
     barra.setAttribute('aria-valuemin', '0');
     barra.setAttribute('aria-valuemax', '100');
     barra.setAttribute('aria-valuenow', String(Math.round(progreso)));
+    if (enCurso) {
+      barra.classList.add('grupo-progreso-en-curso');
+      barra.setAttribute(
+        'data-inicio',
+        datos.inicio == null ? '' : String(datos.inicio)
+      );
+      barra.setAttribute(
+        'data-fin-previsto',
+        datos.finPrevisto == null ? '' : String(datos.finPrevisto)
+      );
+    }
     const relleno = document.createElement('div');
     relleno.className = 'grupo-progreso-barra';
     relleno.style.width = `${progreso}%`;
@@ -537,7 +606,7 @@ function crearTarjetaMiembro(miembro, esVencido, lista) {
   return tarjeta;
 }
 
-function renderizarMiembrosEnLista(lista, miembros, esVencido) {
+function renderizarMiembrosEnLista(lista, miembros, esVencido, enCurso = false) {
   if (!lista) return;
   lista.innerHTML = '';
   if (!Array.isArray(miembros) || miembros.length === 0) {
@@ -545,14 +614,19 @@ function renderizarMiembrosEnLista(lista, miembros, esVencido) {
     return;
   }
   for (const miembro of miembros) {
-    lista.appendChild(crearTarjetaMiembro(miembro, esVencido, lista));
+    lista.appendChild(crearTarjetaMiembro(miembro, esVencido, lista, enCurso));
   }
 }
 
 function renderizarDetalleActividad(datos) {
   const estado = normalizarEstadoActividad(datos);
   renderizarMiembrosEnLista(document.getElementById('listaVencidos'), estado.vencidos, true);
-  renderizarMiembrosEnLista(document.getElementById('listaEnCurso'), estado.enCurso, false);
+  renderizarMiembrosEnLista(
+    document.getElementById('listaEnCurso'),
+    estado.enCurso,
+    false,
+    true
+  );
   renderizarMiembrosEnLista(document.getElementById('listaTerminados'), estado.terminados, false);
 
   const mensaje = document.getElementById('estadoDetalleActividad');
@@ -565,6 +639,7 @@ function renderizarDetalleActividad(datos) {
   if (mensaje) {
     mensaje.textContent = vacio ? 'No hay actividad registrada para este grupo.' : '';
   }
+  iniciarProgresoActividad();
   return estado;
 }
 
@@ -580,6 +655,7 @@ function mostrarErrorDetalleActividad() {
 }
 
 async function cargarDetalleGrupo(grupo) {
+  detenerProgresoActividad();
   const mensaje = document.getElementById('estadoDetalleActividad');
   const reintentar = document.getElementById('botonReintentarDetalle');
   if (reintentar) reintentar.hidden = true;
@@ -636,6 +712,7 @@ function abrirDetalleGrupo(grupo) {
 }
 
 function volverListaActividadGrupos() {
+  detenerProgresoActividad();
   grupoDetalleActual = null;
   const toggle = document.getElementById('toggleEliminadosGrupo');
   if (toggle) toggle.checked = false;
@@ -748,6 +825,7 @@ function inicializarControlesActividad() {
   }
   const volver = document.getElementById('volverListaGrupos');
   if (volver) volver.addEventListener('click', volverListaActividadGrupos);
+  document.addEventListener('visibilitychange', manejarVisibilidadProgresoActividad);
 }
 
 function inicializarVisorFotoEquipo() {
@@ -772,6 +850,7 @@ inicializarControlesActividad();
 inicializarVisorFotoEquipo();
 
 if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('pagehide', detenerProgresoActividad);
   window.addEventListener('DOMContentLoaded', () => {
     const reintentarGrupos = document.getElementById('botonReintentarGrupos');
     if (reintentarGrupos) reintentarGrupos.addEventListener('click', cargarGrupos);
