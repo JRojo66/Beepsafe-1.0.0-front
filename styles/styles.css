@@ -5123,9 +5123,16 @@ color: white;
 .actividades-wrapper .toggle-add-equipment {
   position: relative;
   display: flex;
+  flex: 0 0 100%;
+  align-self: stretch;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
   padding-left: 16px;
   padding-right: 16px;
   text-align: center;
