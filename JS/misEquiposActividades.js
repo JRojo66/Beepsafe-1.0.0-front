@@ -402,9 +402,9 @@ async function fetchUserActivities(
             : accordion.querySelector(".gallery-input");
           const photoFile = fileInput?.files[0];
 
-          if (!name || !description) {
+          if (!name) {
             showToast(
-              "Por favor completá al menos el nombre y la descripción del equipo.",
+              "Por favor completá el nombre del equipo.",
               "error"
             );
             spinner.style.display = "none"; // ⬅️ Ocultarlo si hay error de validación
