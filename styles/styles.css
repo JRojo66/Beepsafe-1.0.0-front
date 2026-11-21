@@ -1712,7 +1712,7 @@ a {
   align-self: flex-end;
   border-color: var(--color-principal);
   background-color: var(--color-principal);
-  color: var(--color-fondo);
+  color: var(--color-principal);
 }
 
 .grupo-mensaje-usuario {

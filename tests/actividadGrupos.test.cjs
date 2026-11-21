@@ -1089,15 +1089,15 @@ await testAsync('un activity-state vacío muestra el mensaje y las secciones vac
 
 console.log('# actividadGrupos.js — chat');
 
-test('un mensaje anterior a la primera actividad queda antes de ella', () => {
+test('un mensaje anterior a la actividad queda debajo en orden descendente', () => {
   const t = crearContextoActividadGrupos();
   const listas = t.ctxTest.construirListasActividad(
     { vencidos: [], enCurso: [MIEMBRO_EN_CURSO], terminados: [] },
     [MENSAJE_ANTES]
   );
-  assert.equal(listas.enCurso.map((item) => item.tipo).join(','), 'mensaje,actividad');
-  assert.equal(listas.enCurso[0].mensaje.id, 'm1');
-  assert.equal(listas.enCurso[1].actividad.id, 'c1');
+  assert.equal(listas.enCurso.map((item) => item.tipo).join(','), 'actividad,mensaje');
+  assert.equal(listas.enCurso[0].actividad.id, 'c1');
+  assert.equal(listas.enCurso[1].mensaje.id, 'm1');
 });
 
 test('un mensaje entre dos actividades en curso queda entre ellas', () => {
@@ -1114,12 +1114,12 @@ test('un mensaje entre dos actividades en curso queda entre ellas', () => {
     listas.enCurso.map((item) => item.tipo).join(','),
     'actividad,mensaje,actividad'
   );
-  assert.equal(listas.enCurso[0].actividad.id, 'c1');
+  assert.equal(listas.enCurso[0].actividad.id, 'c2');
   assert.equal(listas.enCurso[1].mensaje.id, 'm2');
-  assert.equal(listas.enCurso[2].actividad.id, 'c2');
+  assert.equal(listas.enCurso[2].actividad.id, 'c1');
 });
 
-test('un mensaje posterior a la última actividad va a Finalizadas', () => {
+test('un mensaje más nuevo que toda actividad en curso va a Finalizadas', () => {
   const t = crearContextoActividadGrupos();
   const listas = t.ctxTest.construirListasActividad(
     {
@@ -1129,11 +1129,11 @@ test('un mensaje posterior a la última actividad va a Finalizadas', () => {
     },
     [MENSAJE_DESPUES]
   );
-  assert.deepEqual(
-    listas.terminados.map((item) => item.tipo),
-    ['actividad', 'mensaje']
+  assert.equal(
+    listas.terminados.map((item) => item.tipo).join(','),
+    'mensaje,actividad'
   );
-  assert.equal(listas.terminados[1].mensaje.id, 'm3');
+  assert.equal(listas.terminados[0].mensaje.id, 'm3');
 });
 
 test('sin actividades en curso todos los mensajes van a Finalizadas', () => {
@@ -1142,10 +1142,48 @@ test('sin actividades en curso todos los mensajes van a Finalizadas', () => {
     { vencidos: [], enCurso: [], terminados: [] },
     [MENSAJE_DESPUES, MENSAJE_ANTES]
   );
-  assert.deepEqual(
-    listas.terminados.map((item) => item.mensaje.id),
-    ['m1', 'm3']
+  assert.equal(
+    listas.terminados.map((item) => item.mensaje.id).join(','),
+    'm3,m1'
   );
+});
+
+await testAsync('las tres listas de actividades renderizan lo más reciente primero', async () => {
+  const vencidoViejo = {
+    ...MIEMBRO_VENCIDO,
+    id: 'v-viejo',
+    usuario: 'Viejo',
+    inicio: new Date(AHORA - 180 * 60 * 1000).toISOString(),
+    finPrevisto: new Date(AHORA - 120 * 60 * 1000).toISOString(),
+  };
+  const terminadoNuevo = {
+    ...MIEMBRO_TERMINADO,
+    id: 'r-nuevo',
+    usuario: 'Nueva',
+    inicio: new Date(AHORA - 90 * 60 * 1000).toISOString(),
+    finPrevisto: new Date(AHORA - 60 * 60 * 1000).toISOString(),
+    fin: new Date(AHORA - 45 * 60 * 1000).toISOString(),
+  };
+  const t = crearContextoActividadGrupos({
+    fetch: async (url) => {
+      if (String(url).endsWith('/messages')) return respuestaOk({ mensajes: [] });
+      return respuestaOk({
+        activityState: {
+          vencidos: [vencidoViejo, MIEMBRO_VENCIDO],
+          enCurso: [MIEMBRO_EN_CURSO, MIEMBRO_EN_CURSO_2],
+          terminados: [MIEMBRO_TERMINADO, terminadoNuevo],
+        },
+      });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  assert.ok(textosDe(t.nodos.listaVencidos.hijos[0]).includes('Ana'));
+  assert.ok(textosDe(t.nodos.listaVencidos.hijos[1]).includes('Viejo'));
+  assert.ok(textosDe(t.nodos.listaEnCurso.hijos[0]).includes('Carla'));
+  assert.ok(textosDe(t.nodos.listaEnCurso.hijos[1]).includes('Beto'));
+  assert.ok(textosDe(t.nodos.listaTerminados.hijos[0]).includes('Nueva'));
+  assert.ok(textosDe(t.nodos.listaTerminados.hijos[1]).includes('Carla'));
 });
 
 await testAsync('las burbujas propias van a la derecha y las ajenas muestran nombre', async () => {
@@ -1174,7 +1212,7 @@ await testAsync('las burbujas propias van a la derecha y las ajenas muestran nom
     'grupo-mensaje'
   );
   assert.equal(burbujas.length, 2);
-  const [ajena, propia] = burbujas;
+  const [propia, ajena] = burbujas;
   assert.equal(ajena.classList.contains('grupo-mensaje-propio'), false);
   assert.equal(propia.classList.contains('grupo-mensaje-propio'), true);
   assert.equal(
@@ -1191,6 +1229,19 @@ await testAsync('las burbujas propias van a la derecha y las ajenas muestran nom
   assert.equal(
     buscarPorClase(propia, 'grupo-mensaje-hora').textContent,
     t.ctxTest.formatearHoraActividad(MENSAJE_PROPIO.enviadoEn)
+  );
+
+  const css = fs.readFileSync(
+    path.join(__dirname, '..', 'styles', 'styles.css'),
+    'utf8'
+  );
+  const regla = css.match(/\.grupo-mensaje-propio\s*\{([\s\S]*?)\}/);
+  assert.ok(regla, 'falta el estilo de la burbuja propia');
+  assert.match(regla[1], /background-color:\s*var\(--color-principal\);/);
+  assert.match(regla[1], /color:\s*var\(--color-principal\);/);
+  assert.match(
+    css.match(/^\.grupo-mensaje\s*\{([\s\S]*?)\}/m)[1],
+    /color:\s*#ffffff;/
   );
 });
 
@@ -1269,10 +1320,13 @@ await testAsync('un evento SSE agrega el mensaje en su sección sin duplicar id'
   fuente.emitir('mensaje', MENSAJE_ANTES);
 
   assert.equal(
-    t.nodos.listaEnCurso.hijos[0].classList.contains('grupo-mensaje'),
+    t.nodos.listaEnCurso.hijos[0].classList.contains('grupo-miembro-card'),
     true
   );
-  assert.equal(t.nodos.listaEnCurso.hijos[1].classList.contains('grupo-miembro-card'), true);
+  assert.equal(
+    t.nodos.listaEnCurso.hijos[1].classList.contains('grupo-mensaje'),
+    true
+  );
   assert.equal(
     buscarTodosPorClase(t.nodos.listaEnCurso, 'grupo-mensaje').length,
     1

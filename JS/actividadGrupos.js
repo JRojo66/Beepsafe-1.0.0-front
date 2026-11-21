@@ -165,40 +165,49 @@ function mensajeIdActividad(mensaje) {
 
 function construirListasActividad(estado, mensajes) {
   const base = estado && typeof estado === 'object' ? estado : {};
-  const vencidos = Array.isArray(base.vencidos) ? base.vencidos : [];
+  const vencidos = (Array.isArray(base.vencidos) ? base.vencidos : [])
+    .slice()
+    .sort(
+      (a, b) =>
+        valorFechaActividad(b && b.finPrevisto) -
+        valorFechaActividad(a && a.finPrevisto)
+    );
   const enCurso = (Array.isArray(base.enCurso) ? base.enCurso : [])
     .slice()
-    .sort((a, b) => valorFechaActividad(a && a.inicio) - valorFechaActividad(b && b.inicio));
+    .sort((a, b) => valorFechaActividad(b && b.inicio) - valorFechaActividad(a && a.inicio));
   const terminados = (Array.isArray(base.terminados) ? base.terminados : [])
     .slice()
-    .sort((a, b) => valorFechaActividad(a && a.fin) - valorFechaActividad(b && b.fin));
+    .sort((a, b) => valorFechaActividad(b && b.fin) - valorFechaActividad(a && a.fin));
   const mensajesOrdenados = (Array.isArray(mensajes) ? mensajes : [])
     .slice()
     .sort(
       (a, b) =>
-        valorFechaActividad(a && a.enviadoEn) - valorFechaActividad(b && b.enviadoEn)
+        valorFechaActividad(b && b.enviadoEn) - valorFechaActividad(a && a.enviadoEn)
     );
 
-  const itemsEnCurso = [];
+  const mensajesEnCurso = [];
   const mensajesFinalizadas = [];
-  let indiceMensaje = 0;
-
-  for (const actividad of enCurso) {
-    const inicio = valorFechaActividad(actividad && actividad.inicio);
-    while (
-      indiceMensaje < mensajesOrdenados.length &&
-      valorFechaActividad(mensajesOrdenados[indiceMensaje].enviadoEn) < inicio
-    ) {
-      itemsEnCurso.push({ tipo: 'mensaje', mensaje: mensajesOrdenados[indiceMensaje] });
-      indiceMensaje += 1;
-    }
-    itemsEnCurso.push({ tipo: 'actividad', actividad });
+  for (const mensaje of mensajesOrdenados) {
+    const enviadoEn = valorFechaActividad(mensaje && mensaje.enviadoEn);
+    const perteneceEnCurso = enCurso.some(
+      (actividad) => valorFechaActividad(actividad && actividad.inicio) > enviadoEn
+    );
+    if (perteneceEnCurso) mensajesEnCurso.push(mensaje);
+    else mensajesFinalizadas.push(mensaje);
   }
 
-  while (indiceMensaje < mensajesOrdenados.length) {
-    mensajesFinalizadas.push(mensajesOrdenados[indiceMensaje]);
-    indiceMensaje += 1;
-  }
+  const tiempoItem = (item) =>
+    item.tipo === 'mensaje'
+      ? valorFechaActividad(item.mensaje && item.mensaje.enviadoEn)
+      : valorFechaActividad(
+          item.actividad &&
+            (item.actividad.inicio != null ? item.actividad.inicio : item.actividad.fin)
+        );
+
+  const itemsEnCurso = enCurso
+    .map((actividad) => ({ tipo: 'actividad', actividad }))
+    .concat(mensajesEnCurso.map((mensaje) => ({ tipo: 'mensaje', mensaje })))
+    .sort((a, b) => tiempoItem(b) - tiempoItem(a));
 
   const itemsTerminados = terminados
     .map((actividad) => ({ tipo: 'actividad', actividad }))
@@ -214,7 +223,7 @@ function construirListasActividad(estado, mensajes) {
         b.tipo === 'mensaje'
           ? valorFechaActividad(b.mensaje && b.mensaje.enviadoEn)
           : valorFechaActividad(b.actividad && b.actividad.fin);
-      return tiempoA - tiempoB;
+      return tiempoB - tiempoA;
     });
 
   return { vencidos, enCurso: itemsEnCurso, terminados: itemsTerminados };
