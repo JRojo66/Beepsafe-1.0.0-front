@@ -1237,7 +1237,7 @@ await testAsync('las burbujas propias van a la derecha y las ajenas muestran nom
   );
   const regla = css.match(/\.grupo-mensaje-propio\s*\{([\s\S]*?)\}/);
   assert.ok(regla, 'falta el estilo de la burbuja propia');
-  assert.match(regla[1], /background-color:\s*var\(--color-principal\);/);
+assert.match(regla[1], /background-color:\s*var\(--color-fondo2\);/);
   assert.match(regla[1], /color:\s*var\(--color-principal\);/);
   assert.match(
     css.match(/^\.grupo-mensaje\s*\{([\s\S]*?)\}/m)[1],
