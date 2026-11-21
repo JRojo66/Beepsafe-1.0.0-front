@@ -49,6 +49,7 @@
                         <img src="../imagenes/volver.PNG" alt="" class="volver-arrow">
                     </button>
                     <h2 id="tituloDetalleGrupo" class="actividad-grupos-titulo"></h2>
+                    <button id="verIntegrantesGrupo" class="actividad-grupos-ver-integrantes" type="button">Ver integrantes</button>
                     <button id="toggleChatGrupo" class="actividad-grupos-toggle-chat" type="button">Ocultar chat</button>
                 </div>
             </div>
@@ -108,6 +109,17 @@
         </div>
     </div>
 
+
+    <div id="modalIntegrantesGrupo" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="tituloModalIntegrantes">
+        <div class="modal-content modal-confirmacion">
+            <button id="cerrarModalIntegrantes" type="button" class="modal-cerrar" aria-label="Cerrar">×</button>
+            <h2 id="tituloModalIntegrantes" class="modal-titulo">Integrantes</h2>
+            <div id="listaIntegrantesGrupo" class="grupo-integrantes-lista"></div>
+            <div class="modal-buttons">
+                <button id="cerrarIntegrantesBoton" type="button" class="modal-btn cancelar">Cerrar</button>
+            </div>
+        </div>
+    </div>
 
     <div id="visorFotoEquipo" class="visor-foto hidden" role="dialog" aria-modal="true" aria-label="Foto del equipo">
         <button id="cerrarVisorFotoEquipo" class="visor-foto-cerrar" type="button" aria-label="Cerrar foto">×</button>

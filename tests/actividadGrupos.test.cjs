@@ -12,6 +12,7 @@ const EXPORTS = `;globalThis.__test = {
   cargarGrupos, cargarDetalleGrupo, volverListaActividadGrupos,
   crearTarjetaMiembro, construirListasActividad, crearBurbujaMensaje,
   agregarMensajeActividad, alternarChatActividad, enviarMensajeActividad,
+  construirIntegrantesGrupo,
 };`;
 
 const AHORA = Date.UTC(2026, 4, 18, 12, 0); // lunes 09:00 en Buenos Aires
@@ -160,6 +161,12 @@ function crearContextoActividadGrupos(opciones = {}) {
     imagenVisorFotoEquipo: crearNodo({ tagName: 'IMG', src: '', alt: '' }),
     cerrarVisorFotoEquipo: crearNodo({ textContent: '×' }),
     toggleChatGrupo: crearNodo({ textContent: 'Ocultar chat' }),
+    verIntegrantesGrupo: crearNodo({ tagName: 'BUTTON', textContent: 'Ver integrantes' }),
+    modalIntegrantesGrupo: crearNodo({ className: 'modal hidden' }),
+    tituloModalIntegrantes: crearNodo({ textContent: 'Integrantes' }),
+    listaIntegrantesGrupo: crearNodo(),
+    cerrarModalIntegrantes: crearNodo({ textContent: '×' }),
+    cerrarIntegrantesBoton: crearNodo({ tagName: 'BUTTON', textContent: 'Cerrar' }),
     formMensajeGrupo: crearNodo({ tagName: 'FORM' }),
     entradaMensajeGrupo: crearNodo({ tagName: 'INPUT', value: '' }),
     enviarMensajeGrupo: crearNodo({ tagName: 'BUTTON', disabled: false }),
@@ -169,6 +176,7 @@ function crearContextoActividadGrupos(opciones = {}) {
   nodos.modalEliminarSesion.classList.add('hidden');
   nodos.modalConfirmarEliminarSesion.classList.add('hidden');
   nodos.visorFotoEquipo.classList.add('hidden');
+  nodos.modalIntegrantesGrupo.classList.add('hidden');
 
   const documentHandlers = {};
   const document = {
@@ -1413,6 +1421,175 @@ await testAsync('Enviar publica el mensaje y limpia el input', async () => {
   assert.equal(
     buscarTodosPorClase(t.nodos.listaTerminados, 'grupo-mensaje').length,
     1
+  );
+});
+
+console.log('# actividadGrupos.js — integrantes');
+
+test('Ver integrantes queda entre el nombre del grupo y Ocultar chat', () => {
+  const html = fs.readFileSync(
+    path.join(__dirname, '..', 'pages', 'actividadGrupos.html'),
+    'utf8'
+  );
+  const nombre = html.indexOf('id="tituloDetalleGrupo"');
+  const verIntegrantes = html.indexOf('id="verIntegrantesGrupo"');
+  const chat = html.indexOf('id="toggleChatGrupo"');
+
+  assert.ok(nombre > -1 && verIntegrantes > -1 && chat > -1);
+  assert.ok(nombre < verIntegrantes && verIntegrantes < chat);
+  assert.ok(html.includes('class="modal-content modal-confirmacion"'));
+  assert.ok(html.includes('id="modalIntegrantesGrupo"'));
+  assert.ok(html.includes('id="tituloModalIntegrantes"'));
+  assert.ok(html.includes('id="listaIntegrantesGrupo"'));
+  assert.ok(html.includes('id="cerrarModalIntegrantes"'));
+  assert.ok(html.includes('id="cerrarIntegrantesBoton"'));
+  assert.ok(html.includes('class="modal-btn cancelar">Cerrar</button>'));
+});
+
+await testAsync('el modal lista integrantes del grupo y de la actividad sin duplicados', async () => {
+  const grupo = {
+    _id: 'g-integrantes',
+    name: 'Surf',
+    members: [
+      { userId: 'u1', name: 'Ana', phone: '+54 9 11 1111-1111' },
+      { userId: 'u1', name: 'Ana duplicada', phone: '+54 9 11 1111-1111' },
+      { name: 'Beto', phone: '+54 9 11 2222-2222' },
+      { name: 'Carla', phone: '+54 9 11 3333-3333' },
+    ],
+  };
+  const t = crearContextoActividadGrupos({
+    fetch: async (url) => {
+      if (String(url).endsWith('/messages')) return respuestaOk({ mensajes: [] });
+      return respuestaOk({
+        activityState: {
+          vencidos: [
+            {
+              id: 'v1',
+              userId: 'u1',
+              usuario: 'Ana',
+              telefono: '+54 9 11 1111-1111',
+            },
+          ],
+          enCurso: [
+            {
+              id: 'c1',
+              usuario: 'Beto',
+              telefono: '+54 9 11 2222-2222',
+            },
+            {
+              id: 'c2',
+              usuario: 'Dani',
+              telefono: '+54 9 11 4444-4444',
+            },
+          ],
+          terminados: [
+            {
+              id: 'r1',
+              usuario: 'Ana',
+              telefono: '+54 9 11 1111-1111',
+            },
+          ],
+        },
+      });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(grupo);
+  t.nodos.verIntegrantesGrupo.disparar('click');
+
+  assert.equal(
+    t.nodos.modalIntegrantesGrupo.classList.contains('hidden'),
+    false
+  );
+  assert.equal(t.nodos.tituloModalIntegrantes.textContent, 'Integrantes de Surf');
+  const filas = buscarTodosPorClase(
+    t.nodos.listaIntegrantesGrupo,
+    'grupo-integrante'
+  );
+  assert.equal(filas.length, 4);
+  const nombres = filas.map(
+    (fila) => buscarPorClase(fila, 'grupo-integrante-nombre').textContent
+  );
+  assert.equal(nombres.join(','), 'Ana,Beto,Carla,Dani');
+  assert.equal(nombres.filter((nombre) => nombre === 'Ana').length, 1);
+  const filaCarla = filas.find(
+    (fila) =>
+      buscarPorClase(fila, 'grupo-integrante-nombre').textContent === 'Carla'
+  );
+  assert.ok(textosDe(filaCarla).includes('+54 9 11 3333-3333'));
+  const filaDani = filas.find(
+    (fila) =>
+      buscarPorClase(fila, 'grupo-integrante-nombre').textContent === 'Dani'
+  );
+  assert.ok(textosDe(filaDani).includes('+54 9 11 4444-4444'));
+});
+
+await testAsync('sin datos de integrantes muestra el mensaje vacío', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async (url) => {
+      if (String(url).endsWith('/messages')) return respuestaOk({ mensajes: [] });
+      return respuestaOk({
+        activityState: { vencidos: [], enCurso: [], terminados: [] },
+      });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo({
+    _id: 'g-vacio',
+    name: 'Vacío',
+    members: [],
+  });
+  t.nodos.verIntegrantesGrupo.disparar('click');
+
+  const vacio = buscarPorClase(
+    t.nodos.listaIntegrantesGrupo,
+    'grupo-integrantes-vacio'
+  );
+  assert.ok(vacio);
+  assert.equal(vacio.textContent, 'No hay integrantes para mostrar.');
+});
+
+await testAsync('el modal de integrantes cierra con ×, Escape, Cerrar y backdrop', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async (url) => {
+      if (String(url).endsWith('/messages')) return respuestaOk({ mensajes: [] });
+      return respuestaOk({
+        activityState: { vencidos: [], enCurso: [], terminados: [] },
+      });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo({
+    _id: 'g-cierre',
+    name: 'Cierre',
+    members: [{ name: 'Ana', phone: '+54 9 11 1111-1111' }],
+  });
+
+  t.nodos.verIntegrantesGrupo.disparar('click');
+  t.nodos.cerrarModalIntegrantes.disparar('click');
+  assert.equal(
+    t.nodos.modalIntegrantesGrupo.classList.contains('hidden'),
+    true
+  );
+
+  t.nodos.verIntegrantesGrupo.disparar('click');
+  t.dispararDocumento('keydown', { key: 'Escape' });
+  assert.equal(
+    t.nodos.modalIntegrantesGrupo.classList.contains('hidden'),
+    true
+  );
+
+  t.nodos.verIntegrantesGrupo.disparar('click');
+  t.nodos.cerrarIntegrantesBoton.disparar('click');
+  assert.equal(
+    t.nodos.modalIntegrantesGrupo.classList.contains('hidden'),
+    true
+  );
+
+  t.nodos.verIntegrantesGrupo.disparar('click');
+  t.nodos.modalIntegrantesGrupo.disparar('click', {
+    target: t.nodos.modalIntegrantesGrupo,
+  });
+  assert.equal(
+    t.nodos.modalIntegrantesGrupo.classList.contains('hidden'),
+    true
   );
 });
 

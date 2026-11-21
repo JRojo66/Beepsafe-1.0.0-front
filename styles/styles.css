@@ -1670,7 +1670,8 @@ a {
   padding-bottom: 78px;
 }
 
-.actividad-grupos-toggle-chat {
+.actividad-grupos-toggle-chat,
+.actividad-grupos-ver-integrantes {
   flex: none;
   min-height: 34px;
   padding: 4px 10px;
@@ -1685,9 +1686,52 @@ a {
 }
 
 .actividad-grupos-toggle-chat:hover,
-.actividad-grupos-toggle-chat:focus-visible {
+.actividad-grupos-toggle-chat:focus-visible,
+.actividad-grupos-ver-integrantes:hover,
+.actividad-grupos-ver-integrantes:focus-visible {
   background-color: rgba(144, 255, 239, 0.15);
   outline: none;
+}
+
+.grupo-integrantes-lista {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 50vh;
+  margin: 0 0 18px;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.grupo-integrante {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.grupo-integrante:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.grupo-integrante-nombre {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.grupo-integrante-telefono {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+}
+
+.grupo-integrantes-vacio {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
 }
 
 .actividad-grupos-chat-oculto .grupo-mensaje {

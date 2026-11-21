@@ -26,6 +26,13 @@ let botonCerrarVisorFoto = null;
 let disparadorVisorFoto = null;
 let scrollPrevioVisorFoto = '';
 
+let modalIntegrantesGrupo = null;
+let tituloModalIntegrantes = null;
+let listaIntegrantesGrupo = null;
+let botonVerIntegrantes = null;
+let botonCerrarIntegrantes = null;
+let disparadorIntegrantes = null;
+
 function tokenActividadGrupos() {
   try {
     return localStorage.getItem('token') || '';
@@ -1153,6 +1160,7 @@ async function cargarDetalleGrupo(grupo) {
 }
 
 function abrirDetalleGrupo(grupo) {
+  cerrarModalIntegrantes();
   grupoDetalleActual = grupo;
   const vistaLista = document.getElementById('vistaListaActividadGrupos');
   const vistaDetalle = document.getElementById('vistaDetalleActividadGrupos');
@@ -1170,6 +1178,7 @@ function volverListaActividadGrupos() {
   detenerProgresoActividad();
   detenerRefrescoDetalleActividad();
   detenerStreamMensajesActividad();
+  cerrarModalIntegrantes();
   grupoDetalleActual = null;
   const toggle = document.getElementById('toggleEliminadosGrupo');
   if (toggle) toggle.checked = false;
@@ -1177,6 +1186,214 @@ function volverListaActividadGrupos() {
   const vistaDetalle = document.getElementById('vistaDetalleActividadGrupos');
   if (vistaLista) vistaLista.hidden = false;
   if (vistaDetalle) vistaDetalle.hidden = true;
+}
+
+function textoIntegrante(valor) {
+  return valor == null ? '' : String(valor).trim();
+}
+
+function agregarIntegranteGrupo(integrantes, indices, datos) {
+  const id = textoIntegrante(datos && datos.id);
+  const telefono = textoIntegrante(datos && datos.telefono);
+  const nombre = textoIntegrante(datos && datos.nombre);
+  if (!id && !telefono && !nombre) return;
+
+  const claveTelefono = telefono.replace(/\D/g, '');
+  const claveNombre = nombre.toLocaleLowerCase('es');
+  let existente = id ? indices.porId.get(id) : null;
+  if (!existente && claveTelefono) {
+    existente = indices.porTelefono.get(claveTelefono);
+  }
+  if (!existente && !id && !claveTelefono && claveNombre) {
+    existente = indices.porNombre.get(claveNombre);
+  }
+
+  if (existente) {
+    if (!existente.nombre && nombre) existente.nombre = nombre;
+    if (!existente.telefono && telefono) existente.telefono = telefono;
+    if (id) indices.porId.set(id, existente);
+    if (claveTelefono) indices.porTelefono.set(claveTelefono, existente);
+    if (claveNombre) indices.porNombre.set(claveNombre, existente);
+    return;
+  }
+
+  const integrante = {
+    nombre: nombre || telefono || id || 'Integrante',
+    telefono,
+  };
+  integrantes.push(integrante);
+  if (id) indices.porId.set(id, integrante);
+  if (claveTelefono) indices.porTelefono.set(claveTelefono, integrante);
+  if (claveNombre) indices.porNombre.set(claveNombre, integrante);
+}
+
+function construirIntegrantesGrupo(grupo, estado) {
+  const integrantes = [];
+  const indices = {
+    porId: new Map(),
+    porTelefono: new Map(),
+    porNombre: new Map(),
+  };
+  const miembros = Array.isArray(grupo && grupo.members)
+    ? grupo.members
+    : Array.isArray(grupo && grupo.miembros)
+      ? grupo.miembros
+      : Array.isArray(grupo && grupo.integrantes)
+        ? grupo.integrantes
+        : [];
+
+  for (const miembro of miembros) {
+    if (miembro == null) continue;
+    if (typeof miembro !== 'object') {
+      agregarIntegranteGrupo(integrantes, indices, {
+        id: typeof miembro === 'number' ? miembro : '',
+        telefono: typeof miembro === 'string' ? miembro : '',
+      });
+      continue;
+    }
+    const usuario =
+      miembro.user && typeof miembro.user === 'object'
+        ? miembro.user
+        : miembro.usuario && typeof miembro.usuario === 'object'
+          ? miembro.usuario
+          : {};
+    agregarIntegranteGrupo(integrantes, indices, {
+      id:
+        miembro.userId ??
+        miembro.usuarioId ??
+        miembro.user_id ??
+        usuario.userId ??
+        usuario.id ??
+        usuario._id ??
+        miembro.id ??
+        miembro._id,
+      nombre:
+        miembro.name ??
+        miembro.nombre ??
+        (typeof miembro.usuario === 'string' ? miembro.usuario : null) ??
+        usuario.name ??
+        usuario.nombre,
+      telefono:
+        miembro.phone ??
+        miembro.telefono ??
+        usuario.phone ??
+        usuario.telefono,
+    });
+  }
+
+  const base = estado && typeof estado === 'object' ? estado : {};
+  for (const clave of ['vencidos', 'enCurso', 'terminados']) {
+    const lista = Array.isArray(base[clave]) ? base[clave] : [];
+    for (const actividad of lista) {
+      if (!actividad || typeof actividad !== 'object') continue;
+      agregarIntegranteGrupo(integrantes, indices, {
+        id:
+          actividad.userId ??
+          actividad.usuarioId ??
+          actividad.user_id,
+        nombre: actividad.usuario ?? actividad.nombre ?? actividad.name,
+        telefono: actividad.telefono ?? actividad.phone,
+      });
+    }
+  }
+
+  return integrantes;
+}
+
+function renderizarIntegrantesGrupo() {
+  if (!listaIntegrantesGrupo) return;
+  const integrantes = construirIntegrantesGrupo(
+    grupoDetalleActual,
+    estadoActividadActual
+  );
+  listaIntegrantesGrupo.innerHTML = '';
+  if (integrantes.length === 0) {
+    listaIntegrantesGrupo.appendChild(
+      crearTextoActividad(
+        'grupo-integrantes-vacio',
+        'No hay integrantes para mostrar.'
+      )
+    );
+    return;
+  }
+
+  for (const integrante of integrantes) {
+    const fila = document.createElement('div');
+    fila.className = 'grupo-integrante';
+    fila.appendChild(
+      crearTextoActividad(
+        'grupo-integrante-nombre',
+        integrante.nombre,
+        'span'
+      )
+    );
+    if (integrante.telefono && integrante.telefono !== integrante.nombre) {
+      fila.appendChild(
+        crearTextoActividad(
+          'grupo-integrante-telefono',
+          integrante.telefono,
+          'span'
+        )
+      );
+    }
+    listaIntegrantesGrupo.appendChild(fila);
+  }
+}
+
+function abrirModalIntegrantes() {
+  if (!modalIntegrantesGrupo) return;
+  const nombre = (grupoDetalleActual && grupoDetalleActual.name) || 'grupo';
+  if (tituloModalIntegrantes) {
+    tituloModalIntegrantes.textContent = `Integrantes de ${nombre}`;
+  }
+  renderizarIntegrantesGrupo();
+  disparadorIntegrantes = botonVerIntegrantes;
+  modalIntegrantesGrupo.classList.remove('hidden');
+  if (botonCerrarIntegrantes && typeof botonCerrarIntegrantes.focus === 'function') {
+    botonCerrarIntegrantes.focus();
+  }
+}
+
+function cerrarModalIntegrantes() {
+  if (!modalIntegrantesGrupo) return;
+  const estabaAbierto = !modalIntegrantesGrupo.classList.contains('hidden');
+  modalIntegrantesGrupo.classList.add('hidden');
+  if (
+    estabaAbierto &&
+    disparadorIntegrantes &&
+    typeof disparadorIntegrantes.focus === 'function'
+  ) {
+    disparadorIntegrantes.focus();
+  }
+  disparadorIntegrantes = null;
+}
+
+function inicializarModalIntegrantes() {
+  modalIntegrantesGrupo = document.getElementById('modalIntegrantesGrupo');
+  tituloModalIntegrantes = document.getElementById('tituloModalIntegrantes');
+  listaIntegrantesGrupo = document.getElementById('listaIntegrantesGrupo');
+  botonVerIntegrantes = document.getElementById('verIntegrantesGrupo');
+  botonCerrarIntegrantes = document.getElementById('cerrarIntegrantesBoton');
+  const botonCerrar = document.getElementById('cerrarModalIntegrantes');
+  if (!modalIntegrantesGrupo || !botonVerIntegrantes) return;
+  botonVerIntegrantes.addEventListener('click', abrirModalIntegrantes);
+  if (botonCerrar) {
+    botonCerrar.addEventListener('click', cerrarModalIntegrantes);
+  }
+  if (botonCerrarIntegrantes) {
+    botonCerrarIntegrantes.addEventListener('click', cerrarModalIntegrantes);
+  }
+  modalIntegrantesGrupo.addEventListener('click', (evento) => {
+    if (evento && evento.target === modalIntegrantesGrupo) {
+      cerrarModalIntegrantes();
+    }
+  });
+  document.addEventListener('keydown', (evento) => {
+    if (!evento || evento.key !== 'Escape') return;
+    if (!modalIntegrantesGrupo.classList.contains('hidden')) {
+      cerrarModalIntegrantes();
+    }
+  });
 }
 
 function crearTarjetaGrupo(grupo) {
@@ -1306,6 +1523,7 @@ function inicializarVisorFotoEquipo() {
 inicializarModalesEliminar();
 inicializarControlesActividad();
 inicializarVisorFotoEquipo();
+inicializarModalIntegrantes();
 
 if (typeof window !== 'undefined' && window.addEventListener) {
   window.addEventListener('pagehide', () => {
