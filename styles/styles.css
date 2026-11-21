@@ -1711,8 +1711,17 @@ a {
 .grupo-mensaje-propio {
   align-self: flex-end;
   border-color: var(--color-principal);
-  background-color: var(--color-principal);
+  background-color: var(--color-fondo2);
   color: var(--color-principal);
+}
+
+.grupo-mensaje-propio .grupo-mensaje-texto {
+  color: var(--color-principal);
+}
+
+.grupo-mensaje-propio .grupo-mensaje-hora {
+  color: var(--color-principal);
+  opacity: 0.75;
 }
 
 .grupo-mensaje-usuario {
