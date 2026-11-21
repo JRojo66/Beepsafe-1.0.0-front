@@ -49,6 +49,7 @@
                         <img src="../imagenes/volver.PNG" alt="" class="volver-arrow">
                     </button>
                     <h2 id="tituloDetalleGrupo" class="actividad-grupos-titulo"></h2>
+                    <button id="toggleChatGrupo" class="actividad-grupos-toggle-chat" type="button">Ocultar chat</button>
                 </div>
             </div>
             <p id="estadoDetalleActividad" class="msj-estado mensajes-estado" role="status" aria-live="polite"></p>
@@ -76,6 +77,12 @@
                     <div id="listaTerminados" class="grupo-actividad-miembros"></div>
                 </section>
             </div>
+
+            <form id="formMensajeGrupo" class="grupo-chat-composer" autocomplete="off">
+                <input id="entradaMensajeGrupo" class="grupo-chat-entrada" type="text" placeholder="Escribí un mensaje" aria-label="Mensaje" />
+                <button id="enviarMensajeGrupo" class="grupo-chat-enviar" type="submit">Enviar</button>
+                <p id="errorMensajeGrupo" class="grupo-chat-error" role="status" aria-live="polite"></p>
+            </form>
         </div>
     </div>
 

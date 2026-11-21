@@ -7,6 +7,10 @@ let intervaloProgresoActividad = null;
 let intervaloRefrescoDetalleActividad = null;
 let refrescoDetalleActividadEnCurso = false;
 let generacionDetalleActividad = 0;
+let estadoActividadActual = { vencidos: [], enCurso: [], terminados: [] };
+let mensajesGrupoActual = [];
+let fuenteMensajesActividad = null;
+let chatActividadVisible = true;
 
 let modalEliminarSesion = null;
 let modalConfirmarEliminar = null;
@@ -28,6 +32,35 @@ function tokenActividadGrupos() {
   } catch (err) {
     return '';
   }
+}
+
+function payloadTokenActividad() {
+  const token = tokenActividadGrupos();
+  if (!token || typeof token !== 'string') return null;
+  const partes = token.split('.');
+  if (partes.length < 2 || !partes[1]) return null;
+  try {
+    const base64 = partes[1].replace(/-/g, '+').replace(/_/g, '/');
+    const relleno = (4 - (base64.length % 4)) % 4;
+    return JSON.parse(atob(base64.padEnd(base64.length + relleno, '=')));
+  } catch (err) {
+    return null;
+  }
+}
+
+function idsUsuarioActividad() {
+  const payload = payloadTokenActividad();
+  const ids = new Set();
+  for (const clave of ['userId', 'usuarioId', 'user_id', 'id', '_id', 'sub', 'email']) {
+    const valor = payload && payload[clave];
+    if (
+      (typeof valor === 'string' || typeof valor === 'number') &&
+      String(valor).trim()
+    ) {
+      ids.add(String(valor).trim());
+    }
+  }
+  return ids;
 }
 
 function valorFechaActividad(valor) {
@@ -107,6 +140,338 @@ function formatearHoraActividad(valor) {
   } catch (err) {
     return String(valor);
   }
+}
+
+function normalizarMensajesActividad(datos) {
+  const base = Array.isArray(datos)
+    ? datos
+    : datos && Array.isArray(datos.mensajes)
+      ? datos.mensajes
+      : [];
+  return base.filter((mensaje) => mensaje && typeof mensaje === 'object');
+}
+
+function normalizarMensajeActividad(datos) {
+  if (!datos || typeof datos !== 'object') return null;
+  if (datos.mensaje && typeof datos.mensaje === 'object') return datos.mensaje;
+  if (datos.message && typeof datos.message === 'object') return datos.message;
+  if (datos.id != null || datos._id != null || datos.enviadoEn != null) return datos;
+  return null;
+}
+
+function mensajeIdActividad(mensaje) {
+  return mensaje && (mensaje.id != null ? mensaje.id : mensaje._id);
+}
+
+function construirListasActividad(estado, mensajes) {
+  const base = estado && typeof estado === 'object' ? estado : {};
+  const vencidos = Array.isArray(base.vencidos) ? base.vencidos : [];
+  const enCurso = (Array.isArray(base.enCurso) ? base.enCurso : [])
+    .slice()
+    .sort((a, b) => valorFechaActividad(a && a.inicio) - valorFechaActividad(b && b.inicio));
+  const terminados = (Array.isArray(base.terminados) ? base.terminados : [])
+    .slice()
+    .sort((a, b) => valorFechaActividad(a && a.fin) - valorFechaActividad(b && b.fin));
+  const mensajesOrdenados = (Array.isArray(mensajes) ? mensajes : [])
+    .slice()
+    .sort(
+      (a, b) =>
+        valorFechaActividad(a && a.enviadoEn) - valorFechaActividad(b && b.enviadoEn)
+    );
+
+  const itemsEnCurso = [];
+  const mensajesFinalizadas = [];
+  let indiceMensaje = 0;
+
+  for (const actividad of enCurso) {
+    const inicio = valorFechaActividad(actividad && actividad.inicio);
+    while (
+      indiceMensaje < mensajesOrdenados.length &&
+      valorFechaActividad(mensajesOrdenados[indiceMensaje].enviadoEn) < inicio
+    ) {
+      itemsEnCurso.push({ tipo: 'mensaje', mensaje: mensajesOrdenados[indiceMensaje] });
+      indiceMensaje += 1;
+    }
+    itemsEnCurso.push({ tipo: 'actividad', actividad });
+  }
+
+  while (indiceMensaje < mensajesOrdenados.length) {
+    mensajesFinalizadas.push(mensajesOrdenados[indiceMensaje]);
+    indiceMensaje += 1;
+  }
+
+  const itemsTerminados = terminados
+    .map((actividad) => ({ tipo: 'actividad', actividad }))
+    .concat(
+      mensajesFinalizadas.map((mensaje) => ({ tipo: 'mensaje', mensaje }))
+    )
+    .sort((a, b) => {
+      const tiempoA =
+        a.tipo === 'mensaje'
+          ? valorFechaActividad(a.mensaje && a.mensaje.enviadoEn)
+          : valorFechaActividad(a.actividad && a.actividad.fin);
+      const tiempoB =
+        b.tipo === 'mensaje'
+          ? valorFechaActividad(b.mensaje && b.mensaje.enviadoEn)
+          : valorFechaActividad(b.actividad && b.actividad.fin);
+      return tiempoA - tiempoB;
+    });
+
+  return { vencidos, enCurso: itemsEnCurso, terminados: itemsTerminados };
+}
+
+function crearBurbujaMensaje(mensaje) {
+  const datos = mensaje && typeof mensaje === 'object' ? mensaje : {};
+  const propio =
+    datos.userId != null && idsUsuarioActividad().has(String(datos.userId));
+  const burbuja = document.createElement('div');
+  burbuja.className = `grupo-mensaje${propio ? ' grupo-mensaje-propio' : ''}`;
+  const id = mensajeIdActividad(datos);
+  if (id != null) burbuja.setAttribute('data-mensaje-id', String(id));
+
+  if (!propio) {
+    burbuja.appendChild(
+      crearTextoActividad(
+        'grupo-mensaje-usuario',
+        datos.usuario || 'Usuario',
+        'span'
+      )
+    );
+  }
+  burbuja.appendChild(
+    crearTextoActividad(
+      'grupo-mensaje-texto',
+      datos.texto == null ? '' : String(datos.texto),
+      'p'
+    )
+  );
+  burbuja.appendChild(
+    crearTextoActividad(
+      'grupo-mensaje-hora',
+      formatearHoraActividad(datos.enviadoEn),
+      'span'
+    )
+  );
+  return burbuja;
+}
+
+function renderizarItemsMixtos(lista, items, esVencido, enCurso) {
+  if (!lista) return;
+  lista.innerHTML = '';
+  if (!Array.isArray(items) || items.length === 0) {
+    lista.appendChild(crearTextoActividad('grupo-actividad-vacio', 'Sin registros.'));
+    return;
+  }
+  for (const item of items) {
+    if (item.tipo === 'mensaje') {
+      lista.appendChild(crearBurbujaMensaje(item.mensaje));
+    } else {
+      lista.appendChild(
+        crearTarjetaMiembro(item.actividad, esVencido, lista, enCurso)
+      );
+    }
+  }
+}
+
+function renderizarListasActividad() {
+  const listas = construirListasActividad(estadoActividadActual, mensajesGrupoActual);
+  renderizarMiembrosEnLista(
+    document.getElementById('listaVencidos'),
+    listas.vencidos,
+    true
+  );
+  renderizarItemsMixtos(
+    document.getElementById('listaEnCurso'),
+    listas.enCurso,
+    false,
+    true
+  );
+  renderizarItemsMixtos(
+    document.getElementById('listaTerminados'),
+    listas.terminados,
+    false,
+    false
+  );
+}
+
+function actualizarEstadoVacioDetalleActividad() {
+  const mensaje = document.getElementById('estadoDetalleActividad');
+  const reintentar = document.getElementById('botonReintentarDetalle');
+  if (reintentar) reintentar.hidden = true;
+  const vacio =
+    estadoActividadActual.vencidos.length === 0 &&
+    estadoActividadActual.enCurso.length === 0 &&
+    estadoActividadActual.terminados.length === 0 &&
+    mensajesGrupoActual.length === 0;
+  if (mensaje) {
+    mensaje.textContent = vacio ? 'No hay actividad registrada para este grupo.' : '';
+  }
+}
+
+function agregarMensajeActividad(mensaje) {
+  const datos = normalizarMensajeActividad(mensaje);
+  if (!datos) return false;
+  const id = mensajeIdActividad(datos);
+  if (
+    id != null &&
+    mensajesGrupoActual.some(
+      (existente) =>
+        mensajeIdActividad(existente) != null &&
+        String(mensajeIdActividad(existente)) === String(id)
+    )
+  ) {
+    return false;
+  }
+  mensajesGrupoActual = mensajesGrupoActual.concat([datos]);
+  renderizarListasActividad();
+  actualizarEstadoVacioDetalleActividad();
+  return true;
+}
+
+function detenerStreamMensajesActividad() {
+  if (!fuenteMensajesActividad) return;
+  fuenteMensajesActividad.close();
+  fuenteMensajesActividad = null;
+}
+
+function manejarEventoMensajeActividad(evento) {
+  if (!evento || typeof evento.data !== 'string') return;
+  try {
+    agregarMensajeActividad(JSON.parse(evento.data));
+  } catch (err) {
+    console.error('[actividadGrupos] evento SSE de mensaje inválido');
+  }
+}
+
+function iniciarStreamMensajesActividad(groupId, token) {
+  detenerStreamMensajesActividad();
+  if (typeof EventSource !== 'function') return;
+  const url = `${ROOT_URL}/api/groups/${encodeURIComponent(
+    groupId
+  )}/messages/stream?token=${encodeURIComponent(token)}`;
+  try {
+    fuenteMensajesActividad = new EventSource(url);
+    fuenteMensajesActividad.addEventListener('mensaje', (evento) => {
+      if (idGrupoDetalleActividad(grupoDetalleActual) !== groupId) return;
+      manejarEventoMensajeActividad(evento);
+    });
+  } catch (err) {
+    fuenteMensajesActividad = null;
+  }
+}
+
+function establecerChatActividadVisible(visible) {
+  chatActividadVisible = Boolean(visible);
+  const vista = document.getElementById('vistaDetalleActividadGrupos');
+  if (vista) {
+    vista.classList.toggle('actividad-grupos-chat-oculto', !chatActividadVisible);
+  }
+  const boton = document.getElementById('toggleChatGrupo');
+  if (boton) {
+    boton.textContent = chatActividadVisible ? 'Ocultar chat' : 'Ver chat';
+  }
+}
+
+function alternarChatActividad() {
+  establecerChatActividadVisible(!chatActividadVisible);
+}
+
+function mostrarErrorEnvioMensaje(mensaje) {
+  const error = document.getElementById('errorMensajeGrupo');
+  if (error) error.textContent = mensaje;
+}
+
+async function enviarMensajeActividad(evento) {
+  if (evento && typeof evento.preventDefault === 'function') {
+    evento.preventDefault();
+  }
+  const grupo = grupoDetalleActual;
+  const groupId = idGrupoDetalleActividad(grupo);
+  const token = tokenActividadGrupos();
+  const entrada = document.getElementById('entradaMensajeGrupo');
+  const boton = document.getElementById('enviarMensajeGrupo');
+  if (!entrada || !boton) return;
+  const texto = String(entrada.value || '').trim();
+  if (!texto) return;
+  if (!groupId || !token) {
+    mostrarErrorEnvioMensaje('No se pudo enviar. Intentá de nuevo.');
+    return;
+  }
+
+  boton.disabled = true;
+  entrada.disabled = true;
+  mostrarErrorEnvioMensaje('');
+  try {
+    const respuesta = await fetch(
+      `${ROOT_URL}/api/groups/${encodeURIComponent(groupId)}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ texto }),
+      }
+    );
+    if (!respuesta.ok) throw new Error('No se pudo enviar.');
+    let datos = null;
+    try {
+      datos = await respuesta.json();
+    } catch (err) {
+      datos = null;
+    }
+    if (grupoDetalleActual === grupo) {
+      const mensaje = normalizarMensajeActividad(datos);
+      if (mensaje) agregarMensajeActividad(mensaje);
+    }
+    entrada.value = '';
+  } catch (err) {
+    mostrarErrorEnvioMensaje('No se pudo enviar. Intentá de nuevo.');
+  } finally {
+    boton.disabled = false;
+    entrada.disabled = false;
+  }
+}
+
+async function cargarMensajesActividad(groupId, token, generacion) {
+  try {
+    const respuesta = await fetch(
+      `${ROOT_URL}/api/groups/${encodeURIComponent(groupId)}/messages`,
+      {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    if (generacion !== generacionDetalleActividad) return [];
+    if (!respuesta.ok) {
+      registrarDebugActividad(
+        `[actividadGrupos] GET messages falló: HTTP ${respuesta.status}`
+      );
+      return [];
+    }
+    let datos = null;
+    try {
+      datos = await respuesta.json();
+    } catch (err) {
+      if (generacion !== generacionDetalleActividad) return [];
+      registrarDebugActividad('[actividadGrupos] GET messages devolvió JSON inválido');
+      return [];
+    }
+    if (generacion !== generacionDetalleActividad) return [];
+    return normalizarMensajesActividad(datos);
+  } catch (err) {
+    if (generacion !== generacionDetalleActividad) return [];
+    const detalle = err && err.message ? err.message : String(err);
+    registrarDebugActividad(`[actividadGrupos] GET messages falló: ${detalle}`);
+    return [];
+  }
+}
+
+function inicializarChatActividad() {
+  const toggle = document.getElementById('toggleChatGrupo');
+  if (toggle) toggle.addEventListener('click', alternarChatActividad);
+  const form = document.getElementById('formMensajeGrupo');
+  if (form) form.addEventListener('submit', enviarMensajeActividad);
 }
 
 function formatearFechaInteraccion(valor) {
@@ -703,29 +1068,12 @@ function renderizarMiembrosEnLista(lista, miembros, esVencido, enCurso = false) 
 }
 
 function renderizarDetalleActividad(datos) {
-  const estado = normalizarEstadoActividad(datos);
-  renderizarMiembrosEnLista(document.getElementById('listaVencidos'), estado.vencidos, true);
-  renderizarMiembrosEnLista(
-    document.getElementById('listaEnCurso'),
-    estado.enCurso,
-    false,
-    true
-  );
-  renderizarMiembrosEnLista(document.getElementById('listaTerminados'), estado.terminados, false);
-
-  const mensaje = document.getElementById('estadoDetalleActividad');
-  const reintentar = document.getElementById('botonReintentarDetalle');
-  if (reintentar) reintentar.hidden = true;
-  const vacio =
-    estado.vencidos.length === 0 &&
-    estado.enCurso.length === 0 &&
-    estado.terminados.length === 0;
-  if (mensaje) {
-    mensaje.textContent = vacio ? 'No hay actividad registrada para este grupo.' : '';
-  }
+  estadoActividadActual = normalizarEstadoActividad(datos);
+  renderizarListasActividad();
+  actualizarEstadoVacioDetalleActividad();
   iniciarProgresoActividad();
   iniciarRefrescoDetalleActividad();
-  return estado;
+  return estadoActividadActual;
 }
 
 function mostrarErrorDetalleActividad() {
@@ -742,6 +1090,8 @@ function mostrarErrorDetalleActividad() {
 async function cargarDetalleGrupo(grupo) {
   detenerProgresoActividad();
   detenerRefrescoDetalleActividad();
+  detenerStreamMensajesActividad();
+  mensajesGrupoActual = [];
   const generacion = ++generacionDetalleActividad;
   const mensaje = document.getElementById('estadoDetalleActividad');
   const reintentar = document.getElementById('botonReintentarDetalle');
@@ -759,10 +1109,13 @@ async function cargarDetalleGrupo(grupo) {
   }
   try {
     const incluirEliminados = incluirEliminadosDetalleActividad();
-    const respuesta = await fetch(urlEstadoActividadGrupo(groupId, incluirEliminados), {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const [respuesta, mensajes] = await Promise.all([
+      fetch(urlEstadoActividadGrupo(groupId, incluirEliminados), {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      cargarMensajesActividad(groupId, token, generacion),
+    ]);
     if (generacion !== generacionDetalleActividad) return null;
     if (!respuesta.ok) {
       mostrarErrorDetalleActividad();
@@ -777,7 +1130,10 @@ async function cargarDetalleGrupo(grupo) {
       return null;
     }
     if (generacion !== generacionDetalleActividad) return null;
-    return renderizarDetalleActividad(datos);
+    mensajesGrupoActual = mensajes;
+    const estado = renderizarDetalleActividad(datos);
+    iniciarStreamMensajesActividad(groupId, token);
+    return estado;
   } catch (err) {
     if (generacion !== generacionDetalleActividad) return null;
     const detalle = err && err.message ? err.message : String(err);
@@ -795,6 +1151,8 @@ function abrirDetalleGrupo(grupo) {
   if (vistaLista) vistaLista.hidden = true;
   if (vistaDetalle) vistaDetalle.hidden = false;
   if (titulo) titulo.textContent = (grupo && grupo.name) || 'Grupo';
+  establecerChatActividadVisible(true);
+  mostrarErrorEnvioMensaje('');
   return cargarDetalleGrupo(grupo);
 }
 
@@ -802,6 +1160,7 @@ function volverListaActividadGrupos() {
   generacionDetalleActividad += 1;
   detenerProgresoActividad();
   detenerRefrescoDetalleActividad();
+  detenerStreamMensajesActividad();
   grupoDetalleActual = null;
   const toggle = document.getElementById('toggleEliminadosGrupo');
   if (toggle) toggle.checked = false;
@@ -915,6 +1274,7 @@ function inicializarControlesActividad() {
   const volver = document.getElementById('volverListaGrupos');
   if (volver) volver.addEventListener('click', volverListaActividadGrupos);
   document.addEventListener('visibilitychange', manejarVisibilidadProgresoActividad);
+  inicializarChatActividad();
 }
 
 function inicializarVisorFotoEquipo() {
@@ -943,6 +1303,7 @@ if (typeof window !== 'undefined' && window.addEventListener) {
     generacionDetalleActividad += 1;
     detenerProgresoActividad();
     detenerRefrescoDetalleActividad();
+    detenerStreamMensajesActividad();
   });
   window.addEventListener('DOMContentLoaded', () => {
     const reintentarGrupos = document.getElementById('botonReintentarGrupos');

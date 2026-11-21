@@ -10,7 +10,8 @@ const EXPORTS = `;globalThis.__test = {
   formatearHoraActividad, formatearFechaInteraccion, secundarioGrupo,
   renderizarGrupos, renderizarDetalleActividad, abrirDetalleGrupo,
   cargarGrupos, cargarDetalleGrupo, volverListaActividadGrupos,
-  crearTarjetaMiembro,
+  crearTarjetaMiembro, construirListasActividad, crearBurbujaMensaje,
+  agregarMensajeActividad, alternarChatActividad, enviarMensajeActividad,
 };`;
 
 const AHORA = Date.UTC(2026, 4, 18, 12, 0); // lunes 09:00 en Buenos Aires
@@ -102,6 +103,12 @@ function crearNodo(extra = {}) {
     add: (...cs) => cs.forEach((c) => clases.add(c)),
     remove: (...cs) => cs.forEach((c) => clases.delete(c)),
     contains: (c) => clases.has(c),
+    toggle: (c, fuerza) => {
+      const debeEstar = fuerza === undefined ? !clases.has(c) : Boolean(fuerza);
+      if (debeEstar) clases.add(c);
+      else clases.delete(c);
+      return debeEstar;
+    },
   };
   Object.defineProperty(nodo, 'childElementCount', {
     get: () => nodo.hijos.length,
@@ -152,6 +159,11 @@ function crearContextoActividadGrupos(opciones = {}) {
     visorFotoEquipo: crearNodo({ className: 'visor-foto hidden' }),
     imagenVisorFotoEquipo: crearNodo({ tagName: 'IMG', src: '', alt: '' }),
     cerrarVisorFotoEquipo: crearNodo({ textContent: '×' }),
+    toggleChatGrupo: crearNodo({ textContent: 'Ocultar chat' }),
+    formMensajeGrupo: crearNodo({ tagName: 'FORM' }),
+    entradaMensajeGrupo: crearNodo({ tagName: 'INPUT', value: '' }),
+    enviarMensajeGrupo: crearNodo({ tagName: 'BUTTON', disabled: false }),
+    errorMensajeGrupo: crearNodo(),
     body: crearNodo({ style: {} }),
   };
   nodos.modalEliminarSesion.classList.add('hidden');
@@ -190,6 +202,27 @@ function crearContextoActividadGrupos(opciones = {}) {
   const intervalos = new Map();
   let siguienteIntervalo = 1;
   const debugLog = [];
+  const eventSources = [];
+  const token = opciones.token === undefined ? 'tok-grupos' : opciones.token;
+
+  class EventSourceFalso {
+    constructor(url) {
+      this.url = String(url);
+      this.cerrado = false;
+      this.listeners = {};
+      eventSources.push(this);
+    }
+    addEventListener(tipo, fn) {
+      (this.listeners[tipo] ||= []).push(fn);
+    }
+    close() {
+      this.cerrado = true;
+    }
+    emitir(tipo, datos) {
+      const evento = { data: JSON.stringify(datos) };
+      for (const fn of this.listeners[tipo] || []) fn(evento);
+    }
+  }
 
   const fetchLog = [];
   const fetchImpl = opciones.fetch || (async () => respuestaOk({ groups: [] }));
@@ -206,12 +239,14 @@ function crearContextoActividadGrupos(opciones = {}) {
       intervalos.delete(id);
     },
     localStorage: {
-      getItem: (clave) => (clave === 'token' ? 'tok-grupos' : null),
+      getItem: (clave) => (clave === 'token' ? token : null),
     },
     fetch: async (url, init) => {
       fetchLog.push({ url: String(url), init });
       return fetchImpl(String(url), init);
     },
+    EventSource: EventSourceFalso,
+    atob: (valor) => Buffer.from(String(valor), 'base64').toString('binary'),
     Date: FechaFalsa,
     Intl,
     console: {
@@ -228,6 +263,8 @@ function crearContextoActividadGrupos(opciones = {}) {
     fetchLog,
     intervalos,
     debugLog,
+    eventSources,
+    token,
     avanzarReloj(ms) {
       reloj += ms;
     },
@@ -281,6 +318,15 @@ function intervalosDe(contexto, ms) {
   return [...contexto.intervalos.values()].filter((intervalo) => intervalo.ms === ms);
 }
 
+function crearTokenActividad(payload) {
+  const base64 = Buffer.from(JSON.stringify(payload), 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+  return `x.${base64}.y`;
+}
+
 const GRUPO = { _id: 'g1', name: 'Surf', members: [1, 2, 3] };
 
 const MIEMBRO_VENCIDO = {
@@ -308,6 +354,57 @@ const MIEMBRO_EN_CURSO = {
   finPrevisto: new Date(AHORA + 30 * 60 * 1000).toISOString(),
   telefono: '+54 11 0000-0000',
   equipos: [],
+};
+
+const MIEMBRO_EN_CURSO_2 = {
+  id: 'c2',
+  tipo: 'sesion',
+  usuario: 'Carla',
+  actividad: 'Windsurf',
+  inicio: new Date(AHORA).toISOString(),
+  finPrevisto: new Date(AHORA + 60 * 60 * 1000).toISOString(),
+  telefono: '+54 11 1111-1111',
+  equipos: [],
+};
+
+const MENSAJE_ANTES = {
+  id: 'm1',
+  userId: 'u2',
+  usuario: 'Ana',
+  texto: 'Antes de la actividad',
+  enviadoEn: new Date(AHORA - 60 * 60 * 1000).toISOString(),
+};
+
+const MENSAJE_MEDIO = {
+  id: 'm2',
+  userId: 'u2',
+  usuario: 'Ana',
+  texto: 'Entre actividades',
+  enviadoEn: new Date(AHORA - 10 * 60 * 1000).toISOString(),
+};
+
+const MENSAJE_DESPUES = {
+  id: 'm3',
+  userId: 'u2',
+  usuario: 'Ana',
+  texto: 'Después de la última',
+  enviadoEn: new Date(AHORA + 10 * 60 * 1000).toISOString(),
+};
+
+const MENSAJE_PROPIO = {
+  id: 'm-propio',
+  userId: 'u1',
+  usuario: 'Marcelo',
+  texto: 'Mensaje propio',
+  enviadoEn: new Date(AHORA - 5 * 60 * 1000).toISOString(),
+};
+
+const MENSAJE_AJENO = {
+  id: 'm-ajeno',
+  userId: 'u2',
+  usuario: 'Ana',
+  texto: 'Mensaje ajeno',
+  enviadoEn: new Date(AHORA - 10 * 60 * 1000).toISOString(),
 };
 
 const MIEMBRO_TERMINADO = {
@@ -988,6 +1085,281 @@ await testAsync('un activity-state vacío muestra el mensaje y las secciones vac
   ]) {
     assert.equal(lista.hijos[0].textContent, 'Sin registros.');
   }
+});
+
+console.log('# actividadGrupos.js — chat');
+
+test('un mensaje anterior a la primera actividad queda antes de ella', () => {
+  const t = crearContextoActividadGrupos();
+  const listas = t.ctxTest.construirListasActividad(
+    { vencidos: [], enCurso: [MIEMBRO_EN_CURSO], terminados: [] },
+    [MENSAJE_ANTES]
+  );
+  assert.equal(listas.enCurso.map((item) => item.tipo).join(','), 'mensaje,actividad');
+  assert.equal(listas.enCurso[0].mensaje.id, 'm1');
+  assert.equal(listas.enCurso[1].actividad.id, 'c1');
+});
+
+test('un mensaje entre dos actividades en curso queda entre ellas', () => {
+  const t = crearContextoActividadGrupos();
+  const listas = t.ctxTest.construirListasActividad(
+    {
+      vencidos: [],
+      enCurso: [MIEMBRO_EN_CURSO_2, MIEMBRO_EN_CURSO],
+      terminados: [],
+    },
+    [MENSAJE_MEDIO]
+  );
+  assert.equal(
+    listas.enCurso.map((item) => item.tipo).join(','),
+    'actividad,mensaje,actividad'
+  );
+  assert.equal(listas.enCurso[0].actividad.id, 'c1');
+  assert.equal(listas.enCurso[1].mensaje.id, 'm2');
+  assert.equal(listas.enCurso[2].actividad.id, 'c2');
+});
+
+test('un mensaje posterior a la última actividad va a Finalizadas', () => {
+  const t = crearContextoActividadGrupos();
+  const listas = t.ctxTest.construirListasActividad(
+    {
+      vencidos: [],
+      enCurso: [MIEMBRO_EN_CURSO],
+      terminados: [MIEMBRO_TERMINADO],
+    },
+    [MENSAJE_DESPUES]
+  );
+  assert.deepEqual(
+    listas.terminados.map((item) => item.tipo),
+    ['actividad', 'mensaje']
+  );
+  assert.equal(listas.terminados[1].mensaje.id, 'm3');
+});
+
+test('sin actividades en curso todos los mensajes van a Finalizadas', () => {
+  const t = crearContextoActividadGrupos();
+  const listas = t.ctxTest.construirListasActividad(
+    { vencidos: [], enCurso: [], terminados: [] },
+    [MENSAJE_DESPUES, MENSAJE_ANTES]
+  );
+  assert.deepEqual(
+    listas.terminados.map((item) => item.mensaje.id),
+    ['m1', 'm3']
+  );
+});
+
+await testAsync('las burbujas propias van a la derecha y las ajenas muestran nombre', async () => {
+  const token = crearTokenActividad({ userId: 'u1', email: 'ana@test.com' });
+  const t = crearContextoActividadGrupos({
+    token,
+    fetch: async (url) => {
+      if (String(url).endsWith('/messages')) {
+        return respuestaOk({ mensajes: [MENSAJE_AJENO, MENSAJE_PROPIO] });
+      }
+      return respuestaOk({
+        activityState: { vencidos: [], enCurso: [], terminados: [] },
+      });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  assert.ok(
+    t.fetchLog.some(
+      (llamada) => llamada.url.endsWith('/messages') && llamada.init.method === 'GET'
+    ),
+    'la historia se carga al abrir'
+  );
+  const burbujas = buscarTodosPorClase(
+    t.nodos.listaTerminados,
+    'grupo-mensaje'
+  );
+  assert.equal(burbujas.length, 2);
+  const [ajena, propia] = burbujas;
+  assert.equal(ajena.classList.contains('grupo-mensaje-propio'), false);
+  assert.equal(propia.classList.contains('grupo-mensaje-propio'), true);
+  assert.equal(
+    buscarPorClase(ajena, 'grupo-mensaje-usuario').textContent,
+    'Ana'
+  );
+  assert.equal(buscarPorClase(propia, 'grupo-mensaje-usuario'), null);
+  assert.equal(buscarPorClase(ajena, 'grupo-mensaje-texto').textContent, 'Mensaje ajeno');
+  assert.equal(buscarPorClase(propia, 'grupo-mensaje-texto').textContent, 'Mensaje propio');
+  assert.equal(
+    buscarPorClase(ajena, 'grupo-mensaje-hora').textContent,
+    t.ctxTest.formatearHoraActividad(MENSAJE_AJENO.enviadoEn)
+  );
+  assert.equal(
+    buscarPorClase(propia, 'grupo-mensaje-hora').textContent,
+    t.ctxTest.formatearHoraActividad(MENSAJE_PROPIO.enviadoEn)
+  );
+});
+
+await testAsync('Ver chat oculta solo las burbujas y no las actividades', async () => {
+  const t = crearContextoActividadGrupos({
+    fetch: async (url) => {
+      if (String(url).endsWith('/messages')) {
+        return respuestaOk({ mensajes: [MENSAJE_DESPUES] });
+      }
+      return respuestaOk({ activityState: estadoCompleto() });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  const mensajesAntes = buscarTodosPorClase(
+    t.nodos.listaTerminados,
+    'grupo-mensaje'
+  ).length;
+  const actividadesAntes =
+    t.nodos.listaVencidos.hijos.length +
+    t.nodos.listaEnCurso.hijos.length +
+    t.nodos.listaTerminados.hijos.length;
+  assert.equal(mensajesAntes, 1);
+
+  t.nodos.toggleChatGrupo.disparar('click');
+  assert.equal(
+    t.nodos.vistaDetalleActividadGrupos.classList.contains(
+      'actividad-grupos-chat-oculto'
+    ),
+    true
+  );
+  assert.equal(t.nodos.toggleChatGrupo.textContent, 'Ver chat');
+  assert.equal(
+    buscarTodosPorClase(t.nodos.listaTerminados, 'grupo-mensaje').length,
+    mensajesAntes,
+    'las burbujas siguen en el DOM'
+  );
+  assert.equal(
+    t.nodos.listaVencidos.hijos.length +
+      t.nodos.listaEnCurso.hijos.length +
+      t.nodos.listaTerminados.hijos.length,
+    actividadesAntes,
+    'las actividades no se tocan'
+  );
+
+  t.nodos.toggleChatGrupo.disparar('click');
+  assert.equal(
+    t.nodos.vistaDetalleActividadGrupos.classList.contains(
+      'actividad-grupos-chat-oculto'
+    ),
+    false
+  );
+  assert.equal(t.nodos.toggleChatGrupo.textContent, 'Ocultar chat');
+});
+
+await testAsync('un evento SSE agrega el mensaje en su sección sin duplicar id', async () => {
+  const token = crearTokenActividad({ userId: 'u1' });
+  const t = crearContextoActividadGrupos({
+    token,
+    fetch: async (url) => {
+      if (String(url).endsWith('/messages')) return respuestaOk({ mensajes: [] });
+      return respuestaOk({
+        activityState: {
+          vencidos: [],
+          enCurso: [MIEMBRO_EN_CURSO],
+          terminados: [],
+        },
+      });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  const fuente = t.eventSources[t.eventSources.length - 1];
+  assert.ok(fuente, 'se abre el EventSource');
+  assert.ok(fuente.url.includes('/messages/stream?token='));
+  fuente.emitir('mensaje', MENSAJE_ANTES);
+
+  assert.equal(
+    t.nodos.listaEnCurso.hijos[0].classList.contains('grupo-mensaje'),
+    true
+  );
+  assert.equal(t.nodos.listaEnCurso.hijos[1].classList.contains('grupo-miembro-card'), true);
+  assert.equal(
+    buscarTodosPorClase(t.nodos.listaEnCurso, 'grupo-mensaje').length,
+    1
+  );
+
+  fuente.emitir('mensaje', MENSAJE_ANTES);
+  assert.equal(
+    buscarTodosPorClase(t.nodos.listaEnCurso, 'grupo-mensaje').length,
+    1,
+    'no duplica el mismo id'
+  );
+
+  fuente.emitir('mensaje', MENSAJE_DESPUES);
+  assert.equal(
+    buscarTodosPorClase(t.nodos.listaTerminados, 'grupo-mensaje').length,
+    1
+  );
+});
+
+await testAsync('el EventSource se cierra al volver y en pagehide', async () => {
+  const token = crearTokenActividad({ userId: 'u1' });
+  const t = crearContextoActividadGrupos({
+    token,
+    fetch: async (url) => {
+      if (String(url).endsWith('/messages')) return respuestaOk({ mensajes: [] });
+      return respuestaOk({
+        activityState: {
+          vencidos: [],
+          enCurso: [MIEMBRO_EN_CURSO],
+          terminados: [],
+        },
+      });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+  const primera = t.eventSources[t.eventSources.length - 1];
+  assert.equal(primera.cerrado, false);
+
+  t.nodos.volverListaGrupos.disparar('click');
+  assert.equal(primera.cerrado, true);
+
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+  const segunda = t.eventSources[t.eventSources.length - 1];
+  t.dispararWindow('pagehide', {});
+  assert.equal(segunda.cerrado, true);
+});
+
+await testAsync('Enviar publica el mensaje y limpia el input', async () => {
+  const token = crearTokenActividad({ userId: 'u1' });
+  let post = null;
+  const t = crearContextoActividadGrupos({
+    token,
+    fetch: async (url, init) => {
+      if (init && init.method === 'POST') {
+        post = { url: String(url), init };
+        return {
+          ok: true,
+          status: 201,
+          json: async () => ({
+            mensaje: {
+              ...MENSAJE_PROPIO,
+              id: 'm-post',
+              texto: 'Hola grupo',
+            },
+          }),
+        };
+      }
+      if (String(url).endsWith('/messages')) return respuestaOk({ mensajes: [] });
+      return respuestaOk({
+        activityState: { vencidos: [], enCurso: [], terminados: [] },
+      });
+    },
+  });
+  await t.ctxTest.abrirDetalleGrupo(GRUPO);
+
+  t.nodos.entradaMensajeGrupo.value = 'Hola grupo';
+  t.nodos.formMensajeGrupo.disparar('submit', { preventDefault: () => {} });
+  await esperar(() => t.nodos.entradaMensajeGrupo.value === '');
+
+  assert.equal(post.url, 'http://back.test/api/groups/g1/messages');
+  assert.equal(post.init.method, 'POST');
+  assert.equal(post.init.headers.Authorization, `Bearer ${token}`);
+  assert.deepEqual(JSON.parse(post.init.body), { texto: 'Hola grupo' });
+  assert.equal(
+    buscarTodosPorClase(t.nodos.listaTerminados, 'grupo-mensaje').length,
+    1
+  );
 });
 
 console.log('# actividadGrupos.js — eliminación');
