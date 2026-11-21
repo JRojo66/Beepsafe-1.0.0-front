@@ -16,7 +16,7 @@ const FUENTE = fs.readFileSync(RUTA_SCRIPT, 'utf8').replace(
 const EXPORTS = `;globalThis.__test = {
   showConfirm, eliminarEquipoConConfirmacion, eliminarActividadConConfirmacion,
   abrirVisorFotoEquipo, cerrarVisorFotoEquipo, conectarBotonFotoEquipo,
-  crearHTMLFotoEquipo,
+  crearHTMLFotoEquipo, conectarToggleEquipo,
 };`;
 
 let pasados = 0;
@@ -83,6 +83,13 @@ function crearNodo(extra = {}) {
       add: (...valores) => valores.forEach((valor) => clases.add(valor)),
       remove: (...valores) => valores.forEach((valor) => clases.delete(valor)),
       contains: (valor) => clases.has(valor),
+      toggle: (valor, fuerza) => {
+        const debeEstar =
+          fuerza === undefined ? !clases.has(valor) : Boolean(fuerza);
+        if (debeEstar) clases.add(valor);
+        else clases.delete(valor);
+        return debeEstar;
+      },
     },
   };
   let nombreClase = '';
@@ -325,14 +332,24 @@ test('Agregar equipo queda centrado, full width y con borde sólido', () => {
   assert.match(agregar, /display:\s*flex;/);
   assert.match(agregar, /align-items:\s*center;/);
   assert.match(agregar, /justify-content:\s*center;/);
+  assert.match(agregar, /box-sizing:\s*border-box;/);
   assert.match(agregar, /width:\s*100%;/);
   assert.match(agregar, /height:\s*88px;/);
   assert.match(agregar, /min-height:\s*88px;/);
+  assert.match(agregar, /margin:\s*0;/);
   assert.match(agregar, /border:\s*1px solid var\(--color-principal\);/);
+  assert.match(agregar, /color:\s*#ffffff;/);
   assert.match(agregar, /text-align:\s*center;/);
   assert.doesNotMatch(agregar, /border:\s*1px dashed/);
   assert.match(fila, /height:\s*88px;/);
   assert.match(fila, /min-height:\s*88px;/);
+
+  const esquinas = reglaCss(
+    css,
+    '.accordion > .toggle-add-equipment:last-child'
+  );
+  assert.match(esquinas, /border-radius:\s*0 0 20px 20px;/);
+  assert.ok(!css.includes('.actividades-wrapper .toggle-add-equipment'));
 });
 
 test('el overlay del visor reutiliza el markup y clases de Actividad Grupos', () => {
@@ -413,6 +430,48 @@ test('sin foto no hay botón y el visor permanece cerrado', () => {
 
   assert.equal(t.nodos.visorFotoEquipo.classList.contains('hidden'), true);
   assert.ok(!t.ctx.document.body.style.overflow);
+});
+
+test('el toggle se genera fuera del body y conserva las clases de ancho', () => {
+  const js = fs.readFileSync(
+    path.join(__dirname, '..', 'JS', 'misEquiposActividades.js'),
+    'utf8'
+  );
+
+  assert.match(
+    js,
+    /<div class="add-equipment-form hidden">[\s\S]*?<\/div>\s*<\/div>\s*<span class="toggle-add-equipment botonActividad fila-ancho-completo">/
+  );
+  assert.ok(
+    js.includes(
+      '<span class="toggle-add-equipment botonActividad fila-ancho-completo">'
+    )
+  );
+  assert.ok(js.includes('conectarToggleEquipo(accordion)'));
+});
+
+test('el click del toggle abre y cierra el formulario dentro del body', () => {
+  const t = crearContexto();
+  const form = crearNodo({ style: { display: 'none' } });
+  const icono = crearNodo();
+  const toggle = crearNodo();
+  const accordion = {
+    querySelector(selector) {
+      if (selector === '.toggle-add-equipment') return toggle;
+      if (selector === '.add-equipment-form') return form;
+      if (selector === '.toggle-add-equipment .toggle-icon') return icono;
+      return null;
+    },
+  };
+  t.ctxTest.conectarToggleEquipo(accordion);
+
+  toggle.disparar('click');
+  assert.equal(form.style.display, 'block');
+  assert.equal(icono.classList.contains('rotate'), true);
+
+  toggle.disparar('click');
+  assert.equal(form.style.display, 'none');
+  assert.equal(icono.classList.contains('rotate'), false);
 });
 
 }
