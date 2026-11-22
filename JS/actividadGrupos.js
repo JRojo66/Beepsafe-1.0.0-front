@@ -149,6 +149,18 @@ function formatearHoraActividad(valor) {
   }
 }
 
+function formatearFechaHoraMensaje(valor) {
+  if (valor == null || valor === '') return '';
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) return String(valor);
+  try {
+    const partes = partesFechaActividad(fecha);
+    return `${partes.dia}/${partes.mes} ${partes.hora}:${partes.minuto}`;
+  } catch (err) {
+    return String(valor);
+  }
+}
+
 function normalizarMensajesActividad(datos) {
   const base = Array.isArray(datos)
     ? datos
@@ -264,7 +276,7 @@ function crearBurbujaMensaje(mensaje) {
   burbuja.appendChild(
     crearTextoActividad(
       'grupo-mensaje-hora',
-      formatearHoraActividad(datos.enviadoEn),
+      formatearFechaHoraMensaje(datos.enviadoEn),
       'span'
     )
   );
