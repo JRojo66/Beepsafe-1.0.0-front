@@ -1273,6 +1273,8 @@ await testAsync('Ver chat oculta solo las burbujas y no las actividades', async 
     t.nodos.listaEnCurso.hijos.length +
     t.nodos.listaTerminados.hijos.length;
   assert.equal(mensajesAntes, 1);
+  assert.equal(t.nodos.toggleChatGrupo.classList.contains('activo'), true);
+  assert.equal(t.nodos.toggleChatGrupo.getAttribute('aria-pressed'), 'true');
 
   t.nodos.toggleChatGrupo.disparar('click');
   assert.equal(
@@ -1282,6 +1284,8 @@ await testAsync('Ver chat oculta solo las burbujas y no las actividades', async 
     true
   );
   assert.equal(t.nodos.toggleChatGrupo.textContent, 'Ver chat');
+  assert.equal(t.nodos.toggleChatGrupo.classList.contains('activo'), false);
+  assert.equal(t.nodos.toggleChatGrupo.getAttribute('aria-pressed'), 'false');
   assert.equal(
     buscarTodosPorClase(t.nodos.listaTerminados, 'grupo-mensaje').length,
     mensajesAntes,
@@ -1303,6 +1307,8 @@ await testAsync('Ver chat oculta solo las burbujas y no las actividades', async 
     false
   );
   assert.equal(t.nodos.toggleChatGrupo.textContent, 'Ocultar chat');
+  assert.equal(t.nodos.toggleChatGrupo.classList.contains('activo'), true);
+  assert.equal(t.nodos.toggleChatGrupo.getAttribute('aria-pressed'), 'true');
 });
 
 await testAsync('un evento SSE agrega el mensaje en su sección sin duplicar id', async () => {
@@ -1444,6 +1450,62 @@ test('Ver integrantes queda entre el nombre del grupo y Ocultar chat', () => {
   assert.ok(html.includes('id="cerrarModalIntegrantes"'));
   assert.ok(html.includes('id="cerrarIntegrantesBoton"'));
   assert.ok(html.includes('class="modal-btn cancelar">Cerrar</button>'));
+});
+
+test('los botones del detalle viven en la segunda fila de la cabecera', () => {
+  const html = fs.readFileSync(
+    path.join(__dirname, '..', 'pages', 'actividadGrupos.html'),
+    'utf8'
+  );
+  const css = fs.readFileSync(
+    path.join(__dirname, '..', 'styles', 'styles.css'),
+    'utf8'
+  );
+  const fila = html.match(
+    /<div class="actividad-grupos-detalle-fila">([\s\S]*?)<\/div>/
+  );
+  const acciones = html.match(
+    /<div class="actividad-grupos-detalle-acciones">([\s\S]*?)<\/div>/
+  );
+  assert.ok(fila, 'falta la fila del nombre');
+  assert.ok(acciones, 'falta la fila de acciones');
+  assert.ok(fila[1].includes('id="volverListaGrupos"'));
+  assert.ok(fila[1].includes('id="tituloDetalleGrupo"'));
+  assert.ok(!fila[1].includes('id="verIntegrantesGrupo"'));
+  assert.ok(!fila[1].includes('id="toggleChatGrupo"'));
+  assert.ok(acciones[1].includes('id="verIntegrantesGrupo"'));
+  assert.ok(acciones[1].includes('id="toggleChatGrupo"'));
+  assert.ok(
+    html.indexOf('actividad-grupos-detalle-fila') <
+      html.indexOf('actividad-grupos-detalle-acciones')
+  );
+
+  const filaAcciones = css.match(
+    /\.actividad-grupos-detalle-acciones\s*\{([\s\S]*?)\}/
+  )[1];
+  assert.match(filaAcciones, /justify-content:\s*flex-start;/);
+  assert.match(filaAcciones, /gap:\s*8px;/);
+  assert.match(filaAcciones, /margin-top:\s*8px;/);
+  assert.match(filaAcciones, /padding:\s*0 7%;/);
+
+  const botones = css.match(
+    /\.actividad-grupos-toggle-chat,\s*\.actividad-grupos-ver-integrantes\s*\{([\s\S]*?)\}/
+  )[1];
+  assert.match(botones, /border:\s*1px solid var\(--color-principal\);/);
+  assert.match(botones, /border-radius:\s*999px;/);
+  assert.match(botones, /background-color:\s*var\(--color-fondo2\);/);
+  assert.match(botones, /color:\s*var\(--color-principal\);/);
+  assert.match(botones, /padding:\s*8px 14px;/);
+  assert.match(botones, /font-size:\s*13px;/);
+  assert.match(botones, /box-shadow:\s*none;/);
+  assert.match(
+    css,
+    /\.actividad-grupos-toggle-chat\.activo\s*\{[^}]*background-color:\s*var\(--color-principal\);[^}]*color:\s*var\(--color-fondo\);/
+  );
+  assert.match(
+    css,
+    /\.actividad-grupos-toggle-chat\.activo:hover,[\s\S]*?background-color:\s*var\(--color-principal-hover\);/
+  );
 });
 
 await testAsync('el modal lista integrantes del grupo y de la actividad sin duplicados', async () => {
@@ -1951,7 +2013,7 @@ test('las cabeceras sticky existen en el markup y el CSS', () => {
     assert.ok(css.includes(clase), `falta ${clase} en el CSS`);
   }
   assert.ok(css.includes('position: sticky'));
-  assert.ok(css.includes('top: 55px'));
+  assert.ok(css.includes('top: 97px'));
   assert.ok(css.includes('prefers-reduced-motion'));
 });
 

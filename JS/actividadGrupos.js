@@ -385,6 +385,8 @@ function establecerChatActividadVisible(visible) {
   const boton = document.getElementById('toggleChatGrupo');
   if (boton) {
     boton.textContent = chatActividadVisible ? 'Ocultar chat' : 'Ver chat';
+    boton.classList.toggle('activo', chatActividadVisible);
+    boton.setAttribute('aria-pressed', String(chatActividadVisible));
   }
 }
 
