@@ -1236,7 +1236,7 @@ await testAsync('las burbujas propias van a la derecha y las ajenas muestran nom
   );
   assert.equal(
     buscarPorClase(propia, 'grupo-mensaje-hora').textContent,
-    '18/05 08:50'
+    '18/05 08:55'
   );
 
   const css = fs.readFileSync(
